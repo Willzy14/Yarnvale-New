@@ -1729,6 +1729,10 @@ function loadIntroState() {
     introDone = true;
     introState = 'complete';
   }
+  // DEBUG: Temporarily reset intro to test
+  localStorage.removeItem('introComplete');
+  introDone = false;
+  introState = 'welcome';
 }
 
 function completeIntro() {
