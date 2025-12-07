@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yarnvale Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #8b4513;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #8b4513;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            background: #8b4513;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #6b3410;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧶 Yarnvale Test Page</h1>
+        
+        <div class="test-section">
+            <h2>Connection Status</h2>
+            <div id="status" class="status error">Testing connection...</div>
+            <button onclick="testConnection()">Test Connection</button>
+        </div>
+
+        <div class="test-section">
+            <h2>Local Storage Test</h2>
+            <button onclick="testStorage()">Test Save/Load</button>
+            <div id="storageStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Console Output</h2>
+            <div id="console" style="background: #222; color: #0f0; padding: 10px; border-radius: 4px; font-family: monospace; max-height: 200px; overflow-y: auto;"></div>
+            <button onclick="clearConsole()">Clear Console</button>
+        </div>
+
+        <div class="test-section">
+            <h2>Quick Refresh</h2>
+            <button onclick="location.reload()">Refresh Page</button>
+            <p style="font-size: 12px; color: #666;">Use this to reload and test live changes</p>
+        </div>
+
+        <div class="timestamp" id="time"></div>
+    </div>
+
+    <script>
+        // Redirect console logs to page
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+            consoleDiv.innerHTML += msg + '\n';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+
+        function testConnection() {
+            const statusDiv = document.getElementById('status');
+            try {
+                statusDiv.textContent = '✓ Page loaded successfully!';
+                statusDiv.className = 'status success';
+                console.log('✓ Connection test passed at ' + new Date().toLocaleTimeString());
+            } catch (e) {
+                statusDiv.textContent = '✗ Error: ' + e.message;
+                statusDiv.className = 'status error';
+                console.log('✗ Connection test failed: ' + e.message);
+            }
+        }
+
+        function testStorage() {
+            const statusDiv = document.getElementById('storageStatus');
+            try {
+                localStorage.setItem('test', 'works');
+                const value = localStorage.getItem('test');
+                if (value === 'works') {
+                    statusDiv.innerHTML = '<div class="status success">✓ Local Storage working! Saved and retrieved test data.</div>';
+                    console.log('✓ Storage test passed');
+                } else {
+                    statusDiv.innerHTML = '<div class="status error">✗ Storage failed - data mismatch</div>';
+                }
+            } catch (e) {
+                statusDiv.innerHTML = '<div class="status error">✗ Storage error: ' + e.message + '</div>';
+                console.log('✗ Storage test failed: ' + e.message);
+            }
+        }
+
+        function clearConsole() {
+            consoleDiv.innerHTML = '';
+        }
+
+        function updateTime() {
+            document.getElementById('time').textContent = 'Last updated: ' + new Date().toLocaleString();
+        }
+
+        // Run tests on load
+        window.addEventListener('load', function() {
+            testConnection();
+            testStorage();
+            updateTime();
+        });
+
+        // Update time every second
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>

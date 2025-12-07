@@ -1715,11 +1715,159 @@ function collectCrystalShard(location) {
 }
 
 // =========================
+// INTRO SYSTEM
+// =========================
+// #region INTRO
+
+let introState = 'welcome'; // 'welcome' | 'dialogue' | 'complete'
+let introDone = false;
+
+// Check if player has seen intro before
+function loadIntroState() {
+  const saved = localStorage.getItem('introComplete');
+  if (saved === 'true') {
+    introDone = true;
+    introState = 'complete';
+  }
+}
+
+function completeIntro() {
+  introDone = true;
+  introState = 'complete';
+  localStorage.setItem('introComplete', 'true');
+  taskBoardOpen = true; // Show task board after intro
+}
+
+function drawIntroScreen() {
+  // Semi-transparent overlay
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  if (introState === 'welcome') {
+    drawWelcomeScreen();
+  } else if (introState === 'dialogue') {
+    drawIntroDialogue();
+  }
+}
+
+function drawWelcomeScreen() {
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  
+  // Title box
+  const boxW = 300;
+  const boxH = 200;
+  const boxX = centerX - boxW / 2;
+  const boxY = centerY - boxH / 2 - 40;
+  
+  ctx.fillStyle = 'rgba(20, 30, 60, 0.95)';
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, boxW, boxH, 10);
+  ctx.fill();
+  
+  ctx.strokeStyle = 'rgba(255, 200, 100, 0.6)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, boxW, boxH, 10);
+  ctx.stroke();
+  
+  // Title
+  ctx.fillStyle = '#ffc864';
+  ctx.font = 'bold 32px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('🧶 Yarnvale', centerX, boxY + 45);
+  
+  // Subtitle
+  ctx.fillStyle = '#d0d0d0';
+  ctx.font = '14px system-ui';
+  ctx.fillText('A cozy crafting adventure', centerX, boxY + 70);
+  
+  // Instructions
+  ctx.fillStyle = '#a0a0a0';
+  ctx.font = '12px system-ui';
+  const instructions = [
+    'Use WASD or Arrow Keys to move',
+    'Press E to interact with objects',
+    'Craft items at your spinning wheel'
+  ];
+  let instrY = boxY + 100;
+  instructions.forEach(line => {
+    ctx.fillText(line, centerX, instrY);
+    instrY += 20;
+  });
+  
+  // Continue button
+  const btnW = 120;
+  const btnH = 35;
+  const btnX = centerX - btnW / 2;
+  const btnY = boxY + boxH - 50;
+  
+  ctx.fillStyle = '#ffc864';
+  ctx.beginPath();
+  ctx.roundRect(btnX, btnY, btnW, btnH, 6);
+  ctx.fill();
+  
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 14px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('Let\'s Begin', centerX, btnY + 23);
+  ctx.textAlign = 'left';
+  
+  // Store button rect for click detection
+  window.welcomeBtnRect = { x: btnX, y: btnY, w: btnW, h: btnH };
+}
+
+function drawIntroDialogue() {
+  const centerX = canvas.width / 2;
+  const dialogueY = canvas.height - 120;
+  
+  // Dialogue box
+  const boxW = Math.min(320, canvas.width - 20);
+  const boxH = 100;
+  const boxX = centerX - boxW / 2;
+  
+  ctx.fillStyle = 'rgba(20, 30, 60, 0.95)';
+  ctx.beginPath();
+  ctx.roundRect(boxX, dialogueY, boxW, boxH, 10);
+  ctx.fill();
+  
+  ctx.strokeStyle = 'rgba(100, 200, 150, 0.6)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(boxX, dialogueY, boxW, boxH, 10);
+  ctx.stroke();
+  
+  // NPC name
+  ctx.fillStyle = '#64c896';
+  ctx.font = 'bold 12px system-ui';
+  ctx.fillText('Elder Mara 🌾', boxX + 15, dialogueY + 20);
+  
+  // Dialogue text
+  ctx.fillStyle = '#e0e0e0';
+  ctx.font = '12px system-ui';
+  const text = 'Welcome to Yarnvale! Your cottage and sheep are ready.';
+  const text2 = 'Start by shearing the sheep, then spin yarn at your wheel.';
+  
+  ctx.fillText(text, boxX + 15, dialogueY + 42);
+  ctx.fillText(text2, boxX + 15, dialogueY + 60);
+  
+  // Continue hint
+  ctx.fillStyle = '#888';
+  ctx.font = '10px system-ui';
+  ctx.fillText('Click to continue...', boxX + boxW - 110, dialogueY + boxH - 8);
+  
+  // Store dialogue box rect for click detection
+  window.dialogueBtnRect = { x: boxX, y: dialogueY, w: boxW, h: boxH };
+}
+
+// #endregion INTRO
+
+// =========================
 // TASK BOARD SYSTEM
 // =========================
 // #region TASK_BOARD
 
-let taskBoardOpen = true;  // Open by default for new players
+let taskBoardOpen = false;  // Closed until intro completes
 let taskBoardMinimized = false;
 
 // Task definitions - ordered by progression
@@ -1794,11 +1942,8 @@ function getActiveTasks() {
 }
 
 function toggleTaskBoard() {
-  if (taskBoardMinimized) {
-    taskBoardMinimized = false;
-  } else {
-    taskBoardOpen = !taskBoardOpen;
-  }
+  taskBoardOpen = !taskBoardOpen;
+  taskBoardMinimized = false;
 }
 
 function minimizeTaskBoard() {
@@ -2170,6 +2315,9 @@ let inventory = {
   mushroomBasket: 0,
   berryJam: 0
 };
+
+// Load intro state from localStorage
+loadIntroState();
 
 // =========================
 // FORAGEABLE SYSTEM
@@ -4003,13 +4151,28 @@ const GOAT_DRAW_OFFSET_Y = 10; // push goat sprite down a bit to clear trees
     canvas.addEventListener('pointerdown', ensureMobileAudioUnlock);
     canvas.addEventListener('touchstart', ensureMobileAudioUnlock);
     
-    // Handle clicks on task board button/panel
+    // Handle clicks on task board button/panel and intro
     canvas.addEventListener('click', (e) => {
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
       const scaleY = canvas.height / rect.height;
       const clickX = (e.clientX - rect.left) * scaleX;
       const clickY = (e.clientY - rect.top) * scaleY;
+      
+      // Handle intro screen clicks
+      if (!introDone) {
+        if (introState === 'welcome' && window.welcomeBtnRect) {
+          const btn = window.welcomeBtnRect;
+          if (clickX >= btn.x && clickX <= btn.x + btn.w && 
+              clickY >= btn.y && clickY <= btn.y + btn.h) {
+            introState = 'dialogue';
+            return;
+          }
+        } else if (introState === 'dialogue') {
+          completeIntro();
+          return;
+        }
+      }
       
       const isMobile = isCoarsePointer || showOverlayMode;
       const btnX = 8;
@@ -4029,11 +4192,13 @@ const GOAT_DRAW_OFFSET_Y = 10; // push goat sprite down a bit to clear trees
       // Check if clicked on minimize button (when open)
       if (taskBoardOpen && !taskBoardMinimized) {
         const panelW = isMobile ? 180 : 220;
-        const minBtnX = btnX + panelW - 20;
-        const minBtnY = btnY;
-        if (clickX >= minBtnX && clickX <= minBtnX + 20 && 
-            clickY >= minBtnY && clickY <= minBtnY + 28) {
-          minimizeTaskBoard();
+        const minBtnX = btnX + panelW - 24;
+        const minBtnY = btnY + 2;
+        const minBtnW = 20;
+        const minBtnH = 24;
+        if (clickX >= minBtnX && clickX <= minBtnX + minBtnW && 
+            clickY >= minBtnY && clickY <= minBtnY + minBtnH) {
+          taskBoardOpen = false;
           return;
         }
       }
@@ -6607,6 +6772,11 @@ function render() {
   
   // Task Board UI (drawn last so it's on top, but before debug)
   drawTaskBoardUI();
+  
+  // Intro screen (drawn on top of everything)
+  if (!introDone) {
+    drawIntroScreen();
+  }
 
   drawDebugInfoPanel();
 
