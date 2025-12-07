@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Yarnvale – Top-Down Prototype (Overworld + Cottage)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #050810;
+      color: #f5f7ff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .frame {
+      background:#04060f;
+      border-radius:16px;
+      padding:10px;
+      box-shadow:0 18px 40px rgba(0,0,0,0.8);
+    }
+
+    canvas {
+      image-rendering: pixelated;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.15);
+      background:#000;
+      display:block;
+    }
+
+    .hud {
+      margin-top:6px;
+      font-size:12px;
+      text-align:center;
+      color:#a9b3cd;
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <!-- Full map size: 19 * 32 by 13 * 32 -->
+    <canvas id="game" width="608" height="416"></canvas>
+    <div class="hud">
+      Yarnvale · Move with <strong>WASD / Arrow keys</strong> · Press <strong>E</strong> or <strong>Space</strong> at a door to go in/out.
+    </div>
+  </div>
+
+  <script>
+    
+
+// =========================
+// CONFIG & MAPS
+// =========================
+// #region CONFIG & MAPS
+    const TILE_SIZE = 32;
+
+    // Tile legend:
+    // 0 grass, 1 path, 2 tree (solid), 3 water (solid), 4 fence (solid),
+    // 5 cottage roof, 6 door, 7 interior wall (solid), 8 interior floor
+    const maps = {
+      overworld: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,6,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ]
+      },
+      cottage: {
+        cols: 9,
+        rows: 7,
+        data: [
+          [7,7,7,7,7,7,7,7,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,6,8,8,8,7],
+          [7,7,7,7,7,7,7,7,7]
+        ]
+      }
+    };
+
+// ===== INVENTORY =====
+let inventoryOpen = false;
+
+let inventory = {
+  wool: 0,
+  yarn: 0,
+  scarf: 0,
+  gold: 0
+};
+
+
+
+
+let message = null;
+let messageTimer = 0; // in "frames", roughly 60 frames = 1 second
+
+// One starter sheep in the paddock (overworld)
+const sheep = {
+  map: 'overworld',
+  x: 8,
+  y: 10,
+  hasWool: true,
+  woolTimer: 0 // counts frames until wool grows back
+};
+
+// Knitting spot inside the cottage (must be on a floor tile)
+const knittingSpot = {
+  map: 'cottage',
+  x: 3,
+  y: 4
+};
+
+const marketSpot = {
+  map: 'overworld',
+  x: 13,  // tweak later if you want it somewhere else
+  y: 9
+};
+
+
+
+    let currentMap = 'overworld';
+    let MAP_COLS = maps[currentMap].cols;
+    let MAP_ROWS = maps[currentMap].rows;
+    let mapData  = maps[currentMap].data;
+
+
+
+// =========================
+// CONFIG & MAPS
+// =========================
+
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+ // #endregion CONFIG & MAPS   <-- move it to HERE
+
+
+// =========================
+// PLAYER
+// =========================
+// #region PLAYER
+    const player = {
+      x: 9,             // tile coords (overworld start)
+      y: 10,
+      speed: 4,         // pixels per frame
+      px: 9 * TILE_SIZE,
+      py: 10 * TILE_SIZE,
+      moving: false,
+      targetPx: null,
+      targetPy: null,
+      dir: 'down'
+    };
+
+    function switchMap(name, spawnX, spawnY) {
+      currentMap = name;
+      MAP_COLS = maps[name].cols;
+      MAP_ROWS = maps[name].rows;
+      mapData  = maps[name].data;
+
+      player.x = spawnX;
+      player.y = spawnY;
+      player.px = spawnX * TILE_SIZE;
+      player.py = spawnY * TILE_SIZE;
+      player.moving = false;
+    }
+
+// #endregion PLAYER
+
+
+// =========================
+// INPUT
+// =========================
+// #region INPUT
+
+const keys = {
+  ArrowUp: false,
+  ArrowDown: false,
+  ArrowLeft: false,
+  ArrowRight: false,
+  w: false,
+  a: false,
+  s: false,
+  d: false,
+};
+
+window.addEventListener('keydown', (e) => {
+  // movement keys
+  if (e.key in keys) {
+    keys[e.key] = true;
+    e.preventDefault();
+  }
+
+  // toggle inventory with I or Esc
+  if (e.key === 'i' || e.key === 'I' || e.key === 'Escape') {
+    inventoryOpen = !inventoryOpen;
+    e.preventDefault();
+  }
+
+  // action key: E or Space (only when inventory is closed)
+  if ((e.key === 'e' || e.key === 'E' || e.key === ' ') && !inventoryOpen) {
+    handleAction();
+    e.preventDefault();
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  if (e.key in keys) {
+    keys[e.key] = false;
+    e.preventDefault();
+  }
+});
+
+// #endregion INPUT
+
+
+
+// =========================
+// HELPERS
+// =========================
+// #region HELPERS
+
+function showMessage(text, durationMs = 3500) {
+  message = text;
+  // convert ms to frames (approx 60fps → ~16ms per frame)
+  messageTimer = Math.round(durationMs / 16);
+}
+
+
+    function isSolidTile(tx, ty) {
+      if (tx < 0 || ty < 0 || tx >= MAP_COLS || ty >= MAP_ROWS) return true;
+      const t = mapData[ty][tx];
+      // trees, water, fences, interior walls are solid
+      return t === 2 || t === 3 || t === 4 || t === 7;
+    }
+
+    function tryStartMove(dx, dy) {
+      if (player.moving) return;
+
+      const targetX = player.x + dx;
+      const targetY = player.y + dy;
+      if (isSolidTile(targetX, targetY)) return;
+
+      player.x = targetX;
+      player.y = targetY;
+      player.targetPx = player.x * TILE_SIZE;
+      player.targetPy = player.y * TILE_SIZE;
+      player.moving = true;
+
+      if (dx === 1) player.dir = 'right';
+      if (dx === -1) player.dir = 'left';
+      if (dy === 1) player.dir = 'down';
+      if (dy === -1) player.dir = 'up';
+    }
+
+    function handleKnitting() {
+  // First priority: spin wool into yarn (2 wool -> 1 yarn)
+  if (inventory.wool >= 2) {
+    inventory.wool -= 2;
+    inventory.yarn += 1;
+    showMessage('You spin 2 bundles of wool into a neat ball of yarn.');
+    return;
+  }
+
+  // Second: knit yarn into a scarf (3 yarn -> 1 scarf)
+  if (inventory.yarn >= 3) {
+    inventory.yarn -= 3;
+    inventory.scarf += 1;
+    showMessage('You knit a cosy Yarnvale scarf. It looks very huggable.');
+    return;
+  }
+
+  // Not enough materials
+  if (inventory.wool > 0 || inventory.yarn > 0) {
+    showMessage('You need 2 wool for yarn, or 3 yarn for a scarf.');
+  } else {
+    showMessage('The needles are quiet. You have no wool or yarn to work with.');
+  }
+}
+
+function handleMarket() {
+  if (inventory.scarf > 0) {
+    inventory.scarf -= 1;
+    inventory.gold += 10; // 10 gold per scarf for now
+
+    showMessage(`You sell a cosy scarf for 10 gold. You now have ${inventory.gold} gold.`);
+  } else if (inventory.yarn > 0 || inventory.wool > 0) {
+    showMessage('You need a finished scarf to sell here. Knit one at your cottage first.');
+  } else {
+    showMessage('The market stall waits patiently. You have nothing to sell yet.');
+  }
+}
+
+
+    function handleAction() {
+  const tile = mapData[player.y][player.x];
+
+  // Doors between overworld and cottage
+  if (currentMap === 'overworld' && tile === 6) {
+    switchMap('cottage', 4, 4);
+    showMessage('You step into your cosy Yarnvale cottage.');
+    return;
+  } else if (currentMap === 'cottage' && tile === 6) {
+    switchMap('overworld', 9, 4);
+    showMessage('You head back out to the paddock.');
+    return;
+  }
+
+  // Knitting spot – only in cottage
+  if (currentMap === knittingSpot.map &&
+      player.x === knittingSpot.x &&
+      player.y === knittingSpot.y) {
+    handleKnitting();
+    return;
+  }
+
+  // Market stall – only in overworld
+  if (currentMap === marketSpot.map &&
+      player.x === marketSpot.x &&
+      player.y === marketSpot.y) {
+    handleMarket();
+    return;
+  }
+
+  // Sheep interaction – only in overworld
+  if (currentMap === 'overworld' && sheep.map === 'overworld') {
+    const dx = Math.abs(player.x - sheep.x);
+    const dy = Math.abs(player.y - sheep.y);
+
+    // player must stand next to the sheep (N/S/E/W)
+    if (dx + dy === 1) {
+      if (sheep.hasWool) {
+        sheep.hasWool = false;
+        sheep.woolTimer = 0;
+        inventory.wool += 1;
+        showMessage('You gently shear the sheep and collect a bundle of soft wool.');
+      } else {
+        showMessage('This sheep has already been shorn. Give its wool time to grow back.');
+      }
+    }
+  }
+}
+
+
+// #endregion HELPERS
+
+// =========================
+// UPDATE
+// =========================
+// #region UPDATE
+
+function update() {
+  // --- Smooth tile movement ---
+  if (player.moving) {
+    const dx = Math.sign(player.targetPx - player.px);
+    const dy = Math.sign(player.targetPy - player.py);
+
+    player.px += dx * player.speed;
+    player.py += dy * player.speed;
+
+    // reached the target tile
+    if (player.px === player.targetPx && player.py === player.targetPy) {
+      player.moving = false;
+      player.x = player.targetPx / TILE_SIZE;
+      player.y = player.targetPy / TILE_SIZE;
+    }
+  } else {
+    let dx = 0;
+    let dy = 0;
+
+    if (keys.ArrowUp || keys.w) {
+      dy = -1;
+      player.dir = 'up';
+    } else if (keys.ArrowDown || keys.s) {
+      dy = 1;
+      player.dir = 'down';
+    } else if (keys.ArrowLeft || keys.a) {
+      dx = -1;
+      player.dir = 'left';
+    } else if (keys.ArrowRight || keys.d) {
+      dx = 1;
+      player.dir = 'right';
+    }
+
+    if (dx !== 0 || dy !== 0) {
+      tryStartMove(dx, dy);
+    }
+  }
+
+  // --- Sheep wool regrowth ---
+  if (!sheep.hasWool) {
+    sheep.woolTimer++;
+
+    // ~10 seconds at ~60fps (tune this if you like)
+    if (sheep.woolTimer > 600) {
+      sheep.hasWool = true;
+      sheep.woolTimer = 0;
+
+      if (currentMap === 'overworld') {
+        showMessage('Your sheep has grown its wool back.');
+      }
+    }
+  }
+
+  // --- Message fade-out ---
+  if (messageTimer > 0) {
+    messageTimer--;
+
+    if (messageTimer <= 0) {
+      message = null;
+    }
+  }
+}
+// #endregion UPDATE
+
+
+// =========================
+// RENDER
+// =========================
+// #region RENDER
+    function drawTile(t, x, y) {
+  const px = x * TILE_SIZE;
+  const py = y * TILE_SIZE;
+
+  // Small deterministic variation so grass/path aren’t identical
+  const variation = (x * 13 + y * 7) % 4;
+
+  if (t === 0) {
+    // GRASS – richer colour + "stitched" pattern to hint at knitting
+    const g = ctx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#2f7a54');
+    g.addColorStop(1, '#1d4b3a');
+    ctx.fillStyle = g;
+    ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    // stitched rows
+    ctx.strokeStyle = 'rgba(210,255,220,0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const rowOffset = (variation % 2) * 4;
+    ctx.moveTo(px + 4, py + 6 + rowOffset);
+    ctx.lineTo(px + TILE_SIZE - 4, py + 6 + rowOffset);
+    ctx.moveTo(px + 4, py + TILE_SIZE - 6 + rowOffset);
+    ctx.lineTo(px + TILE_SIZE - 4, py + TILE_SIZE - 6 + rowOffset);
+    ctx.stroke();
+
+  } else if (t === 1) {
+    // PATH – warmer earth with edge highlights
+    const g = ctx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#d0a676');
+    g.addColorStop(1, '#9a6535');
+    ctx.fillStyle = g;
+    ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    // little pebbles
+    ctx.fillStyle = 'rgba(80,50,30,0.5)';
+    if (variation === 0) ctx.fillRect(px + 7, py + 10, 2, 2);
+    if (variation === 1) ctx.fillRect(px + 18, py + 14, 2, 2);
+    if (variation === 2) ctx.fillRect(px + 12, py + 6, 2, 2);
+
+  } else if (t === 2) {
+    // TREE – trunk + leafy crown
+    // trunk
+    ctx.fillStyle = '#5b3b23';
+    ctx.fillRect(px + 10, py + 8, 12, TILE_SIZE - 10);
+
+    // leaves
+    const g = ctx.createRadialGradient(
+      px + TILE_SIZE / 2, py + 6, 4,
+      px + TILE_SIZE / 2, py + 8, 18
+    );
+    g.addColorStop(0, '#5ab46b');
+    g.addColorStop(1, '#245630');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(px + TILE_SIZE / 2, py + 10, 14, 0, Math.PI * 2);
+    ctx.fill();
+
+  } else if (t === 3) {
+    // WATER – brighter pond with shimmer
+    const g = ctx.createLinearGradient(px, py, px + TILE_SIZE, py + TILE_SIZE);
+    g.addColorStop(0, '#46c0ff');
+    g.addColorStop(1, '#1760c0');
+    ctx.fillStyle = g;
+    ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    // shimmer lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px + 4, py + 10);
+    ctx.quadraticCurveTo(px + TILE_SIZE / 2, py + 6, px + TILE_SIZE - 4, py + 10);
+    ctx.moveTo(px + 4, py + TILE_SIZE - 6);
+    ctx.quadraticCurveTo(px + TILE_SIZE / 2, py + TILE_SIZE - 10, px + TILE_SIZE - 4, py + TILE_SIZE - 6);
+    ctx.stroke();
+
+  } else if (t === 4) {
+    // FENCE – chunkier with posts + rails
+    // rail
+    ctx.fillStyle = '#c9a46b';
+    ctx.fillRect(px, py + 11, TILE_SIZE, 10);
+    // posts
+    ctx.fillStyle = '#8a6234';
+    ctx.fillRect(px + 3, py + 7, 5, TILE_SIZE - 8);
+    ctx.fillRect(px + TILE_SIZE - 8, py + 7, 5, TILE_SIZE - 8);
+
+  } else if (t === 5) {
+    // COTTAGE ROOF – tiled effect
+    const g = ctx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#d59b62');
+    g.addColorStop(1, '#a36434');
+    ctx.fillStyle = g;
+    ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    // tile rows
+    ctx.strokeStyle = 'rgba(90,50,30,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(px, py + TILE_SIZE / 2);
+    ctx.lineTo(px + TILE_SIZE, py + TILE_SIZE / 2);
+    ctx.stroke();
+
+  } else if (t === 6) {
+    // DOOR – more contrasty
+    ctx.fillStyle = '#6a3a22';
+    ctx.fillRect(px + 6, py + 4, TILE_SIZE - 12, TILE_SIZE - 4);
+
+    // top trim
+    ctx.fillStyle = '#3b2114';
+    ctx.fillRect(px + 6, py + 4, TILE_SIZE - 12, 4);
+
+    // handle
+    ctx.fillStyle = '#f7e3a1';
+    ctx.fillRect(px + TILE_SIZE - 12, py + TILE_SIZE - 12, 3, 3);
+
+  } else if (t === 7) {
+    // INTERIOR WALL – wooden boards
+    const g = ctx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#4a3733');
+    g.addColorStop(1, '#2b1c1b');
+    ctx.fillStyle = g;
+    ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    ctx.strokeStyle = 'rgba(20,10,10,0.6)';
+    ctx.beginPath();
+    ctx.moveTo(px, py + TILE_SIZE / 2);
+    ctx.lineTo(px + TILE_SIZE, py + TILE_SIZE / 2);
+    ctx.stroke();
+
+  } else if (t === 8) {
+    // INTERIOR FLOOR – nicer planks
+    const g = ctx.createLinearGradient(px, py, px + TILE_SIZE, py + TILE_SIZE);
+    g.addColorStop(0, '#d8b07d');
+    g.addColorStop(1, '#a8743e');
+    ctx.fillStyle = g;
+    ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    ctx.strokeStyle = 'rgba(120,80,40,0.45)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    // plank line
+    ctx.moveTo(px, py + TILE_SIZE / 2);
+    ctx.lineTo(px + TILE_SIZE, py + TILE_SIZE / 2);
+    ctx.stroke();
+  }
+}
+
+
+    function drawPlayer() {
+  const px = player.px;
+  const py = player.py;
+
+  // simple shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(px + 16, py + 24, 10, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // body
+  ctx.fillStyle = '#f4b3ff'; // cosy knitted jumper
+  ctx.fillRect(px + 10, py + 10, 12, 18);
+
+  // legs
+  ctx.fillStyle = '#2b3145';
+  ctx.fillRect(px + 11, py + 26, 4, 6);
+  ctx.fillRect(px + 17, py + 26, 4, 6);
+
+  // head
+  ctx.beginPath();
+  ctx.arc(px + 16, py + 8, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffcf9e';
+  ctx.fill();
+
+  // hair (simple bob)
+  ctx.beginPath();
+  ctx.arc(px + 16, py + 6, 7, Math.PI, 0);
+  ctx.fillStyle = '#e48bd9';
+  ctx.fill();
+
+  // scarf
+  ctx.fillStyle = '#ffd9a6';
+  ctx.fillRect(px + 10, py + 15, 12, 4);
+  ctx.fillRect(px + 19, py + 15, 3, 7);
+
+  // tiny face details – eyes
+  ctx.fillStyle = '#3a2a24';
+  ctx.fillRect(px + 13, py + 7, 1, 2);
+  ctx.fillRect(px + 18, py + 7, 1, 2);
+}
+
+function drawSheep() {
+  if (currentMap !== sheep.map) return;
+
+  const px = sheep.x * TILE_SIZE;
+  const py = sheep.y * TILE_SIZE;
+
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(px + 16, py + 24, 10, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // body
+  if (sheep.hasWool) {
+    // fluffy
+    ctx.fillStyle = '#fdf9f2';
+    ctx.beginPath();
+    ctx.ellipse(px + 16, py + 18, 11, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // trimmed
+    ctx.fillStyle = '#e6dccb';
+    ctx.beginPath();
+    ctx.ellipse(px + 16, py + 18, 9, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // head
+  ctx.fillStyle = '#d3c0aa';
+  ctx.beginPath();
+  ctx.ellipse(px + 10, py + 14, 6, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // little ears
+  ctx.fillRect(px + 5, py + 10, 3, 3);
+  ctx.fillRect(px + 11, py + 10, 3, 3);
+
+  // face details
+  ctx.fillStyle = '#3a2a24';
+  ctx.fillRect(px + 8, py + 14, 1, 2);
+  ctx.fillRect(px + 11, py + 14, 1, 2);
+}
+
+function drawFurniture() {
+  // Knitting table in cottage
+  if (currentMap === knittingSpot.map) {
+    const px = knittingSpot.x * TILE_SIZE;
+    const py = knittingSpot.y * TILE_SIZE;
+
+    // little table
+    ctx.fillStyle = '#4a3423';
+    ctx.fillRect(px + 4, py + 10, TILE_SIZE - 8, TILE_SIZE - 12);
+
+    // lighter tabletop
+    ctx.fillStyle = '#7a5737';
+    ctx.fillRect(px + 6, py + 12, TILE_SIZE - 12, TILE_SIZE - 18);
+
+    // knitting clutter
+    ctx.fillStyle = '#d68caf';
+    ctx.beginPath();
+    ctx.arc(px + 12, py + 16, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#f2d27a';
+    ctx.beginPath();
+    ctx.arc(px + 20, py + 18, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Market stall in overworld
+  if (currentMap === marketSpot.map) {
+    const mx = marketSpot.x * TILE_SIZE;
+    const my = marketSpot.y * TILE_SIZE;
+
+    // stall base
+    ctx.fillStyle = '#3a2830';
+    ctx.fillRect(mx + 2, my + 16, TILE_SIZE - 4, TILE_SIZE - 6);
+
+    // stall top
+    ctx.fillStyle = '#8c4c5a';
+    ctx.fillRect(mx + 2, my + 4, TILE_SIZE - 4, 10);
+
+    // stripey awning
+    ctx.fillStyle = '#f5d4e0';
+    ctx.fillRect(mx + 4, my + 6, TILE_SIZE - 8, 4);
+
+    ctx.fillStyle = '#e28faf';
+    ctx.fillRect(mx + 4, my + 10, TILE_SIZE - 8, 3);
+
+    // tiny hanging scarf icon
+    ctx.fillStyle = '#f2f2ff';
+    ctx.fillRect(mx + TILE_SIZE - 10, my + 20, 4, 10);
+  }
+}
+
+
+
+    function render() {
+  // Background sky
+  const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  sky.addColorStop(0, '#182c4e');
+  sky.addColorStop(0.6, '#07131f');
+  sky.addColorStop(1, '#020509');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw tiles
+  for (let y = 0; y < MAP_ROWS; y++) {
+    for (let x = 0; x < MAP_COLS; x++) {
+      drawTile(mapData[y][x], x, y);
+    }
+  }
+
+  // Furniture (knitting table in cottage)
+  drawFurniture();
+
+  // Sheep (overworld only)
+  drawSheep();
+
+  // Player
+  drawPlayer();
+
+        // HUD – minimal (Wool + Gold only)
+  ctx.save();
+
+  const hudX = 8;
+  const hudY = 8;
+  const hudW = 150;
+  const hudH = 40;
+
+  // subtle background
+  ctx.fillStyle = 'rgba(5, 8, 16, 0.55)';
+  ctx.fillRect(hudX, hudY, hudW, hudH);
+
+  // border
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(hudX + 0.5, hudY + 0.5, hudW - 1, hudH - 1);
+
+  // label
+  ctx.fillStyle = '#a9b3cd';
+  ctx.font = '10px system-ui';
+  ctx.fillText('Yarnvale', hudX + 8, hudY + 14);
+
+  // Wool icon + count
+  ctx.fillStyle = '#f8f0d8';
+  ctx.beginPath();
+  ctx.arc(hudX + 14, hudY + 26, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#f5f7ff';
+  ctx.font = '12px system-ui';
+  ctx.fillText(`Wool: ${inventory.wool}`, hudX + 24, hudY + 29);
+
+  // Gold icon + count
+  ctx.fillStyle = '#f4c945';
+  ctx.beginPath();
+  ctx.arc(hudX + 95, hudY + 26, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#f5f7ff';
+  ctx.fillText(`G: ${inventory.gold}`, hudX + 105, hudY + 29);
+
+  ctx.restore();
+
+
+
+
+  // Message box at bottom
+  if (message) {
+    const boxH = 52;
+    const boxY = canvas.height - boxH;
+
+    ctx.fillStyle = 'rgba(5,8,16,0.65)';
+
+    ctx.fillRect(0, boxY, canvas.width, boxH);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.strokeRect(8, boxY + 8, canvas.width - 16, boxH - 16);
+
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '12px system-ui';
+    ctx.fillText('Yarnvale', 18, boxY + 26);
+
+       ctx.fillStyle = '#f5f7ff';
+    ctx.font = '14px system-ui';
+    ctx.fillText(message, 18, boxY + 46);
+  }
+
+    // -----------------------------
+  // INVENTORY PANEL
+  // -----------------------------
+  if (inventoryOpen) {
+    const panelW = 320;
+    const panelH = 220;
+    const panelX = (canvas.width - panelW) / 2;
+    const panelY = (canvas.height - panelH) / 2;
+
+    // background
+    ctx.fillStyle = 'rgba(6, 12, 26, 0.92)';
+    ctx.fillRect(panelX, panelY, panelW, panelH);
+
+    // border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(panelX + 0.5, panelY + 0.5, panelW - 1, panelH - 1);
+
+    // header bar
+    ctx.fillStyle = 'rgba(18, 32, 64, 0.95)';
+    ctx.fillRect(panelX, panelY, panelW, 40);
+
+    // title
+    ctx.fillStyle = '#f5f7ff';
+    ctx.font = '18px system-ui';
+    ctx.fillText('Inventory', panelX + 20, panelY + 26);
+
+    // small hint text
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '11px system-ui';
+    ctx.fillText('Press I or Esc to close', panelX + panelW - 150, panelY + 26);
+
+    // divider line under header
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(panelX + 12, panelY + 44);
+    ctx.lineTo(panelX + panelW - 12, panelY + 44);
+    ctx.stroke();
+
+    // row positions
+    const row1Y = panelY + 74;
+    const row2Y = row1Y + 34;
+    const row3Y = row2Y + 34;
+    const row4Y = row3Y + 34;
+
+    // --- Wool row ---
+    // icon
+    ctx.fillStyle = '#f8f0d8';
+    ctx.beginPath();
+    ctx.arc(panelX + 32, row1Y - 6, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(200,180,140,0.7)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // label + value
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '13px system-ui';
+    ctx.fillText('Wool', panelX + 54, row1Y);
+    ctx.fillStyle = '#f5f7ff';
+    ctx.font = '14px system-ui';
+    ctx.fillText(`${inventory.wool}`, panelX + panelW - 40, row1Y);
+
+    // --- Yarn row ---
+    ctx.fillStyle = '#f098c8';
+    ctx.beginPath();
+    ctx.arc(panelX + 32, row2Y - 6, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.beginPath();
+    ctx.arc(panelX + 32, row2Y - 6, 5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '13px system-ui';
+    ctx.fillText('Yarn', panelX + 54, row2Y);
+    ctx.fillStyle = '#f5f7ff';
+    ctx.font = '14px system-ui';
+    ctx.fillText(`${inventory.yarn}`, panelX + panelW - 40, row2Y);
+
+    // --- Scarf row ---
+    ctx.fillStyle = '#f2d27a';
+    ctx.fillRect(panelX + 26, row3Y - 12, 12, 18);
+    ctx.fillStyle = '#f8e9b0';
+    ctx.fillRect(panelX + 28, row3Y - 10, 8, 12);
+
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '13px system-ui';
+    ctx.fillText('Scarves', panelX + 54, row3Y);
+    ctx.fillStyle = '#f5f7ff';
+    ctx.font = '14px system-ui';
+    ctx.fillText(`${inventory.scarf}`, panelX + panelW - 40, row3Y);
+
+    // --- Gold row ---
+    ctx.fillStyle = '#f4c945';
+    ctx.beginPath();
+    ctx.arc(panelX + 32, row4Y - 6, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#c28b1e';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(panelX + 32, row4Y - 6, 8, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '13px system-ui';
+    ctx.fillText('Gold', panelX + 54, row4Y);
+    ctx.fillStyle = '#f5f7ff';
+    ctx.font = '14px system-ui';
+    ctx.fillText(`${inventory.gold}`, panelX + panelW - 40, row4Y);
+  }
+
+}
+
+// #endregion RENDER
+
+// =========================
+// MAIN LOOP
+// =========================
+// #region MAIN LOOP
+function loop() {
+  update();
+  render();
+  requestAnimationFrame(loop);
+}
+
+loop();
+
+// #endregion MAIN LOOP
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,2489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Yarnvale – Top-Down Prototype (Overworld + Cottage)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #050810;
+      color: #f5f7ff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 20px 12px 40px;
+    }
+
+    .frame {
+      background:#04060f;
+      border-radius:16px;
+      padding:10px;
+      box-shadow:0 18px 40px rgba(0,0,0,0.8);
+      width:min(96vw, 640px);
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    canvas {
+      image-rendering: pixelated;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.15);
+      background:#000;
+      display:block;
+      width:100%;
+      height:auto;
+      max-width:608px;
+    }
+
+    .hud {
+      font-size:12px;
+      text-align:center;
+      color:#a9b3cd;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .hud .instructions {
+      line-height:1.4;
+    }
+
+    .music-controls {
+      margin-top:6px;
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .music-controls button {
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      border:1px solid rgba(255,255,255,0.25);
+      background:rgba(255,255,255,0.08);
+      color:#f5f7ff;
+      cursor:pointer;
+      font-size:16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+    }
+
+    .music-controls button:focus-visible,
+    .touch-controls button:focus-visible,
+    #touch-inventory:focus-visible {
+      outline:2px solid #7cd3ff;
+      outline-offset:2px;
+    }
+
+    .music-controls button.muted::after {
+      content:"✕";
+      position:absolute;
+      font-size:12px;
+      color:#ffb0b0;
+      transform:translate(6px,-6px);
+    }
+
+    .music-controls .volume-label {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height:auto;
+    }
+
+    .music-controls input[type="range"] {
+      width:150px;
+      height:4px;
+      -webkit-appearance:none;
+      appearance:none;
+    }
+
+    #touch-inventory {
+      display:none;
+      position:absolute;
+      top:12px;
+      right:12px;
+      width:120px;
+      padding:10px 0;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.25);
+      background:rgba(7,11,22,0.55);
+      color:#f5f7ff;
+      font-size:14px;
+      text-align:center;
+      pointer-events:auto;
+      box-shadow:0 10px 24px rgba(0,0,0,0.25);
+    }
+
+    .sr-only {
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+
+    .touch-controls {
+      margin-top:6px;
+      display:none;
+      gap:12px;
+      justify-content:space-between;
+      align-items:center;
+      color:#f5f7ff;
+      width:100%;
+      pointer-events:auto;
+    }
+
+    .dpad {
+      display:grid;
+      grid-template-columns:repeat(3, 44px);
+      grid-template-rows:repeat(3, 44px);
+      gap:4px;
+      justify-items:center;
+      align-items:center;
+    }
+
+    .dpad span {
+      width:44px;
+      height:44px;
+    }
+
+    .touch-controls button {
+      width:44px;
+      height:44px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.25);
+      background:rgba(7,11,22,0.35);
+      color:#f5f7ff;
+      font-size:16px;
+      cursor:pointer;
+      touch-action:none;
+      pointer-events:auto;
+      backdrop-filter:blur(6px);
+    }
+
+    .touch-actions {
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .touch-actions button {
+      width:90px;
+    }
+
+    @media (pointer: coarse) {
+      body {
+        padding-top:30px;
+      }
+
+      .touch-controls {
+        display:flex;
+        flex-wrap:wrap;
+      }
+
+      .music-controls {
+        flex-direction:column;
+      }
+
+      #touch-inventory {
+        display:block;
+        width:120px;
+      }
+    }
+
+    @media (pointer: coarse) and (orientation: landscape) and (max-width: 1100px) {
+      body {
+        padding:0;
+        align-items:stretch;
+      }
+
+      .frame {
+        width:100vw;
+        height:100vh;
+        max-width:none;
+        border-radius:0;
+        padding:0;
+        box-shadow:none;
+      }
+
+      canvas {
+        width:100%;
+        height:100%;
+        max-width:none;
+        border-radius:0;
+      }
+
+      .hud {
+        position:absolute;
+        top:16px;
+        left:16px;
+        gap:4px;
+        width:auto;
+        align-items:flex-start;
+        background:rgba(5,8,16,0.65);
+        padding:10px 14px;
+        border-radius:12px;
+        box-shadow:0 12px 24px rgba(0,0,0,0.4);
+        font-size:11px;
+      }
+
+      .hud .instructions {
+        display:none;
+      }
+
+      .touch-controls {
+        position:absolute;
+        left:0;
+        right:0;
+        bottom:0;
+        top:auto;
+        height: min(45vh, 280px);
+        padding:0;
+        display:block;
+        pointer-events:auto;
+        z-index:1;
+      }
+
+      .touch-controls .dpad {
+        position:absolute;
+        left:24px;
+        bottom:24px;
+        grid-template-columns:repeat(3, 56px);
+        grid-template-rows:repeat(3, 56px);
+        gap:6px;
+      }
+
+      .touch-controls button {
+        width:56px;
+        height:56px;
+        border-radius:16px;
+        background:rgba(7,11,22,0.45);
+        border-color:rgba(255,255,255,0.2);
+        font-size:20px;
+        pointer-events:auto;
+      }
+
+      .touch-actions {
+        position:absolute;
+        right:24px;
+        bottom:24px;
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+      }
+
+      .touch-actions button {
+        width:140px;
+        padding:10px 0;
+        background:rgba(7,11,22,0.45);
+        align-self:flex-end;
+        pointer-events:auto;
+      }
+
+      #touch-inventory {
+        position:absolute;
+        top:16px;
+        right:16px;
+        width:140px;
+        padding:10px 0;
+        background:rgba(7,11,22,0.55);
+        pointer-events:auto;
+      }
+
+      .music-controls {
+        position:absolute;
+        top:88px;
+        right:22px;
+        background:rgba(5,8,16,0.7);
+        padding:8px 10px;
+        border-radius:10px;
+        box-shadow:0 10px 20px rgba(0,0,0,0.35);
+        flex-direction:column;
+        align-items:center;
+        gap:6px;
+        min-width:auto;
+        z-index:2;
+      }
+
+      .music-controls input[type="range"] {
+        width:9px;
+        height:120px;
+        writing-mode:vertical-lr;
+        direction:rtl;
+        -webkit-appearance:none;
+        appearance:none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <!-- Full map size: 19 * 32 by 13 * 32 -->
+    <canvas id="game" width="608" height="416" role="img" aria-label="Yarnvale game world"></canvas>
+    <div class="hud">
+      <div class="instructions">
+        Yarnvale · Move with <strong>WASD / Arrow keys</strong> · Press <strong>E</strong> or <strong>Space</strong> at a door to go in/out.
+      </div>
+    </div>
+    <div class="music-controls" id="music-controls">
+      <button id="music-toggle" type="button" title="Toggle music" aria-label="Toggle music">
+        <span aria-hidden="true">♪</span>
+      </button>
+      <label class="volume-label" for="music-volume">
+        <span class="sr-only">Music volume</span>
+        <input id="music-volume" type="range" min="0" max="1" step="0.05" value="0.35">
+      </label>
+    </div>
+    <div class="touch-controls" id="touch-controls">
+      <div class="dpad">
+        <span></span>
+        <button type="button" data-dir="up">▲</button>
+        <span></span>
+        <button type="button" data-dir="left">◄</button>
+        <span></span>
+        <button type="button" data-dir="right">►</button>
+        <span></span>
+        <button type="button" data-dir="down">▼</button>
+        <span></span>
+      </div>
+      <div class="touch-actions">
+        <button type="button" id="touch-action">Interact</button>
+      </div>
+    </div>
+    <button type="button" id="touch-inventory" class="touch-floating">Inventory</button>
+  </div>
+
+  <script>
+    
+ // =========================
+// CONFIG
+// =========================
+// #region CONFIG
+
+const ASSET_BASE = 'Yarnvale Assets/Audio/';
+const DEFAULT_MASTER_VOLUME = 0.35;
+const SHEAR_VOLUME_MULTIPLIER = 0.8;
+const FIRE_VOLUME_MULTIPLIER = 0.55;
+const MUSIC_INTERIOR_SCALE = 0.55;
+const HELPER_LABEL_DURATION = 3500;
+let masterVolume = DEFAULT_MASTER_VOLUME;
+let audioMuted = false;
+const helperLabelState = {};
+let currentInteractables = [];
+let showOverlayMode = false;
+const isFileProtocol = window.location.protocol === 'file:';
+
+const debugState = {
+  grid: false,
+  collisions: false,
+  info: false,
+  statusMessage: '',
+  statusUntil: 0
+};
+
+const SPRITE_CONFIG = {
+  tileSize: 32,
+  tileColumns: 8,
+  player: {
+    frameWidth: 32,
+    frameHeight: 32,
+    columns: 4,
+    animations: {
+      down: [0, 1, 2, 1],
+      left: [4, 5, 6, 5],
+      right: [8, 9, 10, 9],
+      up: [12, 13, 14, 13]
+    },
+    idleFrameIndex: 1,
+    speedTicks: 8
+  }
+};
+
+function createImageAsset(path, options = {}) {
+  const asset = {
+    image: new Image(),
+    loaded: false,
+    error: false,
+    path,
+    frameWidth: options.frameWidth ?? SPRITE_CONFIG.tileSize,
+    frameHeight: options.frameHeight ?? SPRITE_CONFIG.tileSize,
+    columns: options.columns ?? null
+  };
+
+  asset.image.onload = () => {
+    asset.loaded = true;
+    if (!asset.columns) {
+      const divisor = options.frameWidth ?? SPRITE_CONFIG.tileSize;
+      asset.columns = Math.max(1, Math.floor(asset.image.width / divisor));
+    }
+  };
+
+  asset.image.onerror = () => {
+    asset.error = true;
+    console.warn(`Missing art asset: ${path}`);
+  };
+
+  asset.image.src = path;
+  return asset;
+}
+
+const artAssets = {
+  terrain: createImageAsset('Yarnvale Assets/Art/Tile Set Grass and Water.png', {
+    frameWidth: 256,
+    frameHeight: 256
+  }),
+  foliage: createImageAsset('Yarnvale Assets/Art/Tile Set Trees and Plants.png', {
+    frameWidth: 256,
+    frameHeight: 256
+  }),
+  player: createImageAsset('Yarnvale Assets/Art/Tile Set Sprites.png', {
+    frameWidth: 256,
+    frameHeight: 256
+  })
+};
+
+const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+let audioContext = null;
+let musicGainNode = null;
+const musicSources = new Map();
+
+function ensureAudioContext() {
+  if (audioContext || !AudioContextClass) return;
+  try {
+    audioContext = new AudioContextClass();
+    musicGainNode = audioContext.createGain();
+    musicGainNode.gain.value = masterVolume;
+    musicGainNode.connect(audioContext.destination);
+  } catch (error) {
+    console.warn('AudioContext unavailable', error);
+    audioContext = null;
+    musicGainNode = null;
+  }
+}
+
+ensureAudioContext();
+
+function connectTrackToGain(audio) {
+  ensureAudioContext();
+  if (!audioContext || !musicGainNode || musicSources.has(audio)) return;
+  try {
+    const source = audioContext.createMediaElementSource(audio);
+    source.connect(musicGainNode);
+    musicSources.set(audio, source);
+  } catch (error) {
+    console.warn('Unable to route music track through AudioContext', error);
+  }
+}
+
+function resumeAudioContextIfNeeded() {
+  ensureAudioContext();
+  if (audioContext && audioContext.state === 'suspended') {
+    audioContext.resume().catch(() => {});
+  }
+}
+
+// #endregion CONFIG
+
+// =========================
+// AUDIO
+// =========================
+// #region AUDIO
+
+const sounds = {};
+const footstepVoices = [];
+let nextFootstepVoice = 0;
+
+// Load multiple sheep sounds into an array
+const sheepSoundFiles = ['Sheep 1.wav', 'Sheep 2.wav', 'Sheep 3.wav'];
+const sheepSounds = sheepSoundFiles.map((filename) => {
+  const audio = new Audio(ASSET_BASE + filename);
+  audio.addEventListener('error', () => {
+    console.warn(`Failed to load sheep sound: ${filename}`);
+  });
+  applySfxVolume(audio, 'sheep');
+  return audio;
+});
+
+function getInteractablesForMap(mapName) {
+  const nodes = interactableLocations
+    .filter((item) => item.map === mapName)
+    .map((item) => ({ ...item }));
+
+  const doorTiles = doorTilesByMap[mapName] || [];
+  doorTiles.forEach(({ x, y }) => {
+    nodes.push({
+      map: mapName,
+      x,
+      y,
+      label: mapName === 'overworld' ? 'Enter Cottage' : 'Exit Cottage',
+      helperRange: 1,
+      glow: mapName === 'overworld'
+        ? { inner: 'rgba(148, 232, 255, 0.85)', outer: 'rgba(148, 232, 255, 0)' }
+        : { inner: 'rgba(255, 228, 180, 0.9)', outer: 'rgba(255, 228, 180, 0)' }
+    });
+  });
+
+  return nodes;
+}
+
+function helperKey(node) {
+  return `${node.map}:${node.x},${node.y}`;
+}
+
+function drawInteractableGlows(nodes) {
+  nodes.forEach((node, index) => {
+    const glowColors = node.glow || { inner: 'rgba(255,255,255,0.45)', outer: 'rgba(255,255,255,0)' };
+    const centerX = node.x * TILE_SIZE + TILE_SIZE / 2;
+    const centerY = node.y * TILE_SIZE + TILE_SIZE / 2;
+    const pulse = 0.03 + 0.03 * Math.sin((fireAnimTick + index * 7) * 0.25);
+    const radius = TILE_SIZE * (0.45 + pulse);
+    const gradient = ctx.createRadialGradient(centerX, centerY, 3, centerX, centerY, radius);
+    gradient.addColorStop(0, glowColors.inner);
+    gradient.addColorStop(1, glowColors.outer);
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function playerNearInteractable(node) {
+  const range = node.helperRange ?? 0;
+  const dx = Math.abs(player.x - node.x);
+  const dy = Math.abs(player.y - node.y);
+  return dx + dy <= range;
+}
+
+function updateHelperLabelState(nodes, forceReset = false) {
+  const now = performance.now();
+  const seen = new Set();
+
+  nodes.forEach((node) => {
+    const key = helperKey(node);
+    seen.add(key);
+    const near = playerNearInteractable(node);
+    const state = helperLabelState[key] || { visibleUntil: 0, wasNear: false };
+
+    if (forceReset) {
+      state.wasNear = false;
+    }
+
+    if (near && !state.wasNear) {
+      state.visibleUntil = now + HELPER_LABEL_DURATION;
+    }
+
+    state.wasNear = near;
+    helperLabelState[key] = state;
+  });
+
+  Object.keys(helperLabelState).forEach((key) => {
+    if (!seen.has(key)) {
+      delete helperLabelState[key];
+    }
+  });
+}
+
+function drawInteractableLabels(nodes) {
+  const now = performance.now();
+  nodes.forEach((node) => {
+    if (!node.label) return;
+    const key = helperKey(node);
+    const state = helperLabelState[key];
+    if (!state || state.visibleUntil < now) return;
+
+    const text = node.label;
+    const baseX = node.x * TILE_SIZE + TILE_SIZE / 2;
+    const baseY = node.y * TILE_SIZE - 8;
+    ctx.font = '11px system-ui';
+    const textWidth = ctx.measureText(text).width;
+    const padding = 8;
+    const boxW = textWidth + padding * 2;
+    const boxH = 20;
+    const boxX = baseX - boxW / 2;
+    const boxY = baseY - boxH;
+
+    ctx.fillStyle = 'rgba(5, 8, 16, 0.85)';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxW - 1, boxH - 1);
+
+    ctx.fillStyle = '#f5f7ff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, baseX, boxY + boxH / 2);
+
+    ctx.beginPath();
+    ctx.moveTo(baseX - 4, boxY + boxH);
+    ctx.lineTo(baseX + 4, boxY + boxH);
+    ctx.lineTo(baseX, boxY + boxH + 6);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(5, 8, 16, 0.85)';
+    ctx.fill();
+  });
+
+  ctx.textAlign = 'start';
+  ctx.textBaseline = 'alphabetic';
+}
+
+function getSfxMultiplier(name) {
+  return name === 'shear' ? SHEAR_VOLUME_MULTIPLIER : 1;
+}
+
+function getEffectiveMasterVolume() {
+  return audioMuted ? 0 : masterVolume;
+}
+
+function applySfxVolume(audio, name) {
+  const effective = getEffectiveMasterVolume();
+  audio.volume = Math.min(1, Math.max(0, effective * getSfxMultiplier(name)));
+}
+
+function refreshAllSfxVolumes() {
+  Object.entries(sounds).forEach(([name, audio]) => applySfxVolume(audio, name));
+  sheepSounds.forEach(audio => applySfxVolume(audio, 'sheep'));
+  footstepVoices.forEach(audio => applySfxVolume(audio, 'step'));
+}
+
+
+// Helper to load audio with error logging
+function loadSound(name, filename) {
+  const audio = new Audio(ASSET_BASE + filename);
+  applySfxVolume(audio, name);
+  audio.addEventListener('error', () => {
+    console.warn(`Failed to load sound: ${filename}`);
+  });
+  sounds[name] = audio;
+}
+
+loadSound('step', 'step.wav');
+loadSound('shear', 'shear.wav');
+loadSound('knit', 'Knit.wav');
+loadSound('sell', 'sell.wav');
+
+function createFootstepVoices(count = 3) {
+  footstepVoices.length = 0;
+  nextFootstepVoice = 0;
+  for (let i = 0; i < count; i++) {
+    const audio = new Audio(ASSET_BASE + 'step.wav');
+    applySfxVolume(audio, 'step');
+    audio.addEventListener('error', () => {
+      console.warn('Failed to load footstep voice');
+    });
+    footstepVoices.push(audio);
+  }
+}
+
+createFootstepVoices(3);
+
+function playFootstepSound() {
+  const voice = footstepVoices[nextFootstepVoice];
+  nextFootstepVoice = (nextFootstepVoice + 1) % footstepVoices.length;
+  if (!voice) {
+    if (sounds.step) {
+      sounds.step.currentTime = 0;
+      sounds.step.play().catch(() => {});
+    }
+    return;
+  }
+  voice.currentTime = 0;
+  voice.play().catch(() => {});
+}
+
+// #endregion AUDIO
+
+
+// =========================
+// AMBIENT AUDIO
+// =========================
+// #region AMBIENT_AUDIO
+
+const fireLoop = new Audio(ASSET_BASE + 'Fire.wav');
+fireLoop.loop = true;
+fireLoop.volume = 0;
+fireLoop.addEventListener('error', () => {
+  console.warn('Failed to load ambient fire loop');
+});
+let fireLoopActive = false;
+
+function updateFireLoopVolume() {
+  const targetVolume = fireLoopActive ? Math.min(1, Math.max(0, getEffectiveMasterVolume() * FIRE_VOLUME_MULTIPLIER)) : 0;
+  fireLoop.volume = targetVolume;
+  if (fireLoopActive && targetVolume > 0) {
+    fireLoop.play().catch(() => {});
+  } else {
+    fireLoop.pause();
+    fireLoop.currentTime = 0;
+  }
+}
+
+function setFireLoopActive(active) {
+  fireLoopActive = active;
+  updateFireLoopVolume();
+}
+
+// #endregion AMBIENT_AUDIO
+
+
+
+// =========================
+// MUSIC MANAGER
+// =========================
+// #region MUSIC
+
+const MUSIC_BASE = `${ASSET_BASE}Background music/`;
+const MUSIC_INTERIOR_BASE = `${MUSIC_BASE}In The House/`;
+const MUSIC_TRACK_FILES_OVERWORLD = [
+  'Golden Fields (1).mp3',
+  'Golden Fields (2).mp3',
+  'Knitting by the Fire (1).mp3',
+  'Knitting by the Fire 2.mp3',
+  'Knitting the Threads of Life.mp3',
+  'Knitting the Threads of Life (1).mp3',
+  'Sunlit Fields (1).mp3',
+  'Sunlit Fields 2.mp3',
+  'Sunshine Fields (1).mp3',
+  'Sunshine Fields 2.mp3',
+  'Threads of Harmony.mp3',
+  'Threads of Harmony (1).mp3',
+  'Threads of the Meadow (1).mp3',
+  'Threads of the Meadow 2.mp3'
+];
+
+const MUSIC_TRACK_FILES_COTTAGE = [
+  'By the Hearth.mp3',
+  'By the Hearth (1).mp3',
+  'Warm Threads by the Hearth.mp3',
+  'Warm Threads by the Hearth (1).mp3'
+];
+
+function createMusicTrack(basePath, filename) {
+  const audio = new Audio(basePath + filename);
+  audio.preload = 'auto';
+  audio.loop = false;
+  audio.volume = 0;
+  audio.addEventListener('error', () => {
+    console.warn(`Failed to load music track: ${filename}`);
+  });
+  connectTrackToGain(audio);
+  return audio;
+}
+
+const musicTracksByScene = {
+  overworld: MUSIC_TRACK_FILES_OVERWORLD.map((file) => createMusicTrack(MUSIC_BASE, file)),
+  cottage: MUSIC_TRACK_FILES_COTTAGE.map((file) => createMusicTrack(MUSIC_INTERIOR_BASE, file))
+};
+
+// Track per-scene resume info so music continues where it left off when re-entering
+const musicResumeState = {
+  overworld: null,
+  cottage: null
+};
+
+const musicState = {
+  scene: 'overworld',
+  orderByScene: { overworld: [], cottage: [] },
+  orderIndexByScene: { overworld: 0, cottage: 0 },
+  started: false,
+  muted: false,
+  volume: masterVolume,
+  playing: null,
+  sceneScale: 1
+};
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function allMusicTracks() {
+  return [
+    ...(musicTracksByScene.overworld || []),
+    ...(musicTracksByScene.cottage || [])
+  ];
+}
+
+function getActiveTracks() {
+  return musicTracksByScene[musicState.scene] || [];
+}
+
+function ensureMusicQueue() {
+  const scene = musicState.scene;
+  const tracks = getActiveTracks();
+  if (!tracks.length) return;
+
+  if (!musicState.orderByScene[scene] || musicState.orderByScene[scene].length === 0) {
+    musicState.orderByScene[scene] = shuffle(tracks.map((_, idx) => idx));
+    musicState.orderIndexByScene[scene] = 0;
+  }
+}
+
+function currentMusicTrack() {
+  ensureMusicQueue();
+  const tracks = getActiveTracks();
+  const scene = musicState.scene;
+  const order = musicState.orderByScene[scene] || [];
+  if (!tracks.length || !order.length) return null;
+  const orderIndex = musicState.orderIndexByScene[scene] ?? 0;
+  const trackIndex = order[orderIndex];
+  return tracks[trackIndex];
+}
+
+function advanceMusicTrack() {
+  const scene = musicState.scene;
+  const tracks = getActiveTracks();
+  const order = musicState.orderByScene[scene] || [];
+  if (!order.length || !tracks.length) return;
+
+  musicState.orderIndexByScene[scene] = (musicState.orderIndexByScene[scene] ?? 0) + 1;
+  if (musicState.orderIndexByScene[scene] >= order.length) {
+    musicState.orderByScene[scene] = shuffle(tracks.map((_, idx) => idx));
+    musicState.orderIndexByScene[scene] = 0;
+  }
+}
+
+function playCurrentMusic() {
+  const track = currentMusicTrack();
+  if (!track) return;
+  if (musicState.playing && musicState.playing !== track) {
+    musicState.playing.pause();
+  }
+  const scene = musicState.scene;
+  const resumeInfo = musicResumeState[scene];
+  const tracks = getActiveTracks();
+  const order = musicState.orderByScene[scene] || [];
+  const orderIndex = musicState.orderIndexByScene[scene] ?? 0;
+  const trackIndex = order[orderIndex];
+
+  // If we have resume info for this scene and it matches the current track, keep its timestamp
+  if (resumeInfo && typeof resumeInfo.trackIndex === 'number' && resumeInfo.trackIndex === trackIndex) {
+    track.currentTime = resumeInfo.time ?? 0;
+  } else {
+    track.currentTime = 0;
+  }
+  musicResumeState[scene] = null;
+  musicState.playing = track;
+  applyMusicVolume();
+  track.play().catch((err) => {
+    console.warn('Music playback blocked until user interaction', err);
+  });
+}
+
+function handleMusicEnded() {
+  musicState.playing = null;
+  advanceMusicTrack();
+  playCurrentMusic();
+}
+
+function beginMusicOnInteraction() {
+  resumeAudioContextIfNeeded();
+  if (musicState.started) return;
+  ensureAudioContext();
+  musicState.started = true;
+  allMusicTracks().forEach(track => track.addEventListener('ended', handleMusicEnded));
+  playCurrentMusic();
+  window.removeEventListener('pointerdown', beginMusicOnInteraction);
+  window.removeEventListener('keydown', beginMusicOnInteraction);
+}
+
+window.addEventListener('pointerdown', beginMusicOnInteraction);
+window.addEventListener('keydown', beginMusicOnInteraction);
+
+// #endregion MUSIC
+
+// =========================
+// MUSIC CONTROLS UI
+// =========================
+// #region MUSIC_CONTROLS
+
+const musicToggleBtn = document.getElementById('music-toggle');
+const musicVolumeSlider = document.getElementById('music-volume');
+
+if (musicVolumeSlider) {
+  musicVolumeSlider.value = masterVolume.toString();
+}
+
+function applyMusicVolume() {
+  const effectiveVolume = musicState.muted ? 0 : musicState.volume * musicState.sceneScale;
+  const clamped = Math.min(1, Math.max(0, effectiveVolume));
+  if (musicGainNode) {
+    musicGainNode.gain.value = clamped;
+  }
+  if (musicState.playing) {
+    musicState.playing.volume = clamped;
+    musicState.playing.muted = musicState.muted;
+  }
+}
+
+function updateMusicControls() {
+  if (musicToggleBtn) {
+    musicToggleBtn.classList.toggle('muted', musicState.muted);
+    musicToggleBtn.setAttribute('aria-label', musicState.muted ? 'Unmute music' : 'Mute music');
+    musicToggleBtn.setAttribute('aria-pressed', String(!musicState.muted));
+  }
+  if (musicVolumeSlider && musicVolumeSlider !== document.activeElement) {
+    musicVolumeSlider.value = musicState.volume.toString();
+  }
+}
+
+function setAudioMuted(muted) {
+  audioMuted = muted;
+  musicState.muted = muted;
+  applyMusicVolume();
+  refreshAllSfxVolumes();
+  updateFireLoopVolume();
+  updateMusicControls();
+}
+
+function setMusicSceneScale(scale) {
+  musicState.sceneScale = Math.min(1, Math.max(0, scale));
+  applyMusicVolume();
+}
+
+function setMusicScene(scene) {
+  if (musicState.scene === scene) return;
+  const prevScene = musicState.scene;
+
+  const enteringOverworld = scene === 'overworld' && prevScene !== 'overworld';
+  const enteringCottage = scene === 'cottage' && prevScene !== 'cottage';
+
+  // Save resume info for the scene we are leaving
+  if (musicState.playing) {
+    const prevTracks = musicTracksByScene[prevScene] || [];
+    const trackIndex = prevTracks.indexOf(musicState.playing);
+    if (trackIndex !== -1) {
+      musicResumeState[prevScene] = {
+        trackIndex,
+        time: musicState.playing.currentTime
+      };
+    }
+    musicState.playing.pause();
+    musicState.playing = null;
+  }
+
+  musicState.scene = scene;
+  musicState.orderByScene[scene] = musicState.orderByScene[scene] || [];
+  musicState.orderIndexByScene[scene] = musicState.orderIndexByScene[scene] ?? 0;
+  ensureMusicQueue();
+
+  // When returning to overworld, advance to the next track instead of resuming the same one.
+  if (enteringOverworld) {
+    musicResumeState.overworld = null;
+    advanceMusicTrack();
+  }
+
+  // When entering cottage, start fresh from the next track instead of resuming.
+  if (enteringCottage) {
+    musicResumeState.cottage = null;
+    advanceMusicTrack();
+  }
+
+  if (musicState.started) {
+    playCurrentMusic();
+  }
+}
+
+function setMasterVolume(value) {
+  const clamped = Math.min(1, Math.max(0, Number(value)));
+  masterVolume = clamped;
+  musicState.volume = clamped;
+  applyMusicVolume();
+  refreshAllSfxVolumes();
+  updateFireLoopVolume();
+  updateMusicControls();
+}
+
+musicToggleBtn?.addEventListener('click', () => {
+  resumeAudioContextIfNeeded();
+  ensureAudioContext();
+  setAudioMuted(!musicState.muted);
+});
+
+musicVolumeSlider?.addEventListener('input', (event) => {
+  resumeAudioContextIfNeeded();
+  setMasterVolume(event.target.value);
+});
+
+setMasterVolume(masterVolume);
+
+
+// #endregion MUSIC_CONTROLS
+
+
+// =========================
+// TOUCH INPUT
+// =========================
+// #region TOUCH_INPUT
+
+const touchControls = document.getElementById('touch-controls');
+const touchDirButtons = document.querySelectorAll('[data-dir]');
+const touchActionButton = document.getElementById('touch-action');
+const touchInventoryButton = document.getElementById('touch-inventory');
+const touchControlsNode = document.getElementById('touch-controls');
+
+function updateTouchControlsVisibility() {
+  const overlayQuery = '(pointer: coarse) and (orientation: landscape) and (max-width: 1100px)';
+  showOverlayMode = window.matchMedia(overlayQuery).matches;
+  if (touchControlsNode) {
+    touchControlsNode.style.pointerEvents = 'auto';
+  }
+}
+
+window.addEventListener('resize', updateTouchControlsVisibility);
+updateTouchControlsVisibility();
+
+function setTouchDirection(dir, pressed) {
+  if (!(dir in touchDirections)) return;
+  touchDirections[dir] = pressed;
+}
+
+function bindPointerButton(element, onPress, onRelease) {
+  if (!element) return;
+
+  const pressHandler = (event) => {
+    event.preventDefault();
+    element.setPointerCapture?.(event.pointerId);
+    onPress?.(event);
+  };
+
+  const releaseHandler = (event) => {
+    event.preventDefault();
+    onRelease?.(event);
+    element.releasePointerCapture?.(event.pointerId);
+  };
+
+  element.addEventListener('pointerdown', pressHandler);
+  element.addEventListener('pointerup', releaseHandler);
+  element.addEventListener('pointerleave', releaseHandler);
+  element.addEventListener('pointercancel', releaseHandler);
+  element.addEventListener('contextmenu', (event) => event.preventDefault());
+}
+
+touchDirButtons.forEach((button) => {
+  const dir = button.dataset.dir;
+  bindPointerButton(
+    button,
+    () => setTouchDirection(dir, true),
+    () => setTouchDirection(dir, false)
+  );
+});
+
+bindPointerButton(touchActionButton, () => {
+  handleAction();
+}, null);
+
+bindPointerButton(touchInventoryButton, () => {
+  inventoryOpen = !inventoryOpen;
+}, null);
+
+
+function ensureMobileAudioUnlock() {
+  resumeAudioContextIfNeeded();
+  if (!musicState.started) {
+    beginMusicOnInteraction();
+  }
+}
+
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    ensureMobileAudioUnlock();
+  }
+});
+
+touchControlsNode?.addEventListener('pointerdown', ensureMobileAudioUnlock);
+
+// #endregion TOUCH_INPUT
+
+// #endregion TOUCH_INPUT
+
+
+// =========================
+// ENVIRONMENT AUDIO MANAGEMENT
+// =========================
+// #region ENV_AUDIO
+
+function handleEnvironmentAudio(mapName) {
+  const insideCottage = mapName === 'cottage';
+  setMusicSceneScale(insideCottage ? MUSIC_INTERIOR_SCALE : 1);
+  setMusicScene(insideCottage ? 'cottage' : 'overworld');
+  setFireLoopActive(insideCottage);
+}
+
+// #endregion ENV_AUDIO
+
+
+
+// =========================
+// CONFIG & MAPS
+// =========================
+// #region CONFIG & MAPS
+    const TILE_SIZE = 32;
+
+    // Tile legend:
+    // 0 grass, 1 path, 2 tree (solid), 3 water (solid), 4 fence (solid),
+    // 5 cottage roof, 6 door, 7 interior wall (solid), 8 interior floor
+    const maps = {
+      overworld: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,6,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ]
+      },
+      cottage: {
+        cols: 9,
+        rows: 7,
+        data: [
+          [7,7,7,7,7,7,7,7,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,6,8,8,8,7],
+          [7,7,7,7,7,7,7,7,7]
+        ]
+      }
+    };
+
+const doorTilesByMap = {};
+for (const [name, map] of Object.entries(maps)) {
+  doorTilesByMap[name] = [];
+  for (let row = 0; row < map.rows; row++) {
+    for (let col = 0; col < map.cols; col++) {
+      if (map.data[row][col] === 6) {
+        doorTilesByMap[name].push({ x: col, y: row });
+      }
+    }
+  }
+}
+
+// Static tile layer cache per map to avoid redrawing terrain every frame
+const baseMapCanvases = {};
+
+function ensureBaseMapCanvas(mapName) {
+  if (baseMapCanvases[mapName]) return baseMapCanvases[mapName];
+  const map = maps[mapName];
+  if (!map) return null;
+
+  const offscreen = document.createElement('canvas');
+  offscreen.width = map.cols * TILE_SIZE;
+  offscreen.height = map.rows * TILE_SIZE;
+  const offCtx = offscreen.getContext('2d');
+  for (let y = 0; y < map.rows; y++) {
+    for (let x = 0; x < map.cols; x++) {
+      drawTile(map.data[y][x], x, y, offCtx);
+    }
+  }
+
+  baseMapCanvases[mapName] = offscreen;
+  return offscreen;
+}
+
+// ===== INVENTORY =====
+let inventoryOpen = false;
+
+let inventory = {
+  wool: 0,
+  yarn: 0,
+  scarf: 0,
+  gold: 0
+};
+
+
+
+
+let message = null;
+let messageExpiryTime = 0; // timestamp when current message should disappear
+
+// One starter sheep in the paddock (overworld)
+const sheep = {
+  map: 'overworld',
+  x: 8,
+  y: 10,
+  hasWool: true,
+  woolTimer: 0 // counts frames until wool grows back
+};
+
+// Knitting spot inside the cottage (must be on a floor tile)
+const knittingSpot = {
+  map: 'cottage',
+  x: 3,
+  y: 4
+};
+
+const marketSpot = {
+  map: 'overworld',
+  x: 13,  // tweak later if you want it somewhere else
+  y: 9
+};
+
+const fireplaceSpot = {
+  map: 'cottage',
+  x: 2,
+  y: 1
+};
+
+const cottageFurniture = [
+  { map: 'cottage', x: 1, y: 3, type: 'armchair' },
+  { map: 'cottage', x: 6, y: 2, type: 'bookshelf' },
+  { map: 'cottage', x: 6, y: 4, type: 'chest' }
+];
+
+const tileSpriteSources = {
+  // Overworld grass comes from the first row of the 256px grass/water sheet. We crop/zoom into the center
+  // so the pattern reads like a 32px tile instead of the full macro texture.
+  0: [
+    { sheet: 'terrain', row: 0, col: 0, zoom: 0.5 },
+    { sheet: 'terrain', row: 0, col: 1, zoom: 0.5 },
+    { sheet: 'terrain', row: 0, col: 2, zoom: 0.5 }
+  ],
+
+  // Water – currently using the solid water tile. Edge variants can be wired later.
+  3: { sheet: 'terrain', row: 3, col: 0 }
+};
+
+function drawTileFromTileset(tileValue, tileX, tileY, targetCtx = ctx) {
+  const entry = tileSpriteSources[tileValue];
+  if (!entry) return false;
+  const source = Array.isArray(entry)
+    ? entry[(tileX + tileY) % entry.length]
+    : entry;
+  const asset = artAssets[source.sheet];
+  if (!asset || !asset.loaded || asset.error) return false;
+
+  const frameW = asset.frameWidth ?? SPRITE_CONFIG.tileSize;
+  const frameH = asset.frameHeight ?? SPRITE_CONFIG.tileSize;
+  const colIndex = source.col ?? 0;
+  const rowIndex = source.row ?? 0;
+  let sx = colIndex * frameW;
+  let sy = rowIndex * frameH;
+  let srcW = frameW;
+  let srcH = frameH;
+
+  if (source.crop) {
+    sx += source.crop.x ?? 0;
+    sy += source.crop.y ?? 0;
+    srcW = source.crop.width ?? srcW;
+    srcH = source.crop.height ?? srcH;
+  } else if (typeof source.zoom === 'number' && source.zoom > 0 && source.zoom <= 1) {
+    srcW = frameW * source.zoom;
+    srcH = frameH * source.zoom;
+    sx += (frameW - srcW) / 2;
+    sy += (frameH - srcH) / 2;
+  }
+
+  if (typeof source.offsetX === 'number') sx += source.offsetX;
+  if (typeof source.offsetY === 'number') sy += source.offsetY;
+
+  targetCtx.drawImage(
+    asset.image,
+    sx,
+    sy,
+    srcW,
+    srcH,
+    tileX * TILE_SIZE,
+    tileY * TILE_SIZE,
+    TILE_SIZE,
+    TILE_SIZE
+  );
+
+  return true;
+}
+
+const interactableLocations = [
+  {
+    map: knittingSpot.map,
+    x: knittingSpot.x,
+    y: knittingSpot.y,
+    label: 'Knit Scarves',
+    helperRange: 1,
+    glow: {
+      inner: 'rgba(255, 188, 224, 0.9)',
+      outer: 'rgba(255, 188, 224, 0)'
+    }
+  },
+  {
+    map: marketSpot.map,
+    x: marketSpot.x,
+    y: marketSpot.y,
+    label: 'Sell Scarves',
+    helperRange: 1,
+    glow: {
+      inner: 'rgba(255, 220, 170, 0.85)',
+      outer: 'rgba(255, 220, 170, 0)'
+    }
+  }
+];
+
+let fireAnimTick = 0;
+
+
+
+    let currentMap = 'overworld';
+    let MAP_COLS = maps[currentMap].cols;
+    let MAP_ROWS = maps[currentMap].rows;
+    let mapData  = maps[currentMap].data;
+
+    handleEnvironmentAudio(currentMap);
+  ensureBaseMapCanvas(currentMap);
+
+
+
+// =========================
+// CONFIG & MAPS
+// =========================
+
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    canvas.addEventListener('pointerdown', ensureMobileAudioUnlock);
+    canvas.addEventListener('touchstart', ensureMobileAudioUnlock);
+
+ // #endregion CONFIG & MAPS   <-- move it to HERE
+
+
+ // =========================
+// GAME STATE
+// =========================
+// #region GAME_STATE
+
+// 0 = early game, just shearing + knitting
+// 1 = unlocked selling scarves at the stall
+let questStage = 0;
+
+// #endregion GAME_STATE
+
+
+// =========================
+// PLAYER
+// =========================
+// #region PLAYER
+    const player = {
+      x: 9,             // logical tile coords (overworld start)
+      y: 10,
+      speed: 4,         // pixels per frame
+      px: 9 * TILE_SIZE,
+      py: 10 * TILE_SIZE,
+      moving: false,
+      nextX: null,
+      nextY: null,
+      targetPx: null,
+      targetPy: null,
+      dir: 'down',
+      spriteFrame: SPRITE_CONFIG.player.idleFrameIndex,
+      spriteTick: 0
+    };
+
+    function switchMap(name, spawnX, spawnY) {
+      currentMap = name;
+      MAP_COLS = maps[name].cols;
+      MAP_ROWS = maps[name].rows;
+      mapData  = maps[name].data;
+
+      player.x = spawnX;
+      player.y = spawnY;
+      player.px = spawnX * TILE_SIZE;
+      player.py = spawnY * TILE_SIZE;
+      player.moving = false;
+
+      handleEnvironmentAudio(name);
+      ensureBaseMapCanvas(name);
+      currentInteractables = getInteractablesForMap(name);
+      updateHelperLabelState(currentInteractables, true);
+    }
+
+    currentInteractables = getInteractablesForMap(currentMap);
+    updateHelperLabelState(currentInteractables, true);
+
+// #endregion PLAYER
+
+
+// =========================
+// INPUT
+// =========================
+// #region INPUT
+
+const keys = {
+  ArrowUp: false,
+  ArrowDown: false,
+  ArrowLeft: false,
+  ArrowRight: false,
+  w: false,
+  a: false,
+  s: false,
+  d: false,
+};
+
+const touchDirections = {
+  up: false,
+  down: false,
+  left: false,
+  right: false
+};
+
+function showDebugStatus(text) {
+  debugState.statusMessage = text;
+  debugState.statusUntil = performance.now() + 2200;
+}
+
+function toggleDebugFlag(flag, label) {
+  debugState[flag] = !debugState[flag];
+  showDebugStatus(`${label}: ${debugState[flag] ? 'ON' : 'OFF'}`);
+}
+
+function handleDebugKeyToggle(event) {
+  switch (event.key) {
+    case 'F2':
+      toggleDebugFlag('info', 'Debug info');
+      event.preventDefault();
+      return true;
+    case 'F3':
+      toggleDebugFlag('grid', 'Grid overlay');
+      event.preventDefault();
+      return true;
+    case 'F4':
+      toggleDebugFlag('collisions', 'Collision overlay');
+      event.preventDefault();
+      return true;
+    default:
+      return false;
+  }
+}
+
+window.addEventListener('keydown', (e) => {
+  if (handleDebugKeyToggle(e)) {
+    return;
+  }
+  // Normalize single-character keys to lowercase so CapsLock/Shift don't break controls
+  let key = e.key;
+  if (key.length === 1) key = key.toLowerCase();
+
+  // movement keys
+  if (key in keys) {
+    keys[key] = true;
+    e.preventDefault();
+  }
+
+  // toggle inventory with I or Esc
+  if (key === 'i' || key === 'escape') {
+    inventoryOpen = !inventoryOpen;
+    e.preventDefault();
+  }
+
+  // action key: E or Space (only when inventory is closed)
+  // use e.code for Space to be robust across browser key naming
+  if ((key === 'e' || e.code === 'Space') && !inventoryOpen) {
+    handleAction();
+    e.preventDefault();
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  // Normalize single-character keys on keyup as well
+  let key = e.key;
+  if (key.length === 1) key = key.toLowerCase();
+
+  if (key in keys) {
+    keys[key] = false;
+    e.preventDefault();
+  }
+});
+
+// Clear input state if the window loses focus so keys don't get stuck
+window.addEventListener('blur', () => {
+  for (const k in keys) keys[k] = false;
+});
+
+// #endregion INPUT
+
+
+
+// =========================
+// HELPERS
+// =========================
+// #region HELPERS
+
+function showMessage(text, durationMs = 3500) {
+  message = text;
+  // set expiry time based on current timestamp
+  messageExpiryTime = performance.now() + durationMs;
+}
+
+
+    function isSolidTile(tx, ty) {
+      if (tx < 0 || ty < 0 || tx >= MAP_COLS || ty >= MAP_ROWS) return true;
+      const t = mapData[ty][tx];
+      // trees, water, fences, interior walls are solid
+      return t === 2 || t === 3 || t === 4 || t === 7;
+    }
+
+   function tryStartMove(dx, dy) {
+  if (player.moving) return;
+
+  const targetX = player.x + dx;
+  const targetY = player.y + dy;
+  if (isSolidTile(targetX, targetY)) return;
+
+  // Start movement
+  player.nextX = targetX;
+  player.nextY = targetY;
+  player.targetPx = targetX * TILE_SIZE;
+  player.targetPy = targetY * TILE_SIZE;
+  player.moving = true;
+
+  // Play footstep SFX (ignore autoplay policy failures)
+  playFootstepSound();
+
+  // Update facing direction
+  if (dx === 1)  player.dir = 'right';
+  if (dx === -1) player.dir = 'left';
+  if (dy === 1)  player.dir = 'down';
+  if (dy === -1) player.dir = 'up';
+}
+
+
+    function handleKnitting() {
+  // First priority: spin wool into yarn (2 wool -> 1 yarn)
+  if (inventory.wool >= 2) {
+    inventory.wool -= 2;
+    inventory.yarn += 1;
+    showMessage('You spin 2 bundles of wool into a neat ball of yarn.');
+    if (sounds.knit) sounds.knit.play().catch(() => {});
+    return;
+  }
+
+  // Second: knit yarn into a scarf (3 yarn -> 1 scarf)
+  if (inventory.yarn >= 3) {
+    inventory.yarn -= 3;
+    inventory.scarf += 1;
+    showMessage('You knit a cosy Yarnvale scarf. It looks very huggable.');
+    if (sounds.knit) sounds.knit.play().catch(() => {});
+    return;
+  }
+
+  // Not enough materials
+  if (inventory.wool > 0 || inventory.yarn > 0) {
+    showMessage('You need 2 wool for yarn, or 3 yarn for a scarf.');
+  } else {
+    showMessage('The needles are quiet. You have no wool or yarn to work with.');
+  }
+}
+
+function handleMarket() {
+  if (inventory.scarf > 0) {
+    inventory.scarf -= 1;
+    inventory.gold += 10; // 10 gold per scarf for now
+
+    showMessage(`You sell a cosy scarf for 10 gold. You now have ${inventory.gold} gold.`);
+    if (sounds.sell) sounds.sell.play().catch(() => {});
+  } else if (inventory.yarn > 0 || inventory.wool > 0) {
+    showMessage('You need a finished scarf to sell here. Knit one at your cottage first.');
+  } else {
+    showMessage('The market stall waits patiently. You have nothing to sell yet.');
+  }
+}
+
+
+    function handleAction() {
+  if (player.moving) return; // ignore actions while sliding between tiles
+  const tile = mapData[player.y][player.x];
+
+  // Doors between overworld and cottage
+  if (currentMap === 'overworld' && tile === 6) {
+    switchMap('cottage', 4, 4);
+    showMessage('You step into your cosy Yarnvale cottage.');
+    return;
+  } else if (currentMap === 'cottage' && tile === 6) {
+    switchMap('overworld', 9, 4);
+    showMessage('You head back out to the paddock.');
+    return;
+  }
+
+  // Knitting spot – only in cottage
+  if (currentMap === knittingSpot.map &&
+      player.x === knittingSpot.x &&
+      player.y === knittingSpot.y) {
+    handleKnitting();
+    return;
+  }
+
+  // Market stall – only in overworld
+  if (currentMap === marketSpot.map &&
+      player.x === marketSpot.x &&
+      player.y === marketSpot.y) {
+    handleMarket();
+    return;
+  }
+
+  // Sheep interaction – only in overworld
+  if (currentMap === 'overworld' && sheep.map === 'overworld') {
+    const dx = Math.abs(player.x - sheep.x);
+    const dy = Math.abs(player.y - sheep.y);
+
+    // player must stand next to the sheep (N/S/E/W)
+    if (dx + dy === 1) {
+      if (sheep.hasWool) {
+        sheep.hasWool = false;
+        sheep.woolTimer = 0;
+        inventory.wool += 1;
+        showMessage('You gently shear the sheep and collect a bundle of soft wool.');
+        
+        // Play shearing sound
+        if (sounds.shear) {
+          sounds.shear.currentTime = 0;
+          sounds.shear.play().catch(() => {});
+        }
+        
+        // Play a random sheep sound
+        const sfx = sheepSounds[Math.floor(Math.random() * sheepSounds.length)];
+        sfx.currentTime = 0;
+        sfx.play().catch(() => {});
+      } else {
+        showMessage('This sheep has already been shorn. Give its wool time to grow back.');
+      }
+    }
+  }
+}
+
+
+// #endregion HELPERS
+
+// =========================
+// UPDATE
+// =========================
+// #region UPDATE
+
+function update() {
+  fireAnimTick = (fireAnimTick + 1) % 100000;
+  updateHelperLabelState(currentInteractables);
+  // --- Smooth tile movement ---
+  if (player.moving) {
+    const remX = player.targetPx - player.px;
+    const remY = player.targetPy - player.py;
+
+    const moveX = Math.sign(remX) * Math.min(Math.abs(remX), player.speed);
+    const moveY = Math.sign(remY) * Math.min(Math.abs(remY), player.speed);
+
+    player.px += moveX;
+    player.py += moveY;
+
+    // clamp and finish move when both axes reached target
+    if (player.px === player.targetPx && player.py === player.targetPy) {
+      player.moving = false;
+      // Commit the logical tile only when we fully arrive to avoid mid-step interactions.
+      if (typeof player.nextX === 'number' && typeof player.nextY === 'number') {
+        player.x = player.nextX;
+        player.y = player.nextY;
+      }
+      player.nextX = null;
+      player.nextY = null;
+    }
+    } else {
+    let dx = 0;
+    let dy = 0;
+
+    // don't allow movement while inventory is open
+    if (!inventoryOpen) {
+      if (keys.ArrowUp || keys.w || touchDirections.up) {
+        dy = -1;
+        player.dir = 'up';
+      } else if (keys.ArrowDown || keys.s || touchDirections.down) {
+        dy = 1;
+        player.dir = 'down';
+      } else if (keys.ArrowLeft || keys.a || touchDirections.left) {
+        dx = -1;
+        player.dir = 'left';
+      } else if (keys.ArrowRight || keys.d || touchDirections.right) {
+        dx = 1;
+        player.dir = 'right';
+      }
+    }
+
+    if (dx !== 0 || dy !== 0) {
+      tryStartMove(dx, dy);
+    }
+  }
+
+  updatePlayerAnimationState(player.moving);
+  // --- Sheep wool regrowth ---
+  if (!sheep.hasWool) {
+    sheep.woolTimer++;
+
+    // ~10 seconds at ~60fps (tune this if you like)
+    if (sheep.woolTimer > 600) {
+      sheep.hasWool = true;
+      sheep.woolTimer = 0;
+
+      if (currentMap === 'overworld') {
+        showMessage('Your sheep has grown its wool back.');
+      }
+    }
+  }
+
+  // --- Message fade-out (timestamp-based, frame-rate independent) ---
+  if (message && performance.now() >= messageExpiryTime) {
+    message = null;
+  }
+}
+// #endregion UPDATE
+
+
+// =========================
+// RENDER
+// =========================
+// #region RENDER
+    function drawTile(t, x, y, targetCtx = ctx) {
+  const px = x * TILE_SIZE;
+  const py = y * TILE_SIZE;
+  if (drawTileFromTileset(t, x, y, targetCtx)) {
+    return;
+  }
+
+  // Small deterministic variation so grass/path aren’t identical
+  const variation = (x * 13 + y * 7) % 4;
+
+  if (t === 0) {
+    // GRASS – richer colour + "stitched" pattern to hint at knitting
+    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#2f7a54');
+    g.addColorStop(1, '#1d4b3a');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    // stitched rows
+    targetCtx.strokeStyle = 'rgba(210,255,220,0.35)';
+    targetCtx.lineWidth = 1;
+    targetCtx.beginPath();
+    const rowOffset = (variation % 2) * 4;
+    targetCtx.moveTo(px + 4, py + 6 + rowOffset);
+    targetCtx.lineTo(px + TILE_SIZE - 4, py + 6 + rowOffset);
+    targetCtx.moveTo(px + 4, py + TILE_SIZE - 6 + rowOffset);
+    targetCtx.lineTo(px + TILE_SIZE - 4, py + TILE_SIZE - 6 + rowOffset);
+    targetCtx.stroke();
+
+  } else if (t === 1) {
+    // PATH – warmer earth with edge highlights
+    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#d0a676');
+    g.addColorStop(1, '#9a6535');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    // little pebbles
+    targetCtx.fillStyle = 'rgba(80,50,30,0.5)';
+    if (variation === 0) targetCtx.fillRect(px + 7, py + 10, 2, 2);
+    if (variation === 1) targetCtx.fillRect(px + 18, py + 14, 2, 2);
+    if (variation === 2) targetCtx.fillRect(px + 12, py + 6, 2, 2);
+
+  } else if (t === 2) {
+    // TREE – trunk + leafy crown
+    // trunk
+    targetCtx.fillStyle = '#5b3b23';
+    targetCtx.fillRect(px + 10, py + 8, 12, TILE_SIZE - 10);
+
+    // leaves
+    const g = targetCtx.createRadialGradient(
+      px + TILE_SIZE / 2, py + 6, 4,
+      px + TILE_SIZE / 2, py + 8, 18
+    );
+    g.addColorStop(0, '#5ab46b');
+    g.addColorStop(1, '#245630');
+    targetCtx.fillStyle = g;
+    targetCtx.beginPath();
+    targetCtx.arc(px + TILE_SIZE / 2, py + 10, 14, 0, Math.PI * 2);
+    targetCtx.fill();
+
+  } else if (t === 3) {
+    // WATER – brighter pond with shimmer
+    const g = targetCtx.createLinearGradient(px, py, px + TILE_SIZE, py + TILE_SIZE);
+    g.addColorStop(0, '#46c0ff');
+    g.addColorStop(1, '#1760c0');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    // shimmer lines
+    targetCtx.strokeStyle = 'rgba(255,255,255,0.55)';
+    targetCtx.lineWidth = 1;
+    targetCtx.beginPath();
+    targetCtx.moveTo(px + 4, py + 10);
+    targetCtx.quadraticCurveTo(px + TILE_SIZE / 2, py + 6, px + TILE_SIZE - 4, py + 10);
+    targetCtx.moveTo(px + 4, py + TILE_SIZE - 6);
+    targetCtx.quadraticCurveTo(px + TILE_SIZE / 2, py + TILE_SIZE - 10, px + TILE_SIZE - 4, py + TILE_SIZE - 6);
+    targetCtx.stroke();
+
+  } else if (t === 4) {
+    // FENCE – chunkier with posts + rails
+    // rail
+    targetCtx.fillStyle = '#c9a46b';
+    targetCtx.fillRect(px, py + 11, TILE_SIZE, 10);
+    // posts
+    targetCtx.fillStyle = '#8a6234';
+    targetCtx.fillRect(px + 3, py + 7, 5, TILE_SIZE - 8);
+    targetCtx.fillRect(px + TILE_SIZE - 8, py + 7, 5, TILE_SIZE - 8);
+
+  } else if (t === 5) {
+    // COTTAGE ROOF – tiled effect
+    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#d59b62');
+    g.addColorStop(1, '#a36434');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    // tile rows
+    targetCtx.strokeStyle = 'rgba(90,50,30,0.5)';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px, py + TILE_SIZE / 2);
+    targetCtx.lineTo(px + TILE_SIZE, py + TILE_SIZE / 2);
+    targetCtx.stroke();
+
+  } else if (t === 6) {
+    // DOOR – more contrasty
+    targetCtx.fillStyle = '#6a3a22';
+    targetCtx.fillRect(px + 6, py + 4, TILE_SIZE - 12, TILE_SIZE - 4);
+
+    // top trim
+    targetCtx.fillStyle = '#3b2114';
+    targetCtx.fillRect(px + 6, py + 4, TILE_SIZE - 12, 4);
+
+    // handle
+    targetCtx.fillStyle = '#f7e3a1';
+    targetCtx.fillRect(px + TILE_SIZE - 12, py + TILE_SIZE - 12, 3, 3);
+
+  } else if (t === 7) {
+    // INTERIOR WALL – wooden boards
+    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#4a3733');
+    g.addColorStop(1, '#2b1c1b');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    targetCtx.strokeStyle = 'rgba(20,10,10,0.6)';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px, py + TILE_SIZE / 2);
+    targetCtx.lineTo(px + TILE_SIZE, py + TILE_SIZE / 2);
+    targetCtx.stroke();
+
+  } else if (t === 8) {
+    // INTERIOR FLOOR – nicer planks
+    const g = targetCtx.createLinearGradient(px, py, px + TILE_SIZE, py + TILE_SIZE);
+    g.addColorStop(0, '#d8b07d');
+    g.addColorStop(1, '#a8743e');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    targetCtx.strokeStyle = 'rgba(120,80,40,0.45)';
+    targetCtx.lineWidth = 1;
+    targetCtx.beginPath();
+    // plank line
+    targetCtx.moveTo(px, py + TILE_SIZE / 2);
+    targetCtx.lineTo(px + TILE_SIZE, py + TILE_SIZE / 2);
+    targetCtx.stroke();
+  }
+}
+
+
+function getPlayerAnimationFrames() {
+  return SPRITE_CONFIG.player.animations[player.dir] || SPRITE_CONFIG.player.animations.down;
+}
+
+function updatePlayerAnimationState(isMoving) {
+  const frames = getPlayerAnimationFrames();
+  if (!frames || frames.length === 0) return;
+
+  if (isMoving) {
+    player.spriteTick = (player.spriteTick + 1) % 10000;
+    if (player.spriteTick % SPRITE_CONFIG.player.speedTicks === 0) {
+      player.spriteFrame = (player.spriteFrame + 1) % frames.length;
+    }
+  } else {
+    player.spriteTick = 0;
+    player.spriteFrame = Math.min(frames.length - 1, SPRITE_CONFIG.player.idleFrameIndex);
+  }
+}
+
+function drawPlayerFromSprites() {
+  const asset = artAssets.player;
+  if (!asset.loaded || asset.error) return false;
+  const frames = getPlayerAnimationFrames();
+  if (!frames || frames.length === 0) return false;
+
+  const frameIndex = frames[Math.min(frames.length - 1, player.spriteFrame)] ?? frames[0];
+  const cols = asset.columns ?? SPRITE_CONFIG.player.columns;
+  const fw = asset.frameWidth ?? SPRITE_CONFIG.player.frameWidth;
+  const fh = asset.frameHeight ?? SPRITE_CONFIG.player.frameHeight;
+  const sx = (frameIndex % cols) * fw;
+  const sy = Math.floor(frameIndex / cols) * fh;
+
+  ctx.drawImage(
+    asset.image,
+    sx,
+    sy,
+    fw,
+    fh,
+    Math.round(player.px),
+    Math.round(player.py),
+    TILE_SIZE,
+    TILE_SIZE
+  );
+
+  return true;
+}
+
+    function drawPlayer() {
+  if (drawPlayerFromSprites()) {
+    return;
+  }
+  const px = player.px;
+  const py = player.py;
+
+  // simple shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(px + 16, py + 24, 10, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // body
+  ctx.fillStyle = '#f4b3ff'; // cosy knitted jumper
+  ctx.fillRect(px + 10, py + 10, 12, 18);
+
+  // legs
+  ctx.fillStyle = '#2b3145';
+  ctx.fillRect(px + 11, py + 26, 4, 6);
+  ctx.fillRect(px + 17, py + 26, 4, 6);
+
+  // head
+  ctx.beginPath();
+  ctx.arc(px + 16, py + 8, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffcf9e';
+  ctx.fill();
+
+  // hair (simple bob)
+  ctx.beginPath();
+  ctx.arc(px + 16, py + 6, 7, Math.PI, 0);
+  ctx.fillStyle = '#e48bd9';
+  ctx.fill();
+
+  // scarf
+  ctx.fillStyle = '#ffd9a6';
+  ctx.fillRect(px + 10, py + 15, 12, 4);
+  ctx.fillRect(px + 19, py + 15, 3, 7);
+
+  // tiny face details – eyes
+  ctx.fillStyle = '#3a2a24';
+  ctx.fillRect(px + 13, py + 7, 1, 2);
+  ctx.fillRect(px + 18, py + 7, 1, 2);
+}
+
+function drawSheep() {
+  if (currentMap !== sheep.map) return;
+
+  const px = sheep.x * TILE_SIZE;
+  const py = sheep.y * TILE_SIZE;
+
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(px + 16, py + 24, 10, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // body
+  if (sheep.hasWool) {
+    // fluffy
+    ctx.fillStyle = '#fdf9f2';
+    ctx.beginPath();
+    ctx.ellipse(px + 16, py + 18, 11, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // trimmed
+    ctx.fillStyle = '#e6dccb';
+    ctx.beginPath();
+    ctx.ellipse(px + 16, py + 18, 9, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // head
+  ctx.fillStyle = '#d3c0aa';
+  ctx.beginPath();
+  ctx.ellipse(px + 10, py + 14, 6, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // little ears
+  ctx.fillRect(px + 5, py + 10, 3, 3);
+  ctx.fillRect(px + 11, py + 10, 3, 3);
+
+  // face details
+  ctx.fillStyle = '#3a2a24';
+  ctx.fillRect(px + 8, py + 14, 1, 2);
+  ctx.fillRect(px + 11, py + 14, 1, 2);
+}
+
+function drawFurniture() {
+  if (currentMap === fireplaceSpot.map) {
+    const px = fireplaceSpot.x * TILE_SIZE;
+    const py = fireplaceSpot.y * TILE_SIZE;
+
+    ctx.fillStyle = '#2d1a14';
+    ctx.fillRect(px + 2, py + 8, TILE_SIZE - 4, TILE_SIZE - 6);
+
+    ctx.fillStyle = '#553429';
+    ctx.fillRect(px, py + 6, TILE_SIZE, 5);
+
+    ctx.fillStyle = '#26130f';
+    ctx.fillRect(px + 6, py + 16, TILE_SIZE - 12, TILE_SIZE - 20);
+
+    const flicker = 6 + Math.sin(fireAnimTick * 0.25) * 3;
+    const sway = Math.sin(fireAnimTick * 0.4) * 2;
+
+    ctx.fillStyle = '#f8d87c';
+    ctx.beginPath();
+    ctx.ellipse(px + 16 + sway, py + 20, 7, flicker, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ff964b';
+    ctx.beginPath();
+    ctx.ellipse(px + 16 + sway * 0.6, py + 21, 4, flicker - 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const glow = ctx.createRadialGradient(px + 16, py + 24, 2, px + 16, py + 24, 28);
+    glow.addColorStop(0, 'rgba(255, 173, 85, 0.45)');
+    glow.addColorStop(1, 'rgba(255, 173, 85, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(px - 20, py - 4, TILE_SIZE + 40, TILE_SIZE + 28);
+  }
+
+  if (currentMap === 'cottage') {
+    cottageFurniture.forEach((item) => {
+      if (item.map !== currentMap) return;
+      const px = item.x * TILE_SIZE;
+      const py = item.y * TILE_SIZE;
+
+      if (item.type === 'armchair') {
+        ctx.fillStyle = '#5f3b5b';
+        ctx.fillRect(px + 4, py + 8, TILE_SIZE - 8, TILE_SIZE - 6);
+        ctx.fillStyle = '#784d74';
+        ctx.fillRect(px + 8, py + 12, TILE_SIZE - 16, TILE_SIZE - 16);
+        ctx.fillStyle = '#f8d7d9';
+        ctx.fillRect(px + 12, py + 18, TILE_SIZE - 24, 6);
+      } else if (item.type === 'bookshelf') {
+        ctx.fillStyle = '#3b2a26';
+        ctx.fillRect(px + 6, py + 2, TILE_SIZE - 12, TILE_SIZE - 2);
+        ctx.fillStyle = '#6a4737';
+        ctx.fillRect(px + 8, py + 6, TILE_SIZE - 16, 4);
+        ctx.fillRect(px + 8, py + 14, TILE_SIZE - 16, 4);
+        ctx.fillStyle = '#d4bf8f';
+        ctx.fillRect(px + 10, py + 4, 6, 4);
+        ctx.fillStyle = '#a89ed8';
+        ctx.fillRect(px + 18, py + 12, 5, 6);
+      } else if (item.type === 'chest') {
+        ctx.fillStyle = '#7d4f2a';
+        ctx.fillRect(px + 8, py + 12, TILE_SIZE - 16, TILE_SIZE - 8);
+        ctx.fillStyle = '#b97f3a';
+        ctx.fillRect(px + 8, py + 12, TILE_SIZE - 16, 8);
+        ctx.fillStyle = '#2a1b10';
+        ctx.fillRect(px + 14, py + 16, TILE_SIZE - 28, 4);
+      }
+    });
+  }
+
+  if (currentMap === knittingSpot.map) {
+    const px = knittingSpot.x * TILE_SIZE;
+    const py = knittingSpot.y * TILE_SIZE;
+
+    ctx.fillStyle = '#4a3423';
+    ctx.fillRect(px + 4, py + 10, TILE_SIZE - 8, TILE_SIZE - 12);
+
+    ctx.fillStyle = '#7a5737';
+    ctx.fillRect(px + 6, py + 12, TILE_SIZE - 12, TILE_SIZE - 18);
+
+    ctx.fillStyle = '#d68caf';
+    ctx.beginPath();
+    ctx.arc(px + 12, py + 16, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#f2d27a';
+    ctx.beginPath();
+    ctx.arc(px + 20, py + 18, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (currentMap === marketSpot.map) {
+    const mx = marketSpot.x * TILE_SIZE;
+    const my = marketSpot.y * TILE_SIZE;
+
+    ctx.fillStyle = '#3a2830';
+    ctx.fillRect(mx + 2, my + 16, TILE_SIZE - 4, TILE_SIZE - 6);
+
+    ctx.fillStyle = '#8c4c5a';
+    ctx.fillRect(mx + 2, my + 4, TILE_SIZE - 4, 10);
+
+    ctx.fillStyle = '#f5d4e0';
+    ctx.fillRect(mx + 4, my + 6, TILE_SIZE - 8, 4);
+
+    ctx.fillStyle = '#e28faf';
+    ctx.fillRect(mx + 4, my + 10, TILE_SIZE - 8, 3);
+
+    ctx.fillStyle = '#f2f2ff';
+    ctx.fillRect(mx + TILE_SIZE - 10, my + 20, 4, 10);
+  }
+}
+
+
+
+function getMapOffsets() {
+  const mapWidth = MAP_COLS * TILE_SIZE;
+  const mapHeight = MAP_ROWS * TILE_SIZE;
+  const offsetX = Math.max(0, (canvas.width - mapWidth) / 2);
+  const offsetY = Math.max(0, (canvas.height - mapHeight) / 2);
+  return { offsetX, offsetY };
+}
+
+function drawDebugGridOverlay() {
+  if (!debugState.grid) return;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= MAP_COLS; x++) {
+    const px = x * TILE_SIZE;
+    ctx.beginPath();
+    ctx.moveTo(px, 0);
+    ctx.lineTo(px, MAP_ROWS * TILE_SIZE);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= MAP_ROWS; y++) {
+    const py = y * TILE_SIZE;
+    ctx.beginPath();
+    ctx.moveTo(0, py);
+    ctx.lineTo(MAP_COLS * TILE_SIZE, py);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawDebugCollisionOverlay() {
+  if (!debugState.collisions) return;
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,64,64,0.2)';
+  for (let y = 0; y < MAP_ROWS; y++) {
+    for (let x = 0; x < MAP_COLS; x++) {
+      if (isSolidTile(x, y)) {
+        ctx.fillRect(x * TILE_SIZE + 1, y * TILE_SIZE + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+      }
+    }
+  }
+  ctx.restore();
+}
+
+function drawDebugWorldOverlays(offsetX, offsetY) {
+  if (!debugState.grid && !debugState.collisions) return;
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  drawDebugCollisionOverlay();
+  drawDebugGridOverlay();
+  ctx.restore();
+}
+
+function drawDebugInfoPanel() {
+  const showStatus = debugState.statusMessage && performance.now() < debugState.statusUntil;
+  if (!debugState.info && !showStatus) return;
+
+  const lines = [];
+  if (debugState.info) {
+    lines.push(`Map: ${currentMap}`);
+    lines.push(`Player tile: ${player.x}, ${player.y}`);
+    lines.push(`Player px: ${Math.round(player.px)}, ${Math.round(player.py)}`);
+    lines.push(`Overlay: ${showOverlayMode ? 'mobile' : 'desktop'}`);
+  }
+  if (showStatus) {
+    lines.push(debugState.statusMessage);
+  }
+  if (!lines.length) return;
+
+  const panelWidth = 210;
+  const panelHeight = 20 + lines.length * 14;
+  ctx.save();
+  ctx.fillStyle = 'rgba(6,12,26,0.78)';
+  ctx.fillRect(12, 12, panelWidth, panelHeight);
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.strokeRect(12.5, 12.5, panelWidth - 1, panelHeight - 1);
+  ctx.fillStyle = '#c5e0ff';
+  ctx.font = '11px "Cascadia Code", "Fira Code", monospace';
+  ctx.textBaseline = 'top';
+  lines.forEach((line, idx) => {
+    ctx.fillText(line, 20, 18 + idx * 14);
+  });
+  ctx.restore();
+}
+
+
+
+function render() {
+  // Background sky
+  const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  sky.addColorStop(0, '#182c4e');
+  sky.addColorStop(0.6, '#07131f');
+  sky.addColorStop(1, '#020509');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const { offsetX, offsetY } = getMapOffsets();
+  const interactables = currentInteractables || [];
+
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+
+  const baseMapCanvas = ensureBaseMapCanvas(currentMap);
+  if (baseMapCanvas) {
+    ctx.drawImage(baseMapCanvas, 0, 0);
+  } else {
+    for (let y = 0; y < MAP_ROWS; y++) {
+      for (let x = 0; x < MAP_COLS; x++) {
+        drawTile(mapData[y][x], x, y);
+      }
+    }
+  }
+
+  drawFurniture();
+
+  drawInteractableGlows(interactables);
+
+  drawSheep();
+
+  drawPlayer();
+
+  drawInteractableLabels(interactables);
+
+  ctx.restore();
+
+  drawDebugWorldOverlays(offsetX, offsetY);
+
+        // HUD – minimal (Wool + Gold only)
+  ctx.save();
+
+  const hudX = 8;
+  const hudY = 8;
+  const hudW = 150;
+  const hudH = 40;
+
+  // subtle background
+  ctx.fillStyle = 'rgba(5, 8, 16, 0.55)';
+  ctx.fillRect(hudX, hudY, hudW, hudH);
+
+  // border
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(hudX + 0.5, hudY + 0.5, hudW - 1, hudH - 1);
+
+  // label
+  ctx.fillStyle = '#a9b3cd';
+  ctx.font = '10px system-ui';
+  ctx.fillText('Yarnvale', hudX + 8, hudY + 14);
+
+  // Wool icon + count
+  ctx.fillStyle = '#f8f0d8';
+  ctx.beginPath();
+  ctx.arc(hudX + 14, hudY + 26, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#f5f7ff';
+  ctx.font = '12px system-ui';
+  ctx.fillText(`Wool: ${inventory.wool}`, hudX + 24, hudY + 29);
+
+  // Gold icon + count
+  ctx.fillStyle = '#f4c945';
+  ctx.beginPath();
+  ctx.arc(hudX + 95, hudY + 26, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#f5f7ff';
+  ctx.fillText(`G: ${inventory.gold}`, hudX + 105, hudY + 29);
+
+  ctx.restore();
+
+
+
+
+  // Message box at bottom
+  if (message) {
+    const boxH = 52;
+    const boxY = canvas.height - boxH;
+
+    ctx.fillStyle = 'rgba(5,8,16,0.65)';
+
+    ctx.fillRect(0, boxY, canvas.width, boxH);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.strokeRect(8, boxY + 8, canvas.width - 16, boxH - 16);
+
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '12px system-ui';
+    ctx.fillText('Yarnvale', 18, boxY + 26);
+
+       ctx.fillStyle = '#f5f7ff';
+    ctx.font = '14px system-ui';
+    ctx.fillText(message, 18, boxY + 46);
+  }
+
+    // -----------------------------
+  // INVENTORY PANEL
+  // -----------------------------
+  if (inventoryOpen) {
+    const panelW = 320;
+    const panelH = 220;
+    const panelX = (canvas.width - panelW) / 2;
+    const panelY = (canvas.height - panelH) / 2;
+
+    // background
+    ctx.fillStyle = 'rgba(6, 12, 26, 0.92)';
+    ctx.fillRect(panelX, panelY, panelW, panelH);
+
+    // border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(panelX + 0.5, panelY + 0.5, panelW - 1, panelH - 1);
+
+    // header bar
+    ctx.fillStyle = 'rgba(18, 32, 64, 0.95)';
+    ctx.fillRect(panelX, panelY, panelW, 40);
+
+    // title
+    ctx.fillStyle = '#f5f7ff';
+    ctx.font = '18px system-ui';
+    ctx.fillText('Inventory', panelX + 20, panelY + 26);
+
+    // small hint text
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '11px system-ui';
+    ctx.fillText('Press I or Esc to close', panelX + panelW - 150, panelY + 26);
+
+    // divider line under header
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(panelX + 12, panelY + 44);
+    ctx.lineTo(panelX + panelW - 12, panelY + 44);
+    ctx.stroke();
+
+    // row positions
+    const row1Y = panelY + 74;
+    const row2Y = row1Y + 34;
+    const row3Y = row2Y + 34;
+    const row4Y = row3Y + 34;
+
+    // --- Wool row ---
+    // icon
+    ctx.fillStyle = '#f8f0d8';
+    ctx.beginPath();
+    ctx.arc(panelX + 32, row1Y - 6, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(200,180,140,0.7)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // label + value
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '13px system-ui';
+    ctx.fillText('Wool', panelX + 54, row1Y);
+    ctx.fillStyle = '#f5f7ff';
+    ctx.font = '14px system-ui';
+    ctx.fillText(`${inventory.wool}`, panelX + panelW - 40, row1Y);
+
+    // --- Yarn row ---
+    ctx.fillStyle = '#f098c8';
+    ctx.beginPath();
+    ctx.arc(panelX + 32, row2Y - 6, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.beginPath();
+    ctx.arc(panelX + 32, row2Y - 6, 5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '13px system-ui';
+    ctx.fillText('Yarn', panelX + 54, row2Y);
+    ctx.fillStyle = '#f5f7ff';
+    ctx.font = '14px system-ui';
+    ctx.fillText(`${inventory.yarn}`, panelX + panelW - 40, row2Y);
+
+    // --- Scarf row ---
+    ctx.fillStyle = '#f2d27a';
+    ctx.fillRect(panelX + 26, row3Y - 12, 12, 18);
+    ctx.fillStyle = '#f8e9b0';
+    ctx.fillRect(panelX + 28, row3Y - 10, 8, 12);
+
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '13px system-ui';
+    ctx.fillText('Scarves', panelX + 54, row3Y);
+    ctx.fillStyle = '#f5f7ff';
+    ctx.font = '14px system-ui';
+    ctx.fillText(`${inventory.scarf}`, panelX + panelW - 40, row3Y);
+
+    // --- Gold row ---
+    ctx.fillStyle = '#f4c945';
+    ctx.beginPath();
+    ctx.arc(panelX + 32, row4Y - 6, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#c28b1e';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(panelX + 32, row4Y - 6, 8, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '13px system-ui';
+    ctx.fillText('Gold', panelX + 54, row4Y);
+    ctx.fillStyle = '#f5f7ff';
+    ctx.font = '14px system-ui';
+    ctx.fillText(`${inventory.gold}`, panelX + panelW - 40, row4Y);
+  }
+
+  drawDebugInfoPanel();
+
+}
+
+// #endregion RENDER
+
+// =========================
+// MAIN LOOP
+// =========================
+// #region MAIN LOOP
+function loop() {
+  update();
+  render();
+  requestAnimationFrame(loop);
+}
+
+loop();
+
+// #endregion MAIN LOOP
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,5425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Yarnvale – Top-Down Prototype (Overworld + Cottage)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #050810;
+      color: #f5f7ff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 20px 12px 40px;
+    }
+
+    .frame {
+      background:#04060f;
+      border-radius:16px;
+      padding:10px;
+      box-shadow:0 18px 40px rgba(0,0,0,0.8);
+      width:min(96vw, 640px);
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    canvas {
+      image-rendering: pixelated;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.15);
+      background:#000;
+      display:block;
+      width:100%;
+      height:auto;
+      max-width:608px;
+    }
+
+    .hud {
+      margin-top:8px;
+      font-size:10px;
+      text-align:center;
+      color:rgba(255,255,255,0.6);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+    }
+
+    .hud .instructions {
+      line-height:1.3;
+    }
+
+    .music-controls {
+      margin-top:6px;
+      display:flex;
+      gap:8px;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .music-controls button {
+      width:36px;
+      height:36px;
+      border-radius:50%;
+      border:1px solid rgba(255,255,255,0.15);
+      background:rgba(255,255,255,0.12);
+      color:rgba(255,255,255,0.7);
+      cursor:pointer;
+      font-size:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      backdrop-filter:blur(4px);
+    }
+
+    .music-controls button:focus-visible,
+    .touch-controls button:focus-visible,
+    #touch-inventory:focus-visible {
+      outline:2px solid #7cd3ff;
+      outline-offset:2px;
+    }
+
+    .music-controls button.muted::after {
+      content:"✕";
+      position:absolute;
+      font-size:12px;
+      color:#ffb0b0;
+      transform:translate(6px,-6px);
+    }
+
+    .music-controls .volume-label {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height:auto;
+    }
+
+    .music-controls input[type="range"] {
+      width:80px;
+      height:4px;
+      -webkit-appearance:none;
+      appearance:none;
+      background:rgba(255,255,255,0.2);
+      border-radius:2px;
+      outline:none;
+    }
+
+    .music-controls input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance:none;
+      width:14px;
+      height:14px;
+      border-radius:50%;
+      background:rgba(255,255,255,0.7);
+      border:1px solid rgba(255,255,255,0.3);
+      cursor:pointer;
+    }
+
+    #touch-inventory {
+      display:none;
+      position:absolute;
+      top:12px;
+      right:12px;
+      width:120px;
+      padding:10px 0;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.25);
+      background:rgba(7,11,22,0.55);
+      color:#f5f7ff;
+      font-size:14px;
+      text-align:center;
+      pointer-events:auto;
+      box-shadow:0 10px 24px rgba(0,0,0,0.25);
+    }
+
+    #touch-options {
+      display:none;
+      position:absolute;
+      top:12px;
+      right:140px;
+      width:60px;
+      padding:10px 0;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.25);
+      background:rgba(7,11,22,0.55);
+      color:#f5f7ff;
+      font-size:12px;
+      text-align:center;
+      pointer-events:auto;
+      box-shadow:0 10px 24px rgba(0,0,0,0.25);
+    }
+
+    #options-overlay {
+      display:none;
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
+      background:rgba(0,0,0,0.7);
+      z-index:100;
+      justify-content:center;
+      align-items:center;
+      pointer-events:auto;
+    }
+
+    #options-overlay.open {
+      display:flex;
+    }
+
+    .options-menu {
+      background:rgba(15,20,35,0.95);
+      border:1px solid rgba(255,255,255,0.2);
+      border-radius:16px;
+      padding:24px;
+      min-width:220px;
+      box-shadow:0 20px 40px rgba(0,0,0,0.5);
+      backdrop-filter:blur(8px);
+    }
+
+    .options-menu h2 {
+      margin:0 0 20px 0;
+      text-align:center;
+      color:#f5f7ff;
+      font-size:18px;
+      font-weight:600;
+    }
+
+    .options-menu button {
+      display:block;
+      width:100%;
+      padding:12px;
+      margin-bottom:10px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.15);
+      background:rgba(255,255,255,0.1);
+      color:#f5f7ff;
+      font-size:14px;
+      cursor:pointer;
+      transition:background 0.2s;
+    }
+
+    .options-menu button:hover, .options-menu button:active {
+      background:rgba(255,255,255,0.2);
+    }
+
+    .options-volume {
+      margin:16px 0;
+    }
+
+    .options-volume label {
+      display:block;
+      color:rgba(255,255,255,0.7);
+      font-size:12px;
+      margin-bottom:8px;
+    }
+
+    .options-volume input[type="range"] {
+      width:100%;
+      height:6px;
+      -webkit-appearance:none;
+      appearance:none;
+      background:rgba(255,255,255,0.2);
+      border-radius:3px;
+      outline:none;
+    }
+
+    .options-volume input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance:none;
+      width:18px;
+      height:18px;
+      border-radius:50%;
+      background:rgba(255,255,255,0.8);
+      border:1px solid rgba(255,255,255,0.3);
+      cursor:pointer;
+    }
+
+    .options-close {
+      margin-top:10px;
+      background:rgba(100,100,120,0.3) !important;
+    }
+
+    .sr-only {
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+
+    .touch-controls {
+      margin-top:6px;
+      display:none;
+      gap:12px;
+      justify-content:space-between;
+      align-items:center;
+      color:#f5f7ff;
+      width:100%;
+      pointer-events:auto;
+    }
+
+    .dpad {
+      display:grid;
+      grid-template-columns:repeat(3, 36px);
+      grid-template-rows:repeat(3, 36px);
+      gap:2px;
+      justify-items:center;
+      align-items:center;
+    }
+
+    .dpad span {
+      width:36px;
+      height:36px;
+    }
+
+    .touch-controls button {
+      width:36px;
+      height:36px;
+      border-radius:50%;
+      border:1px solid rgba(255,255,255,0.15);
+      background:rgba(255,255,255,0.12);
+      color:rgba(255,255,255,0.7);
+      font-size:14px;
+      cursor:pointer;
+      touch-action:none;
+      pointer-events:auto;
+      backdrop-filter:blur(4px);
+    }
+
+    .touch-actions {
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .touch-actions button {
+      width:90px;
+    }
+
+    #touch-back {
+      display:none;
+    }
+
+    #touch-back.visible {
+      display:block;
+    }
+
+    @media (pointer: coarse) {
+      body {
+        padding-top:30px;
+      }
+
+      .hud .instructions {
+        display:none;
+      }
+
+      .touch-controls {
+        display:flex;
+        flex-wrap:wrap;
+      }
+
+      .music-controls {
+        flex-direction:column;
+      }
+
+      #touch-inventory {
+        display:block;
+        width:120px;
+      }
+
+      #touch-options {
+        display:block;
+      }
+    }
+
+    @media (pointer: coarse) and (orientation: landscape) and (max-width: 1100px) {
+      body {
+        padding:0;
+        align-items:stretch;
+      }
+
+      .frame {
+        width:100vw;
+        height:100vh;
+        max-width:none;
+        border-radius:0;
+        padding:0;
+        box-shadow:none;
+      }
+
+      canvas {
+        width:100%;
+        height:100%;
+        max-width:none;
+        border-radius:0;
+      }
+
+      .hud {
+        position:absolute;
+        top:16px;
+        left:16px;
+        gap:4px;
+        width:auto;
+        align-items:flex-start;
+        background:rgba(5,8,16,0.65);
+        padding:10px 14px;
+        border-radius:12px;
+        box-shadow:0 12px 24px rgba(0,0,0,0.4);
+        font-size:11px;
+      }
+
+      .hud .instructions {
+        display:none;
+      }
+
+      .touch-controls {
+        position:absolute;
+        left:0;
+        right:0;
+        bottom:0;
+        top:auto;
+        height: min(45vh, 280px);
+        padding:0;
+        display:block;
+        pointer-events:auto;
+        z-index:1;
+      }
+
+      .touch-controls .dpad {
+        position:absolute;
+        left:16px;
+        bottom:16px;
+        grid-template-columns:repeat(3, 44px);
+        grid-template-rows:repeat(3, 44px);
+        gap:3px;
+      }
+
+      .touch-controls button {
+        width:44px;
+        height:44px;
+        border-radius:50%;
+        background:rgba(255,255,255,0.15);
+        border:1px solid rgba(255,255,255,0.1);
+        color:rgba(255,255,255,0.6);
+        font-size:16px;
+        pointer-events:auto;
+      }
+
+      .touch-actions {
+        position:absolute;
+        right:16px;
+        bottom:16px;
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+      }
+
+      .touch-actions button {
+        width:60px;
+        height:60px;
+        padding:0;
+        border-radius:50%;
+        background:rgba(255,255,255,0.15);
+        border:1px solid rgba(255,255,255,0.1);
+        color:rgba(255,255,255,0.7);
+        font-size:10px;
+        align-self:flex-end;
+        pointer-events:auto;
+      }
+
+      #touch-inventory {
+        position:absolute;
+        top:16px;
+        right:16px;
+        width:70px;
+        padding:8px 0;
+        background:rgba(255,255,255,0.15);
+        border:1px solid rgba(255,255,255,0.1);
+        color:rgba(255,255,255,0.8);
+        font-size:11px;
+        border-radius:18px;
+        pointer-events:auto;
+      }
+
+      #touch-options {
+        position:absolute;
+        top:16px;
+        right:94px;
+        width:50px;
+        padding:8px 0;
+        background:rgba(255,255,255,0.15);
+        border:1px solid rgba(255,255,255,0.1);
+        color:rgba(255,255,255,0.7);
+        font-size:10px;
+        border-radius:18px;
+      }
+
+      .music-controls {
+        display:none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <!-- Full map size: 19 * 32 by 13 * 32 -->
+    <canvas id="game" width="608" height="416" role="img" aria-label="Yarnvale game world"></canvas>
+    <div class="hud">
+      <div class="instructions">
+        Yarnvale · <strong>WASD</strong> move · <strong>E/Space</strong> interact · <strong>I</strong> inventory · <strong>F5</strong> save · <strong>F9</strong> load
+      </div>
+    </div>
+    <div class="music-controls" id="music-controls">
+      <button id="music-toggle" type="button" title="Toggle music" aria-label="Toggle music">
+        <span aria-hidden="true">♪</span>
+      </button>
+      <label class="volume-label" for="music-volume">
+        <span class="sr-only">Music volume</span>
+        <input id="music-volume" type="range" min="0" max="1" step="0.05" value="0.35">
+      </label>
+    </div>
+    <div class="touch-controls" id="touch-controls">
+      <div class="dpad">
+        <span></span>
+        <button type="button" data-dir="up">▲</button>
+        <span></span>
+        <button type="button" data-dir="left">◄</button>
+        <span></span>
+        <button type="button" data-dir="right">►</button>
+        <span></span>
+        <button type="button" data-dir="down">▼</button>
+        <span></span>
+      </div>
+      <div class="touch-actions">
+        <button type="button" id="touch-action">Interact</button>
+        <button type="button" id="touch-back">Back</button>
+      </div>
+    </div>
+    <button type="button" id="touch-inventory" class="touch-floating">Inventory</button>
+    <button type="button" id="touch-options" class="touch-floating">⚙</button>
+    <div id="options-overlay">
+      <div class="options-menu">
+        <h2 id="options-title">Options</h2>
+        <button type="button" id="options-save">💾 Save Game</button>
+        <button type="button" id="options-load">📂 Load Game</button>
+        <div class="options-volume">
+          <label>🔊 Volume</label>
+          <input type="range" id="options-volume" min="0" max="1" step="0.05" value="0.35">
+        </div>
+        <button type="button" id="options-mute">🔇 Mute Sound</button>
+        <button type="button" id="options-debug" style="display:none;">🔓 Debug Mode</button>
+        <button type="button" id="options-close" class="options-close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    
+ // =========================
+// CONFIG
+// =========================
+// #region CONFIG
+
+const ASSET_BASE = 'Yarnvale Assets/Audio/';
+const DEFAULT_MASTER_VOLUME = 0.35;
+const SHEAR_VOLUME_MULTIPLIER = 0.8;
+const FIRE_VOLUME_MULTIPLIER = 0.55;
+const MUSIC_INTERIOR_SCALE = 0.55;
+const HELPER_LABEL_DURATION = 3500;
+let masterVolume = DEFAULT_MASTER_VOLUME;
+let audioMuted = false;
+const helperLabelState = {};
+let currentInteractables = [];
+let showOverlayMode = false;
+const isFileProtocol = window.location.protocol === 'file:';
+
+const debugState = {
+  grid: false,
+  collisions: false,
+  info: false,
+  statusMessage: '',
+  statusUntil: 0
+};
+
+const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+let GRASS_ZOOM = isCoarsePointer ? 0.45 : 0.30; // ~5% tighter on desktop
+
+const SPRITE_CONFIG = {
+  tileSize: 32,
+  tileColumns: 8,
+  mirrorRightFromLeft: true,
+  player: {
+    frameWidth: 64,
+    frameHeight: 64,
+    columns: 4,
+    animations: {
+      down: [0],
+      left: [0],
+      right: [0],
+      up: [0]
+    },
+    idleFrameIndex: 0,
+    speedTicks: 8
+  }
+};
+
+function createImageAsset(path, options = {}) {
+  const asset = {
+    image: new Image(),
+    loaded: false,
+    error: false,
+    path,
+    frameWidth: options.frameWidth ?? null,
+    frameHeight: options.frameHeight ?? null,
+    columns: options.columns ?? null
+  };
+
+  asset.image.onload = () => {
+    asset.loaded = true;
+    if (!asset.columns) {
+      const divisor = options.frameWidth ?? SPRITE_CONFIG.tileSize;
+      asset.columns = Math.max(1, Math.floor(asset.image.width / divisor));
+    }
+    if (!asset.frameWidth) {
+      if (asset.columns) {
+        asset.frameWidth = asset.image.width / asset.columns;
+      } else {
+        asset.frameWidth = SPRITE_CONFIG.tileSize;
+      }
+    }
+    if (!asset.frameHeight) {
+      asset.frameHeight = options.frameHeight ?? asset.image.height ?? SPRITE_CONFIG.tileSize;
+    }
+  };
+
+  asset.image.onerror = () => {
+    asset.error = true;
+    console.warn(`Missing art asset: ${path}`);
+  };
+
+  asset.image.src = path;
+  return asset;
+}
+
+const artAssets = {
+  terrain: createImageAsset('Yarnvale Assets/Art/Tile Set Grass and Water.png', {
+    frameWidth: 256,
+    frameHeight: 256
+  }),
+  foliage: createImageAsset('Yarnvale Assets/Art/Tile Set Trees and Plants.png', {
+    frameWidth: 256,
+    frameHeight: 256
+  }),
+  grass1: createImageAsset('Yarnvale Assets/Art/Grass/Grass 1 64.png', {
+    frameWidth: 64,
+    frameHeight: 64,
+    columns: 1
+  }),
+  grass2: createImageAsset('Yarnvale Assets/Art/Grass/Grass 2 64.png', {
+    frameWidth: 64,
+    frameHeight: 64,
+    columns: 1
+  }),
+  grass3: createImageAsset('Yarnvale Assets/Art/Grass/Grass 3 64.png', {
+    frameWidth: 64,
+    frameHeight: 64,
+    columns: 1
+  }),
+  player: createImageAsset('Yarnvale Assets/Art/Sprite/Yarnya Front 64.png', {
+    frameWidth: 64,
+    frameHeight: 64,
+    columns: 1
+  }),
+  playerDirections: {
+    down: createImageAsset('Yarnvale Assets/Art/Sprite/Yarnya Front 64.png', {
+      frameWidth: 64,
+      frameHeight: 64,
+      columns: 1
+    }),
+    up: createImageAsset('Yarnvale Assets/Art/Sprite/Yarnya Back 64.png', {
+      frameWidth: 64,
+      frameHeight: 64,
+      columns: 1
+    }),
+    left: createImageAsset('Yarnvale Assets/Art/Sprite/Yarnya Left 64.png', {
+      frameWidth: 64,
+      frameHeight: 64,
+      columns: 1
+    }),
+    right: createImageAsset('Yarnvale Assets/Art/Sprite/Yarnya Right 64.png', {
+      frameWidth: 64,
+      frameHeight: 64,
+      columns: 1
+    })
+  },
+  goat: createImageAsset('Yarnvale Assets/Art/Animals/Goat.png', {
+    columns: 3,
+    frameHeight: 332
+  })
+};
+
+const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+let audioContext = null;
+let musicGainNode = null;
+const musicSources = new Map();
+const playerFrameCache = new Map();
+
+function ensureAudioContext() {
+  if (audioContext || !AudioContextClass) return;
+  try {
+    audioContext = new AudioContextClass();
+    musicGainNode = audioContext.createGain();
+    musicGainNode.gain.value = masterVolume;
+    musicGainNode.connect(audioContext.destination);
+  } catch (error) {
+    console.warn('AudioContext unavailable', error);
+    audioContext = null;
+    musicGainNode = null;
+  }
+}
+
+ensureAudioContext();
+
+function connectTrackToGain(audio) {
+  ensureAudioContext();
+  if (!audioContext || !musicGainNode || musicSources.has(audio)) return;
+  try {
+    const source = audioContext.createMediaElementSource(audio);
+    source.connect(musicGainNode);
+    musicSources.set(audio, source);
+  } catch (error) {
+    console.warn('Unable to route music track through AudioContext', error);
+  }
+}
+
+function resumeAudioContextIfNeeded() {
+  ensureAudioContext();
+  if (audioContext && audioContext.state === 'suspended') {
+    audioContext.resume().catch(() => {});
+  }
+}
+
+// #endregion CONFIG
+
+// =========================
+// AUDIO
+// =========================
+// #region AUDIO
+
+const sounds = {};
+const footstepVoices = [];
+let nextFootstepVoice = 0;
+
+// Load multiple sheep sounds into an array
+const sheepSoundFiles = ['Sheep 1.wav', 'Sheep 2.wav', 'Sheep 3.wav'];
+const sheepSounds = sheepSoundFiles.map((filename) => {
+  const audio = new Audio(ASSET_BASE + filename);
+  audio.addEventListener('error', () => {
+    console.warn(`Failed to load sheep sound: ${filename}`);
+  });
+  applySfxVolume(audio, 'sheep');
+  return audio;
+});
+
+function getInteractablesForMap(mapName) {
+  const nodes = interactableLocations
+    .filter((item) => item.map === mapName)
+    .map((item) => ({ ...item }));
+
+  const doorTiles = doorTilesByMap[mapName] || [];
+  doorTiles.forEach(({ x, y }) => {
+    // Determine label based on map
+    let doorLabel = 'Enter';
+    if (mapName === 'overworld') doorLabel = 'Enter Cottage';
+    else if (mapName === 'cottage') doorLabel = 'Exit Cottage';
+    else if (mapName === 'cave') doorLabel = 'Exit Cave';
+    else if (mapName === 'mountain') doorLabel = 'Enter Cave';
+    
+    nodes.push({
+      map: mapName,
+      x,
+      y,
+      label: doorLabel,
+      helperRange: 1,
+      glow: mapName === 'overworld'
+        ? { inner: 'rgba(148, 232, 255, 0.85)', outer: 'rgba(148, 232, 255, 0)' }
+        : { inner: 'rgba(255, 228, 180, 0.9)', outer: 'rgba(255, 228, 180, 0)' }
+    });
+  });
+
+  return nodes;
+}
+
+function helperKey(node) {
+  return `${node.map}:${node.x},${node.y}`;
+}
+
+function drawInteractableGlows(nodes) {
+  nodes.forEach((node, index) => {
+    const glowColors = node.glow || { inner: 'rgba(255,255,255,0.45)', outer: 'rgba(255,255,255,0)' };
+    const centerX = node.x * TILE_SIZE + TILE_SIZE / 2;
+    const centerY = node.y * TILE_SIZE + TILE_SIZE / 2;
+    const pulse = 0.03 + 0.03 * Math.sin((fireAnimTick + index * 7) * 0.25);
+    const radius = TILE_SIZE * (0.45 + pulse);
+    const gradient = ctx.createRadialGradient(centerX, centerY, 3, centerX, centerY, radius);
+    gradient.addColorStop(0, glowColors.inner);
+    gradient.addColorStop(1, glowColors.outer);
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function playerNearInteractable(node) {
+  const range = node.helperRange ?? 0;
+  const dx = Math.abs(player.x - node.x);
+  const dy = Math.abs(player.y - node.y);
+  return dx + dy <= range;
+}
+
+function updateHelperLabelState(nodes, forceReset = false) {
+  const now = performance.now();
+  const seen = new Set();
+
+  nodes.forEach((node) => {
+    const key = helperKey(node);
+    seen.add(key);
+    const near = playerNearInteractable(node);
+    const state = helperLabelState[key] || { visibleUntil: 0, wasNear: false };
+
+    if (forceReset) {
+      state.wasNear = false;
+    }
+
+    if (near && !state.wasNear) {
+      state.visibleUntil = now + HELPER_LABEL_DURATION;
+    }
+
+    state.wasNear = near;
+    helperLabelState[key] = state;
+  });
+
+  Object.keys(helperLabelState).forEach((key) => {
+    if (!seen.has(key)) {
+      delete helperLabelState[key];
+    }
+  });
+}
+
+function drawInteractableLabels(nodes) {
+  const now = performance.now();
+  nodes.forEach((node) => {
+    if (!node.label) return;
+    const key = helperKey(node);
+    const state = helperLabelState[key];
+    if (!state || state.visibleUntil < now) return;
+
+    const text = node.label;
+    const baseX = node.x * TILE_SIZE + TILE_SIZE / 2;
+    const baseY = node.y * TILE_SIZE - 8;
+    ctx.font = '11px system-ui';
+    const textWidth = ctx.measureText(text).width;
+    const padding = 8;
+    const boxW = textWidth + padding * 2;
+    const boxH = 20;
+    const boxX = baseX - boxW / 2;
+    const boxY = baseY - boxH;
+
+    ctx.fillStyle = 'rgba(5, 8, 16, 0.85)';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxW - 1, boxH - 1);
+
+    ctx.fillStyle = '#f5f7ff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, baseX, boxY + boxH / 2);
+
+    ctx.beginPath();
+    ctx.moveTo(baseX - 4, boxY + boxH);
+    ctx.lineTo(baseX + 4, boxY + boxH);
+    ctx.lineTo(baseX, boxY + boxH + 6);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(5, 8, 16, 0.85)';
+    ctx.fill();
+  });
+
+  ctx.textAlign = 'start';
+  ctx.textBaseline = 'alphabetic';
+}
+
+function getSfxMultiplier(name) {
+  return name === 'shear' ? SHEAR_VOLUME_MULTIPLIER : 1;
+}
+
+function getEffectiveMasterVolume() {
+  return audioMuted ? 0 : masterVolume;
+}
+
+function applySfxVolume(audio, name) {
+  const effective = getEffectiveMasterVolume();
+  audio.volume = Math.min(1, Math.max(0, effective * getSfxMultiplier(name)));
+}
+
+function refreshAllSfxVolumes() {
+  Object.entries(sounds).forEach(([name, audio]) => applySfxVolume(audio, name));
+  sheepSounds.forEach(audio => applySfxVolume(audio, 'sheep'));
+  footstepVoices.forEach(audio => applySfxVolume(audio, 'step'));
+}
+
+
+// Helper to load audio with error logging
+function loadSound(name, filename) {
+  const audio = new Audio(ASSET_BASE + filename);
+  applySfxVolume(audio, name);
+  audio.addEventListener('error', () => {
+    console.warn(`Failed to load sound: ${filename}`);
+  });
+  sounds[name] = audio;
+}
+
+loadSound('step', 'step.wav');
+loadSound('shear', 'shear.wav');
+loadSound('knit', 'Knit.wav');
+loadSound('sell', 'sell.wav');
+
+function createFootstepVoices(count = 3) {
+  footstepVoices.length = 0;
+  nextFootstepVoice = 0;
+  for (let i = 0; i < count; i++) {
+    const audio = new Audio(ASSET_BASE + 'step.wav');
+    applySfxVolume(audio, 'step');
+    audio.addEventListener('error', () => {
+      console.warn('Failed to load footstep voice');
+    });
+    footstepVoices.push(audio);
+  }
+}
+
+createFootstepVoices(3);
+
+function playFootstepSound() {
+  const voice = footstepVoices[nextFootstepVoice];
+  nextFootstepVoice = (nextFootstepVoice + 1) % footstepVoices.length;
+  if (!voice) {
+    if (sounds.step) {
+      sounds.step.currentTime = 0;
+      sounds.step.play().catch(() => {});
+    }
+    return;
+  }
+  voice.currentTime = 0;
+  voice.play().catch(() => {});
+}
+
+// #endregion AUDIO
+
+
+// =========================
+// AMBIENT AUDIO
+// =========================
+// #region AMBIENT_AUDIO
+
+const fireLoop = new Audio(ASSET_BASE + 'Fire.wav');
+fireLoop.loop = true;
+fireLoop.volume = 0;
+fireLoop.addEventListener('error', () => {
+  console.warn('Failed to load ambient fire loop');
+});
+let fireLoopActive = false;
+
+function updateFireLoopVolume() {
+  const targetVolume = fireLoopActive ? Math.min(1, Math.max(0, getEffectiveMasterVolume() * FIRE_VOLUME_MULTIPLIER)) : 0;
+  fireLoop.volume = targetVolume;
+  if (fireLoopActive && targetVolume > 0) {
+    fireLoop.play().catch(() => {});
+  } else {
+    fireLoop.pause();
+    fireLoop.currentTime = 0;
+  }
+}
+
+function setFireLoopActive(active) {
+  fireLoopActive = active;
+  updateFireLoopVolume();
+}
+
+// #endregion AMBIENT_AUDIO
+
+
+
+// =========================
+// MUSIC MANAGER
+// =========================
+// #region MUSIC
+
+const MUSIC_BASE = `${ASSET_BASE}Background music/`;
+const MUSIC_INTERIOR_BASE = `${MUSIC_BASE}In The House/`;
+const MUSIC_TRACK_FILES_OVERWORLD = [
+  'Golden Fields (1).mp3',
+  'Golden Fields (2).mp3',
+  'Knitting by the Fire (1).mp3',
+  'Knitting by the Fire 2.mp3',
+  'Knitting the Threads of Life.mp3',
+  'Knitting the Threads of Life (1).mp3',
+  'Sunlit Fields (1).mp3',
+  'Sunlit Fields 2.mp3',
+  'Sunshine Fields (1).mp3',
+  'Sunshine Fields 2.mp3',
+  'Threads of Harmony.mp3',
+  'Threads of Harmony (1).mp3',
+  'Threads of the Meadow (1).mp3',
+  'Threads of the Meadow 2.mp3'
+];
+
+const MUSIC_TRACK_FILES_COTTAGE = [
+  'By the Hearth.mp3',
+  'By the Hearth (1).mp3',
+  'Warm Threads by the Hearth.mp3',
+  'Warm Threads by the Hearth (1).mp3'
+];
+
+function createMusicTrack(basePath, filename) {
+  const audio = new Audio(basePath + filename);
+  audio.preload = 'auto';
+  audio.loop = false;
+  audio.volume = 0;
+  audio.addEventListener('error', () => {
+    console.warn(`Failed to load music track: ${filename}`);
+  });
+  connectTrackToGain(audio);
+  return audio;
+}
+
+const musicTracksByScene = {
+  overworld: MUSIC_TRACK_FILES_OVERWORLD.map((file) => createMusicTrack(MUSIC_BASE, file)),
+  cottage: MUSIC_TRACK_FILES_COTTAGE.map((file) => createMusicTrack(MUSIC_INTERIOR_BASE, file))
+};
+
+// Track per-scene resume info so music continues where it left off when re-entering
+const musicResumeState = {
+  overworld: null,
+  cottage: null
+};
+
+const musicState = {
+  scene: 'overworld',
+  orderByScene: { overworld: [], cottage: [] },
+  orderIndexByScene: { overworld: 0, cottage: 0 },
+  started: false,
+  muted: false,
+  volume: masterVolume,
+  playing: null,
+  sceneScale: 1
+};
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function allMusicTracks() {
+  return [
+    ...(musicTracksByScene.overworld || []),
+    ...(musicTracksByScene.cottage || [])
+  ];
+}
+
+function getActiveTracks() {
+  return musicTracksByScene[musicState.scene] || [];
+}
+
+function ensureMusicQueue() {
+  const scene = musicState.scene;
+  const tracks = getActiveTracks();
+  if (!tracks.length) return;
+
+  if (!musicState.orderByScene[scene] || musicState.orderByScene[scene].length === 0) {
+    musicState.orderByScene[scene] = shuffle(tracks.map((_, idx) => idx));
+    musicState.orderIndexByScene[scene] = 0;
+  }
+}
+
+function currentMusicTrack() {
+  ensureMusicQueue();
+  const tracks = getActiveTracks();
+  const scene = musicState.scene;
+  const order = musicState.orderByScene[scene] || [];
+  if (!tracks.length || !order.length) return null;
+  const orderIndex = musicState.orderIndexByScene[scene] ?? 0;
+  const trackIndex = order[orderIndex];
+  return tracks[trackIndex];
+}
+
+function advanceMusicTrack() {
+  const scene = musicState.scene;
+  const tracks = getActiveTracks();
+  const order = musicState.orderByScene[scene] || [];
+  if (!order.length || !tracks.length) return;
+
+  musicState.orderIndexByScene[scene] = (musicState.orderIndexByScene[scene] ?? 0) + 1;
+  if (musicState.orderIndexByScene[scene] >= order.length) {
+    musicState.orderByScene[scene] = shuffle(tracks.map((_, idx) => idx));
+    musicState.orderIndexByScene[scene] = 0;
+  }
+}
+
+function playCurrentMusic() {
+  const track = currentMusicTrack();
+  if (!track) return;
+  if (musicState.playing && musicState.playing !== track) {
+    musicState.playing.pause();
+  }
+  const scene = musicState.scene;
+  const resumeInfo = musicResumeState[scene];
+  const tracks = getActiveTracks();
+  const order = musicState.orderByScene[scene] || [];
+  const orderIndex = musicState.orderIndexByScene[scene] ?? 0;
+  const trackIndex = order[orderIndex];
+
+  // If we have resume info for this scene and it matches the current track, keep its timestamp
+  if (resumeInfo && typeof resumeInfo.trackIndex === 'number' && resumeInfo.trackIndex === trackIndex) {
+    track.currentTime = resumeInfo.time ?? 0;
+  } else {
+    track.currentTime = 0;
+  }
+  musicResumeState[scene] = null;
+  musicState.playing = track;
+  applyMusicVolume();
+  track.play().catch((err) => {
+    console.warn('Music playback blocked until user interaction', err);
+  });
+}
+
+function handleMusicEnded() {
+  musicState.playing = null;
+  advanceMusicTrack();
+  playCurrentMusic();
+}
+
+function beginMusicOnInteraction() {
+  resumeAudioContextIfNeeded();
+  if (musicState.started) return;
+  ensureAudioContext();
+  musicState.started = true;
+  allMusicTracks().forEach(track => track.addEventListener('ended', handleMusicEnded));
+  playCurrentMusic();
+  window.removeEventListener('pointerdown', beginMusicOnInteraction);
+  window.removeEventListener('keydown', beginMusicOnInteraction);
+}
+
+window.addEventListener('pointerdown', beginMusicOnInteraction);
+window.addEventListener('keydown', beginMusicOnInteraction);
+
+// #endregion MUSIC
+
+// =========================
+// MUSIC CONTROLS UI
+// =========================
+// #region MUSIC_CONTROLS
+
+const musicToggleBtn = document.getElementById('music-toggle');
+const musicVolumeSlider = document.getElementById('music-volume');
+
+if (musicVolumeSlider) {
+  musicVolumeSlider.value = masterVolume.toString();
+}
+
+function applyMusicVolume() {
+  const effectiveVolume = musicState.muted ? 0 : musicState.volume * musicState.sceneScale;
+  const clamped = Math.min(1, Math.max(0, effectiveVolume));
+  if (musicGainNode) {
+    musicGainNode.gain.value = clamped;
+  }
+  if (musicState.playing) {
+    musicState.playing.volume = clamped;
+    musicState.playing.muted = musicState.muted;
+  }
+}
+
+function updateMusicControls() {
+  if (musicToggleBtn) {
+    musicToggleBtn.classList.toggle('muted', musicState.muted);
+    musicToggleBtn.setAttribute('aria-label', musicState.muted ? 'Unmute music' : 'Mute music');
+    musicToggleBtn.setAttribute('aria-pressed', String(!musicState.muted));
+  }
+  if (musicVolumeSlider && musicVolumeSlider !== document.activeElement) {
+    musicVolumeSlider.value = musicState.volume.toString();
+  }
+}
+
+function setAudioMuted(muted) {
+  audioMuted = muted;
+  musicState.muted = muted;
+  applyMusicVolume();
+  refreshAllSfxVolumes();
+  updateFireLoopVolume();
+  updateMusicControls();
+}
+
+function setMusicSceneScale(scale) {
+  musicState.sceneScale = Math.min(1, Math.max(0, scale));
+  applyMusicVolume();
+}
+
+function setMusicScene(scene) {
+  if (musicState.scene === scene) return;
+  const prevScene = musicState.scene;
+
+  const enteringOverworld = scene === 'overworld' && prevScene !== 'overworld';
+  const enteringCottage = scene === 'cottage' && prevScene !== 'cottage';
+
+  // Save resume info for the scene we are leaving
+  if (musicState.playing) {
+    const prevTracks = musicTracksByScene[prevScene] || [];
+    const trackIndex = prevTracks.indexOf(musicState.playing);
+    if (trackIndex !== -1) {
+      musicResumeState[prevScene] = {
+        trackIndex,
+        time: musicState.playing.currentTime
+      };
+    }
+    musicState.playing.pause();
+    musicState.playing = null;
+  }
+
+  musicState.scene = scene;
+  musicState.orderByScene[scene] = musicState.orderByScene[scene] || [];
+  musicState.orderIndexByScene[scene] = musicState.orderIndexByScene[scene] ?? 0;
+  ensureMusicQueue();
+
+  // When returning to overworld, advance to the next track instead of resuming the same one.
+  if (enteringOverworld) {
+    musicResumeState.overworld = null;
+    advanceMusicTrack();
+  }
+
+  // When entering cottage, start fresh from the next track instead of resuming.
+  if (enteringCottage) {
+    musicResumeState.cottage = null;
+    advanceMusicTrack();
+  }
+
+  if (musicState.started) {
+    playCurrentMusic();
+  }
+}
+
+function setMasterVolume(value) {
+  const clamped = Math.min(1, Math.max(0, Number(value)));
+  masterVolume = clamped;
+  musicState.volume = clamped;
+  applyMusicVolume();
+  refreshAllSfxVolumes();
+  updateFireLoopVolume();
+  updateMusicControls();
+}
+
+musicToggleBtn?.addEventListener('click', () => {
+  resumeAudioContextIfNeeded();
+  ensureAudioContext();
+  setAudioMuted(!musicState.muted);
+  // Sync with options menu mute button
+  const optMuteBtn = document.getElementById('options-mute');
+  if (optMuteBtn) {
+    optMuteBtn.textContent = musicState.muted ? '🔊 Unmute Sound' : '🔇 Mute Sound';
+  }
+});
+
+musicVolumeSlider?.addEventListener('input', (event) => {
+  resumeAudioContextIfNeeded();
+  setMasterVolume(event.target.value);
+  // Sync with options menu volume slider
+  const optVolSlider = document.getElementById('options-volume');
+  if (optVolSlider) {
+    optVolSlider.value = event.target.value;
+  }
+});
+
+setMasterVolume(masterVolume);
+
+
+// #endregion MUSIC_CONTROLS
+
+
+// =========================
+// TOUCH INPUT
+// =========================
+// #region TOUCH_INPUT
+
+const touchControls = document.getElementById('touch-controls');
+const touchDirButtons = document.querySelectorAll('[data-dir]');
+const touchActionButton = document.getElementById('touch-action');
+const touchInventoryButton = document.getElementById('touch-inventory');
+const touchBackButton = document.getElementById('touch-back');
+const touchOptionsButton = document.getElementById('touch-options');
+const optionsOverlay = document.getElementById('options-overlay');
+const optionsSaveButton = document.getElementById('options-save');
+const optionsLoadButton = document.getElementById('options-load');
+const optionsVolumeSlider = document.getElementById('options-volume');
+const optionsMuteButton = document.getElementById('options-mute');
+const optionsCloseButton = document.getElementById('options-close');
+const touchControlsNode = document.getElementById('touch-controls');
+
+let optionsMenuOpen = false;
+
+function openOptionsMenu() {
+  optionsMenuOpen = true;
+  if (optionsOverlay) {
+    optionsOverlay.classList.add('open');
+  }
+  // Sync volume slider with current volume
+  if (optionsVolumeSlider) {
+    optionsVolumeSlider.value = masterVolume.toString();
+  }
+  // Update mute button text
+  updateMuteButtonText();
+  // Trigger audio unlock on mobile
+  ensureMobileAudioUnlock();
+}
+
+function closeOptionsMenu() {
+  optionsMenuOpen = false;
+  if (optionsOverlay) {
+    optionsOverlay.classList.remove('open');
+  }
+}
+
+function updateMuteButtonText() {
+  if (optionsMuteButton) {
+    optionsMuteButton.textContent = musicState.muted ? '🔊 Unmute Sound' : '🔇 Mute Sound';
+  }
+}
+
+function updateTouchControlsVisibility() {
+  const overlayQuery = '(pointer: coarse) and (orientation: landscape) and (max-width: 1100px)';
+  showOverlayMode = window.matchMedia(overlayQuery).matches;
+  if (touchControlsNode) {
+    touchControlsNode.style.pointerEvents = 'auto';
+  }
+}
+
+window.addEventListener('resize', updateTouchControlsVisibility);
+updateTouchControlsVisibility();
+
+function setTouchDirection(dir, pressed) {
+  if (!(dir in touchDirections)) return;
+  touchDirections[dir] = pressed;
+}
+
+function bindPointerButton(element, onPress, onRelease) {
+  if (!element) return;
+
+  const pressHandler = (event) => {
+    event.preventDefault();
+    element.setPointerCapture?.(event.pointerId);
+    onPress?.(event);
+  };
+
+  const releaseHandler = (event) => {
+    event.preventDefault();
+    onRelease?.(event);
+    element.releasePointerCapture?.(event.pointerId);
+  };
+
+  element.addEventListener('pointerdown', pressHandler);
+  element.addEventListener('pointerup', releaseHandler);
+  element.addEventListener('pointerleave', releaseHandler);
+  element.addEventListener('pointercancel', releaseHandler);
+  element.addEventListener('contextmenu', (event) => event.preventDefault());
+}
+
+touchDirButtons.forEach((button) => {
+  const dir = button.dataset.dir;
+  bindPointerButton(
+    button,
+    () => {
+      if (craftingMenuOpen) {
+        // Use up/down for menu navigation
+        if (dir === 'up') {
+          craftingMenuSelection = Math.max(0, craftingMenuSelection - 1);
+        } else if (dir === 'down') {
+          craftingMenuSelection = Math.min(craftingRecipes.length - 1, craftingMenuSelection + 1);
+        }
+      } else {
+        setTouchDirection(dir, true);
+      }
+    },
+    () => {
+      if (!craftingMenuOpen) {
+        setTouchDirection(dir, false);
+      }
+    }
+  );
+});
+
+bindPointerButton(touchActionButton, () => {
+  // Handle closing dialogue/gift menu first (mobile exit)
+  if (giftMenuOpen) {
+    closeGiftMenu();
+    return;
+  }
+  if (merchantShopOpen) {
+    purchaseFromMerchant();
+    return;
+  }
+  if (dialogueOpen) {
+    advanceDialogue();
+    return;
+  }
+  if (craftingMenuOpen) {
+    // Craft selected recipe
+    const recipe = craftingRecipes[craftingMenuSelection];
+    if (canAffordRecipe(recipe)) {
+      craftRecipe(recipe);
+      showMessage(`Crafted ${getRecipeOutputsText(recipe)}!`);
+      if (sounds.knit) sounds.knit.play().catch(() => {});
+    } else {
+      showMessage(`Not enough materials for ${recipe.name}.`);
+    }
+  } else {
+    handleAction();
+  }
+}, null);
+
+bindPointerButton(touchInventoryButton, () => {
+  if (craftingMenuOpen) {
+    craftingMenuOpen = false;
+  } else {
+    inventoryOpen = !inventoryOpen;
+  }
+}, null);
+
+// Back button - closes any open menu (like pressing Escape)
+bindPointerButton(touchBackButton, () => {
+  if (optionsMenuOpen) {
+    closeOptionsMenu();
+    return;
+  }
+  if (giftMenuOpen) {
+    closeGiftMenu();
+    return;
+  }
+  if (merchantShopOpen) {
+    closeMerchantShop();
+    return;
+  }
+  if (dialogueOpen) {
+    closeDialogue();
+    return;
+  }
+  if (craftingMenuOpen) {
+    craftingMenuOpen = false;
+    if (touchBackButton) touchBackButton.classList.remove('visible');
+    return;
+  }
+  if (inventoryOpen) {
+    inventoryOpen = false;
+    return;
+  }
+  // Hide self if nothing was open
+  if (touchBackButton) touchBackButton.classList.remove('visible');
+}, null);
+
+// Options button - opens options menu
+bindPointerButton(touchOptionsButton, () => {
+  if (optionsMenuOpen) {
+    closeOptionsMenu();
+  } else {
+    openOptionsMenu();
+  }
+}, null);
+
+// Options menu buttons
+if (optionsSaveButton) {
+  optionsSaveButton.addEventListener('click', () => {
+    saveGame();
+    closeOptionsMenu();
+  });
+}
+
+if (optionsLoadButton) {
+  optionsLoadButton.addEventListener('click', () => {
+    loadGame();
+    closeOptionsMenu();
+  });
+}
+
+if (optionsVolumeSlider) {
+  optionsVolumeSlider.addEventListener('input', (e) => {
+    masterVolume = parseFloat(e.target.value);
+    musicState.volume = masterVolume;
+    applyMusicVolume();
+    // Sync with main volume slider too
+    if (musicVolumeSlider) {
+      musicVolumeSlider.value = masterVolume.toString();
+    }
+    // Ensure audio is unlocked when adjusting volume
+    ensureMobileAudioUnlock();
+  });
+}
+
+if (optionsMuteButton) {
+  optionsMuteButton.addEventListener('click', () => {
+    musicState.muted = !musicState.muted;
+    applyMusicVolume();
+    updateMuteButtonText();
+    // Sync with main mute button
+    if (musicToggleBtn) {
+      musicToggleBtn.classList.toggle('muted', musicState.muted);
+    }
+    ensureMobileAudioUnlock();
+  });
+}
+
+if (optionsCloseButton) {
+  optionsCloseButton.addEventListener('click', () => {
+    closeOptionsMenu();
+  });
+}
+
+// Close options when clicking overlay background
+if (optionsOverlay) {
+  optionsOverlay.addEventListener('click', (e) => {
+    if (e.target === optionsOverlay) {
+      closeOptionsMenu();
+    }
+  });
+}
+
+// Debug mode activation - tap title 5 times to reveal debug button
+const optionsTitle = document.getElementById('options-title');
+const optionsDebugBtn = document.getElementById('options-debug');
+let debugTapCount = 0;
+let debugTapTimer = null;
+
+if (optionsTitle && optionsDebugBtn) {
+  optionsTitle.addEventListener('click', () => {
+    debugTapCount++;
+    clearTimeout(debugTapTimer);
+    debugTapTimer = setTimeout(() => { debugTapCount = 0; }, 2000);
+    
+    if (debugTapCount >= 5) {
+      optionsDebugBtn.style.display = 'block';
+      debugTapCount = 0;
+      showMessage('Debug mode revealed!');
+    }
+  });
+  
+  optionsDebugBtn.addEventListener('click', () => {
+    debugUnlockAll = !debugUnlockAll;
+    optionsDebugBtn.textContent = debugUnlockAll ? '🔒 Lock Areas' : '🔓 Unlock Areas';
+    showMessage(debugUnlockAll ? '🔓 All areas unlocked!' : '🔒 Area locks restored.');
+  });
+}
+
+
+function ensureMobileAudioUnlock() {
+  resumeAudioContextIfNeeded();
+  if (!musicState.started) {
+    beginMusicOnInteraction();
+  }
+}
+
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    ensureMobileAudioUnlock();
+  }
+});
+
+touchControlsNode?.addEventListener('pointerdown', ensureMobileAudioUnlock);
+optionsOverlay?.addEventListener('pointerdown', ensureMobileAudioUnlock);
+
+// #endregion TOUCH_INPUT
+
+
+// =========================
+// ENVIRONMENT AUDIO MANAGEMENT
+// =========================
+// #region ENV_AUDIO
+
+function handleEnvironmentAudio(mapName) {
+  const insideCottage = mapName === 'cottage';
+  setMusicSceneScale(insideCottage ? MUSIC_INTERIOR_SCALE : 1);
+  setMusicScene(insideCottage ? 'cottage' : 'overworld');
+  setFireLoopActive(insideCottage);
+}
+
+// #endregion ENV_AUDIO
+
+
+
+// =========================
+// CONFIG & MAPS
+// =========================
+// #region CONFIG & MAPS
+    const TILE_SIZE = 32;
+
+// =========================
+// QUEST/STORY SYSTEM
+// =========================
+const storyProgress = {
+  chapter: 0,
+  villagersHelped: 0,
+  itemsCrafted: 0,
+  shardsFound: 0,
+  beachUnlocked: false,
+  mountainUnlocked: false,
+  caveUnlocked: false,
+  loomRestored: false,
+  shards: {
+    beach: false,
+    mountain: false,
+    cave: false
+  },
+  storyFlags: {
+    heardLegend: false,
+    metBeachNPC: false,
+    foundCaveEntrance: false
+  }
+};
+
+// Debug mode for testing - unlocks all areas
+let debugUnlockAll = false;
+
+function canAccessMap(mapName) {
+  if (debugUnlockAll) return true;
+  
+  switch(mapName) {
+    case 'overworld':
+    case 'cottage':
+    case 'village':
+    case 'forest':
+      return true; // Always accessible
+    case 'beach':
+      return storyProgress.beachUnlocked || storyProgress.villagersHelped >= 2;
+    case 'mountain':
+      return storyProgress.mountainUnlocked || storyProgress.itemsCrafted >= 5;
+    case 'cave':
+      return storyProgress.caveUnlocked || storyProgress.shards.beach;
+    default:
+      return false;
+  }
+}
+
+function checkStoryMilestones() {
+  // Check for beach unlock
+  if (!storyProgress.beachUnlocked && storyProgress.villagersHelped >= 2) {
+    storyProgress.beachUnlocked = true;
+    showMessage('✨ The path to the beach has opened! Head east from the village.');
+    if (!storyProgress.storyFlags.heardLegend) {
+      setTimeout(() => {
+        showMessage('Old Barnaby mentioned something about crystal shards...');
+      }, 4000);
+    }
+  }
+  
+  // Check for mountain unlock
+  if (!storyProgress.mountainUnlocked && storyProgress.itemsCrafted >= 5) {
+    storyProgress.mountainUnlocked = true;
+    showMessage('✨ Your crafting skill has revealed a mountain path! Go north from the forest.');
+  }
+  
+  // Check for cave unlock
+  if (!storyProgress.caveUnlocked && storyProgress.shards.beach) {
+    storyProgress.caveUnlocked = true;
+    showMessage('✨ The crystal shard glows... a cave entrance appears in the mountain!');
+  }
+  
+  // Check for loom restoration
+  if (!storyProgress.loomRestored && 
+      storyProgress.shards.beach && 
+      storyProgress.shards.mountain && 
+      storyProgress.shards.cave) {
+    storyProgress.loomRestored = true;
+    showMessage('🎉 All crystal shards found! The Crystal Loom awakens!');
+  }
+}
+
+function onVillagerHelped() {
+  storyProgress.villagersHelped++;
+  checkStoryMilestones();
+  
+  // First villager helped - tell the legend
+  if (storyProgress.villagersHelped === 1 && !storyProgress.storyFlags.heardLegend) {
+    storyProgress.storyFlags.heardLegend = true;
+    setTimeout(() => {
+      showMessage('Granny Maple: "Thank you dear! Have you heard of the Crystal Loom?"');
+    }, 2000);
+    setTimeout(() => {
+      showMessage('"They say its shards are scattered across Yarnvale..."');
+    }, 6000);
+  }
+}
+
+function onItemCrafted() {
+  storyProgress.itemsCrafted++;
+  checkStoryMilestones();
+}
+
+function collectCrystalShard(location) {
+  if (storyProgress.shards[location]) return false;
+  
+  storyProgress.shards[location] = true;
+  storyProgress.shardsFound++;
+  
+  const shardMessages = {
+    beach: '💎 You found the Beach Crystal Shard! It shimmers with ocean blue light.',
+    mountain: '💎 You found the Mountain Crystal Shard! It glows with earthy warmth.',
+    cave: '💎 You found the Cave Crystal Shard! It pulses with ancient power.'
+  };
+  
+  showMessage(shardMessages[location] || '💎 You found a Crystal Shard!');
+  checkStoryMilestones();
+  return true;
+}
+
+    // Tile legend:
+    // 0 grass, 1 path, 2 tree (solid), 3 water (solid), 4 fence (solid),
+    // 5 cottage roof, 6 door, 7 interior wall (solid), 8 interior floor
+    // 9 stone path, 10 market stall (solid), 11 well (solid), 12 flower patch
+    // 13 bush, 14 bridge, 15 sign post
+    // NEW: 16 sand, 17 ocean (solid), 18 shells, 19 rock (solid), 20 driftwood
+    // 21 palm tree (solid), 22 tide pool, 23 cliff (solid), 24 mountain path
+    // 25 snow grass, 26 cave entrance, 27 crystal (interactable)
+    const maps = {
+      overworld: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,6,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,0,1,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,4,4,1,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,0,0,1,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,0,0,1,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,4,4,1,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,1,1,1,2,2,2,2,2,2,2,2],
+        ]
+      },
+      cottage: {
+        cols: 9,
+        rows: 7,
+        data: [
+          [7,7,7,7,7,7,7,7,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,6,8,8,8,7],
+          [7,7,7,7,7,7,7,7,7]
+        ]
+      },
+      village: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [2,2,2,2,2,2,2,2,1,1,1,2,2,2,2,2,2,2,2],
+          [2,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,2],
+          [2,0,0,9,9,0,0,0,0,1,0,0,0,0,9,9,0,0,2],
+          [2,0,0,9,9,0,0,0,8,8,8,0,0,0,9,9,0,0,2],
+          [2,0,0,0,0,0,0,0,8,10,8,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,11,0,0,8,8,8,0,0,11,0,1,1,1,1],
+          [2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,1,1,1],
+          [2,0,0,12,12,0,0,0,0,1,0,0,0,0,12,12,0,0,2],
+          [2,0,0,12,12,0,0,0,0,1,0,0,0,0,12,12,0,0,2],
+          [2,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1]
+        ]
+      },
+      forest: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [2,2,2,2,2,2,2,2,1,1,1,2,2,2,2,2,2,2,2],
+          [1,1,1,0,2,2,0,0,0,1,0,0,0,0,2,2,0,0,2],
+          [1,0,1,0,0,2,0,0,0,1,0,0,0,0,0,2,0,0,2],
+          [2,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,2],
+          [2,2,0,0,0,0,0,0,1,0,0,0,2,0,0,0,0,2,2],
+          [2,0,0,0,0,0,0,0,1,0,0,0,2,0,0,0,0,0,2],
+          [2,0,0,0,2,0,0,0,1,1,13,0,0,0,0,0,2,0,2],
+          [2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,2,0,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,2,0,0,0,0,0,2,0,0,0,0,0,2,0,0,0,2,2],
+          [2,0,0,0,0,0,0,2,0,0,0,0,0,2,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+        ]
+      },
+      beach: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17],
+          [17,17,17,17,22,17,17,17,17,17,17,17,17,22,17,17,17,17,17],
+          [17,17,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,17,17],
+          [16,16,16,18,16,16,16,20,16,16,16,18,16,16,16,16,16,16,16],
+          [16,16,16,16,16,19,16,16,16,16,16,16,16,16,19,16,18,16,16],
+          [16,16,18,16,16,16,16,16,21,16,16,16,16,16,16,16,16,16,16],
+          [1,1,1,16,16,16,16,16,16,27,16,16,16,16,16,16,16,16,16],
+          [16,16,16,16,16,16,20,16,16,16,16,16,21,16,16,16,18,16,16],
+          [16,16,16,19,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16],
+          [0,0,0,0,16,16,16,16,18,16,16,16,16,16,20,16,16,16,16],
+          [2,2,0,0,0,16,16,16,16,16,16,16,19,16,16,16,16,16,16],
+          [2,2,2,0,0,0,16,16,16,16,16,16,16,16,16,16,18,16,16],
+          [2,2,2,2,2,0,0,16,16,16,16,16,16,16,16,16,16,16,16]
+        ]
+      },
+      mountain: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23],
+          [23,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,23],
+          [23,25,25,19,25,25,25,25,24,24,24,25,25,25,19,25,25,25,23],
+          [23,25,25,25,25,25,25,25,24,26,24,25,25,25,25,25,25,25,23],
+          [23,25,25,25,19,25,25,25,24,24,24,25,25,25,25,19,25,25,23],
+          [23,25,25,25,25,25,25,25,25,24,25,25,25,25,25,25,25,25,23],
+          [23,25,25,25,25,25,19,25,25,24,25,25,19,25,25,25,25,25,23],
+          [23,25,25,25,25,25,25,25,25,24,25,25,25,25,25,25,25,25,23],
+          [23,25,25,19,25,25,25,25,25,24,25,25,25,25,25,19,25,25,23],
+          [23,25,25,25,25,25,25,25,24,24,24,25,25,25,25,25,25,25,23],
+          [23,25,25,25,25,25,25,25,24,27,24,25,25,25,25,25,25,25,23],
+          [23,25,25,25,25,25,25,25,1,1,1,25,25,25,25,25,25,25,23],
+          [23,23,23,23,23,23,23,23,1,1,1,23,23,23,23,23,23,23,23]
+        ]
+      },
+      cave: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23],
+          [23,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,23],
+          [23,8,8,8,19,8,8,8,8,8,8,8,8,19,8,8,8,8,23],
+          [23,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,23],
+          [23,8,8,8,8,8,19,8,8,8,8,8,19,8,8,8,8,8,23],
+          [23,8,8,8,8,8,8,8,8,27,8,8,8,8,8,8,8,8,23],
+          [23,8,8,19,8,8,8,8,8,8,8,8,8,8,8,19,8,8,23],
+          [23,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,23],
+          [23,8,8,8,8,19,8,8,8,8,8,8,8,19,8,8,8,8,23],
+          [23,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,23],
+          [23,8,8,8,8,8,8,8,8,6,8,8,8,8,8,8,8,8,23],
+          [23,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,23],
+          [23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23]
+        ]
+      }
+    };
+
+const doorTilesByMap = {};
+for (const [name, map] of Object.entries(maps)) {
+  doorTilesByMap[name] = [];
+  for (let row = 0; row < map.rows; row++) {
+    for (let col = 0; col < map.cols; col++) {
+      if (map.data[row][col] === 6) {
+        doorTilesByMap[name].push({ x: col, y: row });
+      }
+    }
+  }
+}
+
+// Static tile layer cache per map to avoid redrawing terrain every frame
+const baseMapCanvases = {};
+
+// Animation time for animated tiles (grass, water, trees, etc.)
+let animationTime = 0;
+
+function invalidateBaseMaps() {
+  Object.keys(baseMapCanvases).forEach(key => delete baseMapCanvases[key]);
+}
+
+function ensureBaseMapCanvas(mapName) {
+  if (baseMapCanvases[mapName]) return baseMapCanvases[mapName];
+  const map = maps[mapName];
+  if (!map) return null;
+
+  const offscreen = document.createElement('canvas');
+  offscreen.width = map.cols * TILE_SIZE;
+  offscreen.height = map.rows * TILE_SIZE;
+  const offCtx = offscreen.getContext('2d');
+  for (let y = 0; y < map.rows; y++) {
+    for (let x = 0; x < map.cols; x++) {
+      drawTile(map.data[y][x], x, y, offCtx);
+    }
+  }
+
+  baseMapCanvases[mapName] = offscreen;
+  return offscreen;
+}
+
+['grass1', 'grass2', 'grass3'].forEach(name => {
+  const asset = artAssets[name];
+  if (asset?.image) {
+    asset.image.addEventListener('load', invalidateBaseMaps);
+  }
+});
+
+// ===== INVENTORY =====
+let inventoryOpen = false;
+
+let inventory = {
+  wool: 0,
+  yarn: 0,
+  luxuryYarn: 0,
+  goatFur: 0,
+  scarf: 0,
+  luxuryScarf: 0,
+  mittens: 0,
+  luxuryMittens: 0,
+  socks: 0,
+  hat: 0,
+  blanket: 0,
+  gold: 0
+};
+
+// ===== CRAFTING MENU =====
+let craftingMenuOpen = false;
+let craftingMenuSelection = 0;
+
+const craftingRecipes = [
+  // --- Material Processing ---
+  {
+    id: 'luxuryYarn',
+    name: 'Luxury Yarn',
+    description: 'Soft blend of wool and goat fur',
+    inputs: { wool: 1, goatFur: 1 },
+    outputs: { luxuryYarn: 2 },
+    color: '#c8a0f0'
+  },
+  {
+    id: 'yarn',
+    name: 'Yarn',
+    description: 'Spin wool into yarn',
+    inputs: { wool: 2 },
+    outputs: { yarn: 1 },
+    color: '#f098c8'
+  },
+  // --- Basic Items ---
+  {
+    id: 'socks',
+    name: 'Socks',
+    description: 'Cosy knitted socks',
+    inputs: { yarn: 2 },
+    outputs: { socks: 1 },
+    sellPrice: 8,
+    color: '#a8d8a8'
+  },
+  {
+    id: 'mittens',
+    name: 'Mittens',
+    description: 'Warm fluffy mittens',
+    inputs: { goatFur: 2 },
+    outputs: { mittens: 1 },
+    sellPrice: 15,
+    color: '#e8d0c0'
+  },
+  {
+    id: 'scarf',
+    name: 'Scarf',
+    description: 'A cosy knitted scarf',
+    inputs: { yarn: 3 },
+    outputs: { scarf: 1 },
+    sellPrice: 10,
+    color: '#f2d27a'
+  },
+  {
+    id: 'hat',
+    name: 'Hat',
+    description: 'A warm woolly hat',
+    inputs: { yarn: 2, wool: 1 },
+    outputs: { hat: 1 },
+    sellPrice: 12,
+    color: '#7eb8e8'
+  },
+  // --- Premium Items ---
+  {
+    id: 'luxuryMittens',
+    name: 'Luxury Mittens',
+    description: 'Silky soft premium mittens',
+    inputs: { luxuryYarn: 2 },
+    outputs: { luxuryMittens: 1 },
+    sellPrice: 20,
+    color: '#e0b8f0'
+  },
+  {
+    id: 'luxuryScarf',
+    name: 'Luxury Scarf',
+    description: 'An exquisite shimmering scarf',
+    inputs: { luxuryYarn: 3 },
+    outputs: { luxuryScarf: 1 },
+    sellPrice: 25,
+    color: '#d8a0f8'
+  },
+  // --- Large Items ---
+  {
+    id: 'blanket',
+    name: 'Blanket',
+    description: 'A large cosy blanket',
+    inputs: { yarn: 4, wool: 2 },
+    outputs: { blanket: 1 },
+    sellPrice: 30,
+    color: '#f0c8a0'
+  }
+];
+
+function canAffordRecipe(recipe) {
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    if ((inventory[item] || 0) < amount) return false;
+  }
+  return true;
+}
+
+function craftRecipe(recipe) {
+  if (!canAffordRecipe(recipe)) return false;
+  
+  // Deduct inputs
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    inventory[item] -= amount;
+  }
+  
+  // Add outputs
+  for (const [item, amount] of Object.entries(recipe.outputs)) {
+    inventory[item] = (inventory[item] || 0) + amount;
+  }
+  
+  // Track story progress
+  onItemCrafted();
+  
+  return true;
+}
+
+function getRecipeInputsText(recipe) {
+  return Object.entries(recipe.inputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(' + ');
+}
+
+function getRecipeOutputsText(recipe) {
+  return Object.entries(recipe.outputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(', ');
+}
+
+
+
+
+let message = null;
+let messageExpiryTime = 0; // timestamp when current message should disappear
+
+// One starter sheep in the paddock (overworld)
+const sheep = {
+  map: 'overworld',
+  x: 8,
+  y: 10,
+  hasWool: true,
+  woolTimer: 0 // counts frames until wool grows back
+};
+
+// One goat in the paddock (overworld)
+const goat = {
+  map: 'overworld',
+  x: 12,
+  y: 11,
+  hasFur: true,
+  furTimer: 0
+};
+
+// Knitting spot inside the cottage (must be on a floor tile)
+const knittingSpot = {
+  map: 'cottage',
+  x: 3,
+  y: 4
+};
+
+const marketSpot = {
+  map: 'overworld',
+  x: 13,  // tweak later if you want it somewhere else
+  y: 9
+};
+
+const fireplaceSpot = {
+  map: 'cottage',
+  x: 2,
+  y: 1
+};
+
+// ===== TRAVELING MERCHANT (Wandering Willa) =====
+const travelingMerchant = {
+  name: 'Wandering Willa',
+  map: 'overworld',
+  x: 2,
+  y: 5,
+  isPresent: false,
+  spawnTimer: 0,
+  spawnDelay: 3600, // 60 seconds at 60fps before first appearance
+  stayDuration: 1800, // stays for 30 seconds
+  stayTimer: 0,
+  color: '#9b59b6'
+};
+
+// Merchant shop state
+let merchantShopOpen = false;
+let merchantShopSelection = 0;
+
+// Items the traveling merchant sells
+const merchantStock = [
+  { id: 'redDye', name: 'Red Dye', price: 25, description: 'Vibrant crimson dye' },
+  { id: 'blueDye', name: 'Blue Dye', price: 25, description: 'Deep ocean blue dye' },
+  { id: 'greenDye', name: 'Green Dye', price: 25, description: 'Fresh forest green dye' },
+  { id: 'goldenThread', name: 'Golden Thread', price: 50, description: 'Rare shimmering thread' },
+  { id: 'silkRibbon', name: 'Silk Ribbon', price: 35, description: 'Luxurious silk ribbon' },
+  { id: 'mysteryPattern', name: 'Mystery Pattern', price: 75, description: 'A secret knitting pattern' }
+];
+
+// Update traveling merchant spawn/despawn
+function updateTravelingMerchant() {
+  if (!travelingMerchant.isPresent) {
+    // Waiting to spawn
+    travelingMerchant.spawnTimer++;
+    if (travelingMerchant.spawnTimer >= travelingMerchant.spawnDelay) {
+      // Spawn the merchant!
+      travelingMerchant.isPresent = true;
+      travelingMerchant.stayTimer = 0;
+      travelingMerchant.spawnTimer = 0;
+      showMessage("A traveling merchant has arrived! Look for Willa on the west side.");
+    }
+  } else {
+    // Don't count down if player is shopping with her
+    if (merchantShopOpen) return;
+    
+    // Merchant is present, count down stay time
+    travelingMerchant.stayTimer++;
+    if (travelingMerchant.stayTimer >= travelingMerchant.stayDuration) {
+      // Merchant leaves
+      travelingMerchant.isPresent = false;
+      travelingMerchant.spawnDelay = 2400 + Math.floor(Math.random() * 1200); // 40-60 sec until next visit
+      if (merchantShopOpen) {
+        merchantShopOpen = false;
+        showMessage("Willa: \"Time for me to go! See you next time!\"");
+      } else {
+        showMessage("The traveling merchant has left...");
+      }
+    }
+  }
+}
+
+// Draw the traveling merchant
+function drawTravelingMerchant() {
+  if (!travelingMerchant.isPresent || currentMap !== travelingMerchant.map) return;
+  
+  const px = travelingMerchant.x * TILE_SIZE;
+  const py = travelingMerchant.y * TILE_SIZE;
+  
+  // Cart/wagon behind merchant
+  ctx.fillStyle = '#8b4513';
+  ctx.fillRect(px - 8, py + 8, 28, 20);
+  ctx.fillStyle = '#d2691e';
+  ctx.fillRect(px - 6, py + 2, 24, 8);
+  
+  // Wheels
+  ctx.fillStyle = '#4a3728';
+  ctx.beginPath();
+  ctx.arc(px - 2, py + 28, 5, 0, Math.PI * 2);
+  ctx.arc(px + 18, py + 28, 5, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(px + 16, py + 26, 8, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Body (purple cloak)
+  ctx.fillStyle = travelingMerchant.color;
+  ctx.fillRect(px + 10, py + 12, 12, 14);
+  
+  // Legs
+  ctx.fillStyle = '#2b3145';
+  ctx.fillRect(px + 11, py + 24, 4, 6);
+  ctx.fillRect(px + 17, py + 24, 4, 6);
+  
+  // Head
+  ctx.beginPath();
+  ctx.arc(px + 16, py + 8, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#deb887';
+  ctx.fill();
+  
+  // Hat (witch/merchant style)
+  ctx.fillStyle = '#4a0080';
+  ctx.beginPath();
+  ctx.moveTo(px + 8, py + 4);
+  ctx.lineTo(px + 16, py - 8);
+  ctx.lineTo(px + 24, py + 4);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Eyes
+  ctx.fillStyle = '#3a2a24';
+  ctx.fillRect(px + 13, py + 7, 1, 2);
+  ctx.fillRect(px + 18, py + 7, 1, 2);
+  
+  // Exclamation mark (always has something to sell!)
+  const bob = Math.sin(Date.now() / 200) * 2;
+  ctx.fillStyle = '#ffdd44';
+  ctx.beginPath();
+  ctx.arc(px + 16, py - 16 + bob, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#222222';
+  ctx.font = 'bold 12px system-ui';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('$', px + 16, py - 16 + bob);
+  ctx.textBaseline = 'alphabetic';
+  
+  // Show name when player is close
+  const dist = Math.abs(player.x - travelingMerchant.x) + Math.abs(player.y - travelingMerchant.y);
+  if (dist <= 2) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    const nameWidth = ctx.measureText(travelingMerchant.name).width;
+    ctx.fillRect(px + 16 - nameWidth/2 - 4, py - 28, nameWidth + 8, 14);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '10px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(travelingMerchant.name, px + 16, py - 18);
+    ctx.textAlign = 'left';
+  }
+}
+
+// Open merchant shop
+function openMerchantShop() {
+  merchantShopOpen = true;
+  merchantShopSelection = 0;
+  if (touchBackButton) touchBackButton.classList.add('visible');
+}
+
+// Close merchant shop
+function closeMerchantShop() {
+  merchantShopOpen = false;
+  merchantShopSelection = 0;
+  if (touchBackButton) touchBackButton.classList.remove('visible');
+  showMessage("Willa: \"Safe travels! Come back soon!\"");
+}
+
+// Purchase from merchant
+function purchaseFromMerchant() {
+  if (!merchantShopOpen) return;
+  
+  const item = merchantStock[merchantShopSelection];
+  if (!item) return;
+  
+  if ((inventory.gold || 0) < item.price) {
+    showMessage(`Not enough gold! You need ${item.price}g.`);
+    return;
+  }
+  
+  inventory.gold -= item.price;
+  inventory[item.id] = (inventory[item.id] || 0) + 1;
+  showMessage(`Purchased ${item.name}! Willa: "Excellent choice!"`);
+}
+
+// Draw merchant shop UI
+function drawMerchantShopUI() {
+  if (!merchantShopOpen) return;
+  
+  const panelW = 300;
+  const panelH = 220;
+  const panelX = (canvas.width - panelW) / 2;
+  const panelY = (canvas.height - panelH) / 2;
+  
+  // Dim background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Panel background
+  ctx.fillStyle = 'rgba(75, 0, 130, 0.95)';
+  ctx.fillRect(panelX, panelY, panelW, panelH);
+  
+  // Border
+  ctx.strokeStyle = '#ffdd44';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(panelX + 1, panelY + 1, panelW - 2, panelH - 2);
+  
+  // Title
+  ctx.fillStyle = '#ffdd44';
+  ctx.font = 'bold 14px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText("Wandering Willa's Wares", panelX + panelW/2, panelY + 20);
+  
+  // Gold display
+  ctx.fillStyle = '#ffd700';
+  ctx.font = '12px system-ui';
+  ctx.fillText(`Your Gold: ${inventory.gold || 0}g`, panelX + panelW/2, panelY + 38);
+  ctx.textAlign = 'left';
+  
+  // Items list
+  const startY = panelY + 55;
+  merchantStock.forEach((item, i) => {
+    const y = startY + i * 24;
+    const isSelected = i === merchantShopSelection;
+    
+    // Selection highlight
+    if (isSelected) {
+      ctx.fillStyle = 'rgba(255, 221, 68, 0.3)';
+      ctx.fillRect(panelX + 8, y - 12, panelW - 16, 22);
+    }
+    
+    // Item name and price
+    ctx.fillStyle = isSelected ? '#ffdd44' : '#ffffff';
+    ctx.font = isSelected ? 'bold 12px system-ui' : '12px system-ui';
+    ctx.fillText(`${item.name}`, panelX + 16, y);
+    
+    ctx.fillStyle = '#ffd700';
+    ctx.textAlign = 'right';
+    ctx.fillText(`${item.price}g`, panelX + panelW - 16, y);
+    ctx.textAlign = 'left';
+  });
+  
+  // Selected item description
+  const selectedItem = merchantStock[merchantShopSelection];
+  if (selectedItem) {
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '10px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(selectedItem.description, panelX + panelW/2, panelY + panelH - 30);
+    ctx.textAlign = 'left';
+  }
+  
+  // Controls hint
+  ctx.fillStyle = '#a9b3cd';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('[W/S] Select  [E] Buy  [Esc] Close', panelX + panelW/2, panelY + panelH - 12);
+  ctx.textAlign = 'left';
+}
+
+const cottageFurniture = [
+  { map: 'cottage', x: 1, y: 3, type: 'armchair' },
+  { map: 'cottage', x: 6, y: 2, type: 'bookshelf' },
+  { map: 'cottage', x: 6, y: 4, type: 'chest' }
+];
+
+// ===== NPC SYSTEM =====
+
+// Dialogue state
+let dialogueOpen = false;
+let currentNPC = null;
+let dialogueIndex = 0;
+
+// Gift menu state
+let giftMenuOpen = false;
+let giftMenuSelection = 0;
+
+// Friendship system
+const FRIENDSHIP_MAX = 100;
+const friendship = {
+  granny: 0,
+  merchant: 0,
+  shepherd: 0,
+  gardener: 0
+};
+
+// Villager NPCs
+const villagers = [
+  {
+    id: 'granny',
+    name: 'Granny Willow',
+    map: 'overworld',
+    x: 3,
+    y: 6,
+    homeX: 3,
+    homeY: 6,
+    wanderRadius: 2,
+    moveTimer: 0,
+    moveDelay: 180,
+    color: '#e8b8d8',
+    dialogue: [
+      "Oh hello, dear! The yarn you make is simply wonderful.",
+      "Back in my day, we knit everything by hand!",
+      "Have you tried making a nice warm blanket?",
+      "My joints ache when rain is coming."
+    ],
+    lovedGifts: ['blanket', 'socks'],
+    likedGifts: ['scarf', 'mittens', 'yarn'],
+    request: null,
+    requestItem: null,
+    requestReward: 0
+  },
+  {
+    id: 'merchant',
+    name: 'Felix the Merchant',
+    map: 'overworld',
+    x: 14,
+    y: 3,
+    homeX: 14,
+    homeY: 3,
+    wanderRadius: 2,
+    moveTimer: 0,
+    moveDelay: 150,
+    color: '#d4a574',
+    dialogue: [
+      "Business is good today! Your scarves sell well.",
+      "I hear there's demand for luxury goods!",
+      "Keep up the good work!",
+      "Quality craftsmanship never goes out of style."
+    ],
+    lovedGifts: ['luxuryScarf', 'hat'],
+    likedGifts: ['scarf', 'luxuryYarn'],
+    request: null,
+    requestItem: null,
+    requestReward: 0
+  },
+  {
+    id: 'shepherd',
+    name: 'Young Tom',
+    map: 'overworld',
+    x: 6,
+    y: 9,
+    homeX: 6,
+    homeY: 9,
+    wanderRadius: 3,
+    moveTimer: 0,
+    moveDelay: 120,
+    color: '#7eb87e',
+    dialogue: [
+      "Heya! I love watching the sheep!",
+      "Did you know goats are smarter than sheep?",
+      "I want to have my own farm someday!",
+      "The animals seem happy here."
+    ],
+    lovedGifts: ['mittens', 'socks'],
+    likedGifts: ['scarf', 'yarn', 'wool'],
+    request: null,
+    requestItem: null,
+    requestReward: 0
+  },
+  {
+    id: 'gardener',
+    name: 'Mira the Gardener',
+    map: 'village',
+    x: 5,
+    y: 4,
+    homeX: 5,
+    homeY: 4,
+    wanderRadius: 2,
+    moveTimer: 0,
+    moveDelay: 160,
+    color: '#6db7d6',
+    dialogue: [
+      "The flowers bloom brightest after rain.",
+      "Every plant has a story!",
+      "If you ever need a bouquet, just ask!",
+      "Nature provides everything we need."
+    ],
+    lovedGifts: ['hat', 'scarf'],
+    likedGifts: ['yarn', 'mittens'],
+    request: null,
+    requestItem: null,
+    requestReward: 0
+  }
+];
+
+// NPC Functions
+function openDialogue(npc) {
+  dialogueOpen = true;
+  currentNPC = npc;
+  dialogueIndex = 0;
+  // Show back button on mobile
+  if (touchBackButton) touchBackButton.classList.add('visible');
+}
+
+function closeDialogue() {
+  dialogueOpen = false;
+  currentNPC = null;
+  dialogueIndex = 0;
+  giftMenuOpen = false;
+  // Hide back button on mobile
+  if (touchBackButton) touchBackButton.classList.remove('visible');
+}
+
+function advanceDialogue() {
+  if (!currentNPC) return;
+  dialogueIndex = (dialogueIndex + 1) % currentNPC.dialogue.length;
+}
+
+function openGiftMenu() {
+  giftMenuOpen = true;
+  giftMenuSelection = 0;
+}
+
+function closeGiftMenu() {
+  giftMenuOpen = false;
+  giftMenuSelection = 0;
+}
+
+// ===== NPC MOVEMENT & REQUESTS =====
+
+// Request item pools per NPC
+const npcRequestItems = {
+  granny: ['blanket', 'socks', 'scarf', 'mittens'],
+  merchant: ['luxuryScarf', 'luxuryMittens', 'hat', 'scarf'],
+  shepherd: ['mittens', 'socks', 'scarf', 'yarn'],
+  gardener: ['hat', 'scarf', 'mittens', 'yarn']
+};
+
+// Request rewards (gold)
+const requestRewards = {
+  yarn: 5,
+  wool: 4,
+  scarf: 15,
+  socks: 12,
+  mittens: 20,
+  hat: 18,
+  blanket: 40,
+  luxuryScarf: 35,
+  luxuryMittens: 30,
+  luxuryYarn: 10
+};
+
+// Generate a random request for an NPC
+function generateNPCRequest(npc) {
+  const items = npcRequestItems[npc.id];
+  if (!items || items.length === 0) return;
+  
+  const item = items[Math.floor(Math.random() * items.length)];
+  const baseReward = requestRewards[item] || 10;
+  // Bonus reward for requests (1.5x normal)
+  const reward = Math.floor(baseReward * 1.5);
+  
+  npc.request = `Could you bring me a ${item}? I'll pay ${reward} gold!`;
+  npc.requestItem = item;
+  npc.requestReward = reward;
+}
+
+// Check if player fulfills an NPC's request when giving a gift
+function checkRequestFulfillment(npc, item) {
+  if (npc.requestItem && npc.requestItem === item) {
+    inventory.gold = (inventory.gold || 0) + npc.requestReward;
+    showMessage(`${npc.name}: "Perfect! Here's ${npc.requestReward} gold as promised!"`);
+    // Clear the request
+    npc.request = null;
+    npc.requestItem = null;
+    npc.requestReward = 0;
+    // Chance to generate new request later
+    npc.requestCooldown = 600; // 10 seconds at 60fps
+    // Track story progress - villager helped!
+    onVillagerHelped();
+    return true;
+  }
+  return false;
+}
+
+// Update NPC movement (called each frame)
+function updateNPCMovement() {
+  const currentMapData = maps[currentMap];
+  if (!currentMapData) return;
+  
+  villagers.forEach(v => {
+    if (v.map !== currentMap) return;
+    
+    // Cooldown for new requests
+    if (v.requestCooldown && v.requestCooldown > 0) {
+      v.requestCooldown--;
+      if (v.requestCooldown === 0 && !v.request && Math.random() < 0.3) {
+        generateNPCRequest(v);
+      }
+    }
+    
+    // Movement timer
+    v.moveTimer = (v.moveTimer || 0) + 1;
+    if (v.moveTimer < (v.moveDelay || 120)) return;
+    v.moveTimer = 0;
+    
+    // Random chance to move (50%)
+    if (Math.random() > 0.5) return;
+    
+    // Pick a random direction
+    const directions = [
+      { dx: 0, dy: -1 },
+      { dx: 0, dy: 1 },
+      { dx: -1, dy: 0 },
+      { dx: 1, dy: 0 }
+    ];
+    const dir = directions[Math.floor(Math.random() * directions.length)];
+    const newX = v.x + dir.dx;
+    const newY = v.y + dir.dy;
+    
+    // Check if within wander radius
+    const distFromHome = Math.abs(newX - v.homeX) + Math.abs(newY - v.homeY);
+    if (distFromHome > (v.wanderRadius || 2)) return;
+    
+    // Check map bounds
+    if (newX < 0 || newX >= currentMapData.cols || newY < 0 || newY >= currentMapData.rows) return;
+    
+    // Check collision with tiles (use 2D array format)
+    const tile = currentMapData.data[newY][newX];
+    // Solid tiles: 2=tree, 3=water, 4=fence, 7=interior wall, 10=market, 11=well,
+    // 17=ocean, 19=rock, 21=palm, 22=tide pool, 23=cliff
+    if (tile === 2 || tile === 3 || tile === 4 || tile === 7 || tile === 10 || tile === 11 ||
+        tile === 17 || tile === 19 || tile === 21 || tile === 22 || tile === 23) return;
+    
+    // Check collision with player
+    if (newX === player.x && newY === player.y) return;
+    
+    // Check collision with other NPCs
+    const blocked = villagers.some(other => 
+      other !== v && other.map === v.map && other.x === newX && other.y === newY
+    );
+    if (blocked) return;
+    
+    // Check collision with animals
+    if (sheep.map === v.map && sheep.x === newX && sheep.y === newY) return;
+    if (goat.map === v.map && goat.x === newX && goat.y === newY) return;
+    
+    // Move!
+    v.x = newX;
+    v.y = newY;
+  });
+}
+
+// Check if an NPC has something important (request or first meeting)
+function npcHasExclamation(npc) {
+  // Has an active request
+  if (npc.request && npc.requestItem) return true;
+  // Low friendship = wants to chat
+  if ((friendship[npc.id] || 0) < 10) return true;
+  return false;
+}
+
+// Initialize requests for some NPCs at game start
+function initializeNPCRequests() {
+  villagers.forEach(v => {
+    if (Math.random() < 0.5) {
+      generateNPCRequest(v);
+    }
+  });
+}
+
+// Call on game start
+initializeNPCRequests();
+
+// ===== SAVE / LOAD SYSTEM =====
+const SAVE_KEY = 'yarnvale_save';
+
+function saveGame() {
+  const saveData = {
+    version: 2,
+    timestamp: Date.now(),
+    player: {
+      x: player.x,
+      y: player.y,
+      map: currentMap
+    },
+    inventory: { ...inventory },
+    friendship: { ...friendship },
+    sheep: {
+      hasWool: sheep.hasWool,
+      woolTimer: sheep.woolTimer
+    },
+    goat: {
+      hasFur: goat.hasFur,
+      furTimer: goat.furTimer
+    },
+    storyProgress: { ...storyProgress }
+  };
+  
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+    showMessage("Game saved!");
+  } catch (e) {
+    showMessage("Error: Could not save game.");
+    console.error('Save failed:', e);
+  }
+}
+
+function loadGame() {
+  try {
+    const data = localStorage.getItem(SAVE_KEY);
+    if (!data) {
+      showMessage("No save file found.");
+      return;
+    }
+    
+    const saveData = JSON.parse(data);
+    
+    // Restore player position
+    player.x = saveData.player.x;
+    player.y = saveData.player.y;
+    currentMap = saveData.player.map;
+    
+    // Restore inventory
+    Object.assign(inventory, saveData.inventory);
+    
+    // Restore friendship
+    Object.assign(friendship, saveData.friendship);
+    
+    // Restore animals
+    sheep.hasWool = saveData.sheep.hasWool;
+    sheep.woolTimer = saveData.sheep.woolTimer;
+    goat.hasFur = saveData.goat.hasFur;
+    goat.furTimer = saveData.goat.furTimer;
+    
+    // Restore story progress (if version 2+)
+    if (saveData.storyProgress) {
+      Object.assign(storyProgress, saveData.storyProgress);
+      // Restore shards properly
+      if (saveData.storyProgress.shards) {
+        Object.assign(storyProgress.shards, saveData.storyProgress.shards);
+      }
+      if (saveData.storyProgress.storyFlags) {
+        Object.assign(storyProgress.storyFlags, saveData.storyProgress.storyFlags);
+      }
+    }
+    
+    // Update map data reference
+    mapData = maps[currentMap].data;
+    
+    // Update environment audio for new map
+    handleEnvironmentAudio(currentMap);
+    
+    // Invalidate map cache in case crystal shards were collected
+    invalidateBaseMaps();
+    
+    showMessage("Game loaded!");
+  } catch (e) {
+    showMessage("Error: Could not load save.");
+    console.error('Load failed:', e);
+  }
+}
+
+function hasSaveData() {
+  return localStorage.getItem(SAVE_KEY) !== null;
+}
+
+function getGiftableItems() {
+  const giftable = ['wool', 'yarn', 'luxuryYarn', 'goatFur', 'scarf', 'luxuryScarf', 
+                    'mittens', 'luxuryMittens', 'socks', 'hat', 'blanket'];
+  return giftable.filter(item => (inventory[item] || 0) > 0);
+}
+
+function giveSelectedGift() {
+  if (!currentNPC || !giftMenuOpen) return;
+  
+  const items = getGiftableItems();
+  if (items.length === 0 || giftMenuSelection >= items.length) {
+    showMessage("You don't have anything to give.");
+    closeGiftMenu();
+    return;
+  }
+  
+  const item = items[giftMenuSelection];
+  inventory[item]--;
+  
+  // Check if this fulfills a request (higher reward!)
+  if (checkRequestFulfillment(currentNPC, item)) {
+    // Also give some friendship for fulfilling request
+    friendship[currentNPC.id] = Math.min(FRIENDSHIP_MAX, (friendship[currentNPC.id] || 0) + 20);
+    closeGiftMenu();
+    closeDialogue();
+    return;
+  }
+  
+  let friendshipGain = 3;
+  let reaction = "Thanks, I suppose.";
+  
+  if (currentNPC.lovedGifts && currentNPC.lovedGifts.includes(item)) {
+    friendshipGain = 15;
+    reaction = "Oh, I love this! Thank you so much!";
+  } else if (currentNPC.likedGifts && currentNPC.likedGifts.includes(item)) {
+    friendshipGain = 8;
+    reaction = "This is nice, thank you!";
+  }
+  
+  friendship[currentNPC.id] = Math.min(FRIENDSHIP_MAX, (friendship[currentNPC.id] || 0) + friendshipGain);
+  
+  showMessage(`${currentNPC.name}: "${reaction}" (+${friendshipGain} friendship)`);
+  closeGiftMenu();
+  closeDialogue();
+}
+
+function drawVillagers() {
+  villagers.forEach(v => {
+    if (v.map !== currentMap) return;
+    
+    const px = v.x * TILE_SIZE;
+    const py = v.y * TILE_SIZE;
+    
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(px + 16, py + 26, 8, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Body
+    ctx.fillStyle = v.color;
+    ctx.fillRect(px + 10, py + 12, 12, 14);
+    
+    // Legs
+    ctx.fillStyle = '#2b3145';
+    ctx.fillRect(px + 11, py + 24, 4, 6);
+    ctx.fillRect(px + 17, py + 24, 4, 6);
+    
+    // Head
+    ctx.beginPath();
+    ctx.arc(px + 16, py + 8, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffcf9e';
+    ctx.fill();
+    
+    // Hair - varies by villager
+    let hairColor = '#8a6030';
+    if (v.id === 'granny') hairColor = '#c0c0c0';
+    else if (v.id === 'merchant') hairColor = '#3a2825';
+    else if (v.id === 'shepherd') hairColor = '#c4a574';
+    else if (v.id === 'gardener') hairColor = '#2e8b57';
+    
+    ctx.fillStyle = hairColor;
+    ctx.beginPath();
+    ctx.arc(px + 16, py + 6, 7, Math.PI, 0);
+    ctx.fill();
+    
+    // Eyes
+    ctx.fillStyle = '#3a2a24';
+    ctx.fillRect(px + 13, py + 7, 1, 2);
+    ctx.fillRect(px + 18, py + 7, 1, 2);
+    
+    // Exclamation mark if NPC has something important
+    if (npcHasExclamation(v)) {
+      // Bobbing animation
+      const bob = Math.sin(Date.now() / 200) * 2;
+      const exX = px + 16;
+      const exY = py - 16 + bob;
+      
+      // Yellow background circle
+      ctx.fillStyle = '#ffdd44';
+      ctx.beginPath();
+      ctx.arc(exX, exY, 8, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Black exclamation mark
+      ctx.fillStyle = '#222222';
+      ctx.font = 'bold 12px system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('!', exX, exY);
+      ctx.textBaseline = 'alphabetic';
+    }
+    
+    // Show name when player is close
+    const dist = Math.abs(player.x - v.x) + Math.abs(player.y - v.y);
+    if (dist <= 2) {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      const nameWidth = ctx.measureText(v.name).width;
+      ctx.fillRect(px + 16 - nameWidth/2 - 4, py - 12, nameWidth + 8, 14);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '10px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(v.name, px + 16, py - 2);
+      ctx.textAlign = 'left';
+    }
+  });
+}
+
+function drawDialogueUI() {
+  if (!dialogueOpen || !currentNPC) return;
+  
+  const panelW = 340;
+  const panelH = 160;
+  const panelX = (canvas.width - panelW) / 2;
+  const panelY = canvas.height - panelH - 20;
+
+  // Dim background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Panel background
+  ctx.fillStyle = 'rgba(6, 12, 26, 0.95)';
+  ctx.fillRect(panelX, panelY, panelW, panelH);
+
+  // Border
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(panelX + 0.5, panelY + 0.5, panelW - 1, panelH - 1);
+
+  // Header with NPC name and color
+  ctx.fillStyle = currentNPC.color;
+  ctx.fillRect(panelX, panelY, panelW, 28);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 14px system-ui';
+  ctx.fillText(currentNPC.name, panelX + 12, panelY + 19);
+
+  // Friendship hearts
+  const hearts = Math.floor((friendship[currentNPC.id] || 0) / 20);
+  ctx.fillStyle = '#ff6b6b';
+  ctx.font = '12px system-ui';
+  let heartStr = '';
+  for (let i = 0; i < 5; i++) {
+    heartStr += i < hearts ? '♥' : '♡';
+  }
+  ctx.fillText(heartStr, panelX + panelW - 75, panelY + 19);
+
+  // Dialogue text - show request if they have one, otherwise normal dialogue
+  let text;
+  if (currentNPC.request && currentNPC.requestItem) {
+    text = currentNPC.request;
+  } else {
+    text = currentNPC.dialogue[dialogueIndex] || "...";
+  }
+  ctx.fillStyle = '#f5f7ff';
+  ctx.font = '13px system-ui';
+  
+  // Highlight request text in yellow
+  if (currentNPC.request && currentNPC.requestItem) {
+    ctx.fillStyle = '#ffdd88';
+  }
+  
+  // Word wrap
+  const maxWidth = panelW - 24;
+  const words = text.split(' ');
+  let line = '';
+  let lineY = panelY + 50;
+  words.forEach(word => {
+    const testLine = line + word + ' ';
+    if (ctx.measureText(testLine).width > maxWidth) {
+      ctx.fillText(line, panelX + 12, lineY);
+      line = word + ' ';
+      lineY += 18;
+    } else {
+      line = testLine;
+    }
+  });
+  ctx.fillText(line, panelX + 12, lineY);
+
+  // Options
+  ctx.fillStyle = '#a9b3cd';
+  ctx.font = '11px system-ui';
+  ctx.fillText('[E] Next  [G] Give Gift  [Esc] Close', panelX + 12, panelY + panelH - 12);
+}
+
+function drawGiftMenuUI() {
+  if (!giftMenuOpen || !currentNPC) return;
+  
+  const items = getGiftableItems();
+  const panelW = 240;
+  const panelH = Math.min(60 + items.length * 24, 200);
+  const panelX = (canvas.width - panelW) / 2;
+  const panelY = (canvas.height - panelH) / 2;
+
+  // Background
+  ctx.fillStyle = 'rgba(6, 12, 26, 0.95)';
+  ctx.fillRect(panelX, panelY, panelW, panelH);
+
+  // Border
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(panelX + 0.5, panelY + 0.5, panelW - 1, panelH - 1);
+
+  // Header
+  ctx.fillStyle = 'rgba(80, 120, 80, 0.9)';
+  ctx.fillRect(panelX, panelY, panelW, 28);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 12px system-ui';
+  ctx.fillText('Give a Gift', panelX + 12, panelY + 18);
+
+  if (items.length === 0) {
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '11px system-ui';
+    ctx.fillText("You have nothing to give.", panelX + 12, panelY + 50);
+  } else {
+    let itemY = panelY + 44;
+    items.forEach((itemKey, index) => {
+      const isSelected = index === giftMenuSelection;
+      
+      if (isSelected) {
+        ctx.fillStyle = 'rgba(100, 180, 255, 0.2)';
+        ctx.fillRect(panelX + 4, itemY - 12, panelW - 8, 22);
+      }
+      
+      ctx.fillStyle = isSelected ? '#ffffff' : '#a9b3cd';
+      ctx.font = '11px system-ui';
+      ctx.fillText(`${itemKey} (${inventory[itemKey]})`, panelX + 12, itemY);
+      
+      itemY += 24;
+    });
+  }
+
+  // Instructions
+  ctx.fillStyle = '#888';
+  ctx.font = '9px system-ui';
+  ctx.fillText('↑↓ Select | E Give | Esc Cancel', panelX + 12, panelY + panelH - 8);
+}
+
+const tileSpriteSources = {
+  // Overworld grass – random choice of the three standalone grass tiles
+  0: [
+      { sheet: 'grass1', zoom: () => GRASS_ZOOM },
+      { sheet: 'grass2', zoom: () => GRASS_ZOOM },
+      { sheet: 'grass3', zoom: () => GRASS_ZOOM }
+  ],
+
+  // Water – currently using the solid water tile. Edge variants can be wired later.
+  3: { sheet: 'terrain', row: 3, col: 0 }
+};
+
+// Ensure any tile source tweaks take effect
+invalidateBaseMaps();
+
+// If pointer mode changes (e.g., plugging in a mouse), adjust grass zoom and rebuild
+try {
+  const coarseMq = window.matchMedia('(pointer: coarse)');
+  coarseMq.addEventListener('change', (e) => {
+    GRASS_ZOOM = e.matches ? 0.45 : 0.30;
+    invalidateBaseMaps();
+  });
+} catch (err) {
+  // Some browsers don’t support addEventListener on matchMedia; safe to ignore
+}
+
+function drawTileFromTileset(tileValue, tileX, tileY, targetCtx = ctx) {
+  const entry = tileSpriteSources[tileValue];
+  if (!entry) return false;
+  const source = Array.isArray(entry)
+    ? entry[(tileX + tileY) % entry.length]
+    : entry;
+  const asset = artAssets[source.sheet];
+  if (!asset || !asset.loaded || asset.error) return false;
+
+  const frameW = asset.frameWidth ?? SPRITE_CONFIG.tileSize;
+  const frameH = asset.frameHeight ?? SPRITE_CONFIG.tileSize;
+  const colIndex = source.col ?? 0;
+  const rowIndex = source.row ?? 0;
+  let sx = colIndex * frameW;
+  let sy = rowIndex * frameH;
+  let srcW = frameW;
+  let srcH = frameH;
+
+  if (source.crop) {
+    sx += source.crop.x ?? 0;
+    sy += source.crop.y ?? 0;
+    srcW = source.crop.width ?? srcW;
+    srcH = source.crop.height ?? srcH;
+  } else {
+    const zoomValue = typeof source.zoom === 'function' ? source.zoom() : source.zoom;
+    if (typeof zoomValue === 'number' && zoomValue > 0 && zoomValue <= 1) {
+      srcW = frameW * zoomValue;
+      srcH = frameH * zoomValue;
+    }
+    sx += (frameW - srcW) / 2;
+    sy += (frameH - srcH) / 2;
+  }
+
+  if (typeof source.offsetX === 'number') sx += source.offsetX;
+  if (typeof source.offsetY === 'number') sy += source.offsetY;
+
+  targetCtx.drawImage(
+    asset.image,
+    sx,
+    sy,
+    srcW,
+    srcH,
+    tileX * TILE_SIZE,
+    tileY * TILE_SIZE,
+    TILE_SIZE,
+    TILE_SIZE
+  );
+
+  return true;
+}
+
+const interactableLocations = [
+  {
+    map: knittingSpot.map,
+    x: knittingSpot.x,
+    y: knittingSpot.y,
+    label: 'Knit Scarves',
+    helperRange: 1,
+    glow: {
+      inner: 'rgba(255, 188, 224, 0.9)',
+      outer: 'rgba(255, 188, 224, 0)'
+    }
+  },
+  {
+    map: marketSpot.map,
+    x: marketSpot.x,
+    y: marketSpot.y,
+    label: 'Sell Scarves',
+    helperRange: 1,
+    glow: {
+      inner: 'rgba(255, 220, 170, 0.85)',
+      outer: 'rgba(255, 220, 170, 0)'
+    }
+  }
+];
+
+let fireAnimTick = 0;
+let goatAnimTick = 0;
+const GOAT_CROP_BOTTOM = 0;
+const GOAT_DRAW_OFFSET_Y = 10; // push goat sprite down a bit to clear trees
+
+
+
+    let currentMap = 'overworld';
+    let MAP_COLS = maps[currentMap].cols;
+    let MAP_ROWS = maps[currentMap].rows;
+    let mapData  = maps[currentMap].data;
+
+    handleEnvironmentAudio(currentMap);
+  ensureBaseMapCanvas(currentMap);
+
+
+
+// =========================
+// CONFIG & MAPS
+// =========================
+
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false; // keep pixel art crisp
+
+    canvas.addEventListener('pointerdown', ensureMobileAudioUnlock);
+    canvas.addEventListener('touchstart', ensureMobileAudioUnlock);
+
+ // #endregion CONFIG & MAPS   <-- move it to HERE
+
+
+ // =========================
+// GAME STATE
+// =========================
+// #region GAME_STATE
+
+// 0 = early game, just shearing + knitting
+// 1 = unlocked selling scarves at the stall
+let questStage = 0;
+
+// #endregion GAME_STATE
+
+
+// =========================
+// PLAYER
+// =========================
+// #region PLAYER
+    const player = {
+      x: 9,             // logical tile coords (overworld start)
+      y: 10,
+      speed: 4,         // pixels per frame
+      px: 9 * TILE_SIZE,
+      py: 10 * TILE_SIZE,
+      moving: false,
+      nextX: null,
+      nextY: null,
+      targetPx: null,
+      targetPy: null,
+      dir: 'down',
+      spriteFrame: SPRITE_CONFIG.player.idleFrameIndex,
+      spriteTick: 0
+    };
+
+    function switchMap(name, spawnX, spawnY) {
+      currentMap = name;
+      MAP_COLS = maps[name].cols;
+      MAP_ROWS = maps[name].rows;
+      mapData  = maps[name].data;
+
+      player.x = spawnX;
+      player.y = spawnY;
+      player.px = spawnX * TILE_SIZE;
+      player.py = spawnY * TILE_SIZE;
+      player.moving = false;
+
+      handleEnvironmentAudio(name);
+      ensureBaseMapCanvas(name);
+      currentInteractables = getInteractablesForMap(name);
+      updateHelperLabelState(currentInteractables, true);
+    }
+
+    // Check if player walked off edge of map - automatic transitions
+    function checkMapEdgeTransition() {
+      // Overworld bottom edge (row 12) -> Village top
+      if (currentMap === 'overworld' && player.y >= MAP_ROWS - 1) {
+        if (player.x >= 8 && player.x <= 10) {
+          switchMap('village', player.x, 1);
+          showMessage('You head south to the village.');
+          return;
+        }
+      }
+      
+      // Village top edge (row 0) -> Overworld bottom
+      if (currentMap === 'village' && player.y <= 0) {
+        if (player.x >= 8 && player.x <= 10) {
+          switchMap('overworld', player.x, MAP_ROWS - 2);
+          showMessage('You return to your farm.');
+          return;
+        }
+      }
+      
+      // Village right edge (col 18) -> Forest left
+      if (currentMap === 'village' && player.x >= MAP_COLS - 1) {
+        if (player.y >= 11 && player.y <= 12) {
+          switchMap('forest', 1, player.y - 10);
+          showMessage('You enter the forest.');
+          return;
+        }
+      }
+      
+      // Forest left edge (col 0) -> Village right
+      if (currentMap === 'forest' && player.x <= 0) {
+        if (player.y >= 1 && player.y <= 2) {
+          switchMap('village', MAP_COLS - 2, player.y + 10);
+          showMessage('You return to the village.');
+          return;
+        }
+      }
+      
+      // Forest top edge (row 0) -> Mountain bottom (if unlocked)
+      if (currentMap === 'forest' && player.y <= 0) {
+        if (player.x >= 8 && player.x <= 10) {
+          if (canAccessMap('mountain')) {
+            switchMap('mountain', player.x, MAP_ROWS - 2);
+            showMessage('You climb up the mountain path.');
+          } else {
+            showMessage('The mountain path is blocked by fallen rocks. Perhaps with more crafting skill...');
+            player.y = 1; // Push back
+          }
+          return;
+        }
+      }
+      
+      // Mountain bottom edge -> Forest top
+      if (currentMap === 'mountain' && player.y >= MAP_ROWS - 1) {
+        if (player.x >= 8 && player.x <= 10) {
+          switchMap('forest', player.x, 1);
+          showMessage('You descend back to the forest.');
+          return;
+        }
+      }
+      
+      // Beach left edge (col 0) -> Village (if unlocked via path tiles)
+      if (currentMap === 'beach' && player.x <= 0) {
+        if (player.y >= 5 && player.y <= 7) {
+          switchMap('village', MAP_COLS - 2, 6);
+          showMessage('You return to the village.');
+          return;
+        }
+      }
+      
+      // Village - path to beach (specific location near bottom right)
+      // The beach path opens when villagers are helped
+      if (currentMap === 'village' && player.x >= MAP_COLS - 1) {
+        if (player.y >= 5 && player.y <= 7) {
+          if (canAccessMap('beach')) {
+            switchMap('beach', 1, 6);
+            showMessage('You follow the sandy path to the beach.');
+          } else {
+            showMessage('The path to the beach is overgrown. Help more villagers to clear it!');
+          }
+          return;
+        }
+      }
+      
+      // Mountain cave entrance (tile 26 at position 9,3)
+      if (currentMap === 'mountain' && player.x === 9 && player.y === 3) {
+        if (canAccessMap('cave')) {
+          switchMap('cave', 9, 10);
+          showMessage('You enter the mysterious cave...');
+        } else {
+          showMessage('The cave entrance is sealed. You need the Beach Crystal Shard.');
+        }
+        return;
+      }
+      
+      // Cave exit (door tile at bottom)
+      if (currentMap === 'cave' && player.y >= MAP_ROWS - 2 && player.x === 9) {
+        // Check if on door tile (6)
+        const tile = mapData[player.y][player.x];
+        if (tile === 6) {
+          switchMap('mountain', 9, 4);
+          showMessage('You exit the cave.');
+          return;
+        }
+      }
+    }
+
+    currentInteractables = getInteractablesForMap(currentMap);
+    updateHelperLabelState(currentInteractables, true);
+
+// #endregion PLAYER
+
+
+// =========================
+// INPUT
+// =========================
+// #region INPUT
+
+const keys = {
+  ArrowUp: false,
+  ArrowDown: false,
+  ArrowLeft: false,
+  ArrowRight: false,
+  w: false,
+  a: false,
+  s: false,
+  d: false,
+};
+
+const touchDirections = {
+  up: false,
+  down: false,
+  left: false,
+  right: false
+};
+
+function showDebugStatus(text) {
+  debugState.statusMessage = text;
+  debugState.statusUntil = performance.now() + 2200;
+}
+
+function toggleDebugFlag(flag, label) {
+  debugState[flag] = !debugState[flag];
+  showDebugStatus(`${label}: ${debugState[flag] ? 'ON' : 'OFF'}`);
+}
+
+function handleDebugKeyToggle(event) {
+  // Ctrl+Shift+D to toggle debug unlock all areas
+  if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'd') {
+    debugUnlockAll = !debugUnlockAll;
+    showDebugStatus(`Debug: All areas ${debugUnlockAll ? 'UNLOCKED' : 'locked'}`);
+    showMessage(debugUnlockAll ? '🔓 Debug: All areas unlocked!' : '🔒 Debug: Area locks restored.');
+    event.preventDefault();
+    return true;
+  }
+  
+  // Ctrl+Shift+S to show story progress
+  if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 's') {
+    const progress = `Story: Ch${storyProgress.chapter} | Helped: ${storyProgress.villagersHelped} | Crafted: ${storyProgress.itemsCrafted} | Shards: ${storyProgress.shardsFound}/3`;
+    showDebugStatus(progress);
+    showMessage(progress);
+    event.preventDefault();
+    return true;
+  }
+  
+  switch (event.key) {
+    case 'F2':
+      toggleDebugFlag('info', 'Debug info');
+      event.preventDefault();
+      return true;
+    case 'F3':
+      toggleDebugFlag('grid', 'Grid overlay');
+      event.preventDefault();
+      return true;
+    case 'F4':
+      toggleDebugFlag('collisions', 'Collision overlay');
+      event.preventDefault();
+      return true;
+    default:
+      return false;
+  }
+}
+
+window.addEventListener('keydown', (e) => {
+  if (handleDebugKeyToggle(e)) {
+    return;
+  }
+  // Normalize single-character keys to lowercase so CapsLock/Shift don't break controls
+  let key = e.key;
+  if (key.length === 1) key = key.toLowerCase();
+
+  // Handle gift menu
+  if (giftMenuOpen) {
+    const items = getGiftableItems();
+    if (e.key === 'ArrowUp' || key === 'w') {
+      giftMenuSelection = Math.max(0, giftMenuSelection - 1);
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'ArrowDown' || key === 's') {
+      giftMenuSelection = Math.min(items.length - 1, giftMenuSelection + 1);
+      e.preventDefault();
+      return;
+    }
+    if (key === 'e' || e.code === 'Space' || e.key === 'Enter') {
+      giveSelectedGift();
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Escape') {
+      closeGiftMenu();
+      e.preventDefault();
+      return;
+    }
+    e.preventDefault();
+    return;
+  }
+
+  // Handle merchant shop
+  if (merchantShopOpen) {
+    if (e.key === 'ArrowUp' || key === 'w') {
+      merchantShopSelection = Math.max(0, merchantShopSelection - 1);
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'ArrowDown' || key === 's') {
+      merchantShopSelection = Math.min(merchantStock.length - 1, merchantShopSelection + 1);
+      e.preventDefault();
+      return;
+    }
+    if (key === 'e' || e.code === 'Space' || e.key === 'Enter') {
+      purchaseFromMerchant();
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Escape') {
+      closeMerchantShop();
+      e.preventDefault();
+      return;
+    }
+    e.preventDefault();
+    return;
+  }
+
+  // Handle dialogue
+  if (dialogueOpen) {
+    if (e.key === 'Escape') {
+      closeDialogue();
+      e.preventDefault();
+      return;
+    }
+    if (key === 'e' || e.code === 'Space') {
+      advanceDialogue();
+      e.preventDefault();
+      return;
+    }
+    if (key === 'g') {
+      openGiftMenu();
+      e.preventDefault();
+      return;
+    }
+    e.preventDefault();
+    return;
+  }
+
+  // Handle crafting menu navigation
+  if (craftingMenuOpen) {
+    if (e.key === 'ArrowUp' || key === 'w') {
+      craftingMenuSelection = Math.max(0, craftingMenuSelection - 1);
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'ArrowDown' || key === 's') {
+      craftingMenuSelection = Math.min(craftingRecipes.length - 1, craftingMenuSelection + 1);
+      e.preventDefault();
+      return;
+    }
+    if (key === 'e' || e.code === 'Space' || e.key === 'Enter') {
+      // Craft selected recipe
+      const recipe = craftingRecipes[craftingMenuSelection];
+      if (canAffordRecipe(recipe)) {
+        craftRecipe(recipe);
+        showMessage(`Crafted ${getRecipeOutputsText(recipe)}!`);
+        if (sounds.knit) sounds.knit.play().catch(() => {});
+      } else {
+        showMessage(`Not enough materials for ${recipe.name}.`);
+      }
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Escape' || key === 'q') {
+      craftingMenuOpen = false;
+      e.preventDefault();
+      return;
+    }
+    if (key === 'i') {
+      // Switch from crafting menu to inventory
+      craftingMenuOpen = false;
+      inventoryOpen = true;
+      e.preventDefault();
+      return;
+    }
+    e.preventDefault();
+    return;
+  }
+
+  // movement keys
+  if (key in keys) {
+    keys[key] = true;
+    e.preventDefault();
+  }
+
+  // toggle inventory with I or Esc
+  if (key === 'i') {
+    inventoryOpen = !inventoryOpen;
+    e.preventDefault();
+  }
+  
+  if (e.key === 'Escape') {
+    if (optionsMenuOpen) {
+      closeOptionsMenu();
+      e.preventDefault();
+      return;
+    }
+    if (inventoryOpen) {
+      inventoryOpen = false;
+    }
+    e.preventDefault();
+  }
+
+  // Save/Load shortcuts
+  if (e.key === 'F5') {
+    saveGame();
+    e.preventDefault();
+    return;
+  }
+  if (e.key === 'F9') {
+    loadGame();
+    e.preventDefault();
+    return;
+  }
+
+  // action key: E or Space (only when inventory is closed)
+  // use e.code for Space to be robust across browser key naming
+  if ((key === 'e' || e.code === 'Space') && !inventoryOpen) {
+    handleAction();
+    e.preventDefault();
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  // Normalize single-character keys on keyup as well
+  let key = e.key;
+  if (key.length === 1) key = key.toLowerCase();
+
+  if (key in keys) {
+    keys[key] = false;
+    e.preventDefault();
+  }
+});
+
+// Clear input state if the window loses focus so keys don't get stuck
+window.addEventListener('blur', () => {
+  for (const k in keys) keys[k] = false;
+});
+
+// #endregion INPUT
+
+
+
+// =========================
+// HELPERS
+// =========================
+// #region HELPERS
+
+function showMessage(text, durationMs = 3500) {
+  message = text;
+  // set expiry time based on current timestamp
+  messageExpiryTime = performance.now() + durationMs;
+}
+
+
+    function isSolidTile(tx, ty) {
+      if (tx < 0 || ty < 0 || tx >= MAP_COLS || ty >= MAP_ROWS) return true;
+      const t = mapData[ty][tx];
+      // Solid tiles: trees(2), water(3), fences(4), interior walls(7), 
+      // market stall(10), well(11), ocean(17), rock(19), palm tree(21), 
+      // tide pool(22), cliff(23)
+      if (t === 2 || t === 3 || t === 4 || t === 7 || t === 10 || t === 11 ||
+          t === 17 || t === 19 || t === 21 || t === 22 || t === 23) return true;
+      
+      // Check for sheep collision
+      if (currentMap === sheep.map && tx === sheep.x && ty === sheep.y) return true;
+      
+      // Check for goat collision
+      if (currentMap === goat.map && tx === goat.x && ty === goat.y) return true;
+      
+      // Check for villager collisions
+      for (const npc of villagers) {
+        if (npc.map === currentMap && tx === npc.x && ty === npc.y) return true;
+      }
+      
+      // Check for traveling merchant collision
+      if (travelingMerchant.isPresent && currentMap === travelingMerchant.map && 
+          tx === travelingMerchant.x && ty === travelingMerchant.y) return true;
+      
+      return false;
+    }
+
+   function tryStartMove(dx, dy) {
+  if (player.moving) return;
+
+  const targetX = player.x + dx;
+  const targetY = player.y + dy;
+  if (isSolidTile(targetX, targetY)) return;
+
+  // Start movement
+  player.nextX = targetX;
+  player.nextY = targetY;
+  player.targetPx = targetX * TILE_SIZE;
+  player.targetPy = targetY * TILE_SIZE;
+  player.moving = true;
+
+  // Play footstep SFX (ignore autoplay policy failures)
+  playFootstepSound();
+
+  // Update facing direction
+  if (dx === 1)  player.dir = 'right';
+  if (dx === -1) player.dir = 'left';
+  if (dy === 1)  player.dir = 'down';
+  if (dy === -1) player.dir = 'up';
+}
+
+
+    function handleKnitting() {
+  // Open the crafting menu instead of auto-crafting
+  craftingMenuOpen = true;
+  craftingMenuSelection = 0;
+  inventoryOpen = false; // Close inventory if open
+  // Show back button on mobile
+  if (touchBackButton) touchBackButton.classList.add('visible');
+}
+
+function handleMarket() {
+  // Find all sellable items (recipes with sellPrice) and sort by value descending
+  const sellableItems = craftingRecipes
+    .filter(r => r.sellPrice && r.outputs)
+    .map(r => {
+      const outputKey = Object.keys(r.outputs)[0];
+      return { 
+        key: outputKey, 
+        name: r.name, 
+        price: r.sellPrice,
+        count: inventory[outputKey] || 0
+      };
+    })
+    .filter(item => item.count > 0)
+    .sort((a, b) => b.price - a.price);
+
+  if (sellableItems.length > 0) {
+    // Sell the highest value item
+    const item = sellableItems[0];
+    inventory[item.key] -= 1;
+    inventory.gold += item.price;
+    showMessage(`You sell ${item.name} for ${item.price} gold! You now have ${inventory.gold} gold.`);
+    if (sounds.sell) sounds.sell.play().catch(() => {});
+    return;
+  }
+
+  // Nothing to sell - helpful message
+  const hasMaterials = inventory.yarn > 0 || inventory.wool > 0 || inventory.goatFur > 0 || inventory.luxuryYarn > 0;
+  if (hasMaterials) {
+    showMessage('Craft your materials into items first! Visit the knitting spot in your cottage.');
+  } else {
+    showMessage('The market stall waits patiently. You have nothing to sell yet.');
+  }
+}
+
+
+    function handleAction() {
+  if (player.moving) return; // ignore actions while sliding between tiles
+  const tile = mapData[player.y][player.x];
+
+  // Crystal shard collection (tile 27)
+  if (tile === 27) {
+    let shardLocation = null;
+    if (currentMap === 'beach') shardLocation = 'beach';
+    else if (currentMap === 'mountain') shardLocation = 'mountain';
+    else if (currentMap === 'cave') shardLocation = 'cave';
+    
+    if (shardLocation && !storyProgress.shards[shardLocation]) {
+      collectCrystalShard(shardLocation);
+      // Replace the crystal tile with the base terrain
+      const baseTile = currentMap === 'beach' ? 16 : 
+                       currentMap === 'mountain' ? 25 : 8;
+      mapData[player.y][player.x] = baseTile;
+      invalidateBaseMaps(); // Redraw the map
+      return;
+    } else if (shardLocation && storyProgress.shards[shardLocation]) {
+      showMessage('You already collected the crystal shard from here.');
+      return;
+    }
+  }
+
+  // Doors between overworld and cottage
+  if (currentMap === 'overworld' && tile === 6) {
+    switchMap('cottage', 4, 4);
+    showMessage('You step into your cosy Yarnvale cottage.');
+    return;
+  } else if (currentMap === 'cottage' && tile === 6) {
+    switchMap('overworld', 9, 4);
+    showMessage('You head back out to the paddock.');
+    return;
+  } else if (currentMap === 'cave' && tile === 6) {
+    switchMap('mountain', 9, 4);
+    showMessage('You exit the cave.');
+    return;
+  }
+
+  // Check for NPC interaction
+  for (const npc of villagers) {
+    if (npc.map !== currentMap) continue;
+    const dx = Math.abs(player.x - npc.x);
+    const dy = Math.abs(player.y - npc.y);
+    if (dx + dy === 1) {
+      openDialogue(npc);
+      return;
+    }
+  }
+
+  // Check for traveling merchant interaction
+  if (travelingMerchant.isPresent && currentMap === travelingMerchant.map) {
+    const dx = Math.abs(player.x - travelingMerchant.x);
+    const dy = Math.abs(player.y - travelingMerchant.y);
+    if (dx + dy === 1) {
+      openMerchantShop();
+      return;
+    }
+  }
+
+  // Knitting spot – only in cottage
+  if (currentMap === knittingSpot.map &&
+      player.x === knittingSpot.x &&
+      player.y === knittingSpot.y) {
+    handleKnitting();
+    return;
+  }
+
+  // Market stall – only in overworld
+  if (currentMap === marketSpot.map &&
+      player.x === marketSpot.x &&
+      player.y === marketSpot.y) {
+    handleMarket();
+    return;
+  }
+
+  // Sheep interaction – only in overworld
+  if (currentMap === 'overworld' && sheep.map === 'overworld') {
+    const dx = Math.abs(player.x - sheep.x);
+    const dy = Math.abs(player.y - sheep.y);
+
+    // player must stand next to the sheep (N/S/E/W)
+    if (dx + dy === 1) {
+      if (sheep.hasWool) {
+        sheep.hasWool = false;
+        sheep.woolTimer = 0;
+        inventory.wool += 1;
+        showMessage('You gently shear the sheep and collect a bundle of soft wool.');
+        
+        // Play shearing sound
+        if (sounds.shear) {
+          sounds.shear.currentTime = 0;
+          sounds.shear.play().catch(() => {});
+        }
+        
+        // Play a random sheep sound
+        const sfx = sheepSounds[Math.floor(Math.random() * sheepSounds.length)];
+        sfx.currentTime = 0;
+        sfx.play().catch(() => {});
+      } else {
+        showMessage('This sheep has already been shorn. Give its wool time to grow back.');
+      }
+    }
+  }
+
+  // Goat interaction – only in overworld
+  if (currentMap === 'overworld' && goat.map === 'overworld') {
+    const dx = Math.abs(player.x - goat.x);
+    const dy = Math.abs(player.y - goat.y);
+    if (dx + dy === 1) {
+      if (goat.hasFur) {
+        goat.hasFur = false;
+        goat.furTimer = 0;
+        inventory.goatFur += 1;
+        showMessage('You carefully shear the goat and collect a bundle of soft goat fur.');
+        if (sounds.shear) {
+          sounds.shear.currentTime = 0;
+          sounds.shear.play().catch(() => {});
+        }
+      } else {
+        showMessage('This goat has already been shorn. Let its fur grow back.');
+      }
+    }
+  }
+}
+
+
+// #endregion HELPERS
+
+// =========================
+// UPDATE
+// =========================
+// #region UPDATE
+
+function update() {
+  fireAnimTick = (fireAnimTick + 1) % 100000;
+  goatAnimTick = (goatAnimTick + 1) % 100000;
+  updateHelperLabelState(currentInteractables);
+  
+  // Update NPC movement
+  updateNPCMovement();
+  
+  // Update traveling merchant spawn/despawn
+  updateTravelingMerchant();
+  
+  // --- Smooth tile movement ---
+  if (player.moving) {
+    const remX = player.targetPx - player.px;
+    const remY = player.targetPy - player.py;
+
+    const moveX = Math.sign(remX) * Math.min(Math.abs(remX), player.speed);
+    const moveY = Math.sign(remY) * Math.min(Math.abs(remY), player.speed);
+
+    player.px += moveX;
+    player.py += moveY;
+
+    // clamp and finish move when both axes reached target
+    if (player.px === player.targetPx && player.py === player.targetPy) {
+      player.moving = false;
+      // Commit the logical tile only when we fully arrive to avoid mid-step interactions.
+      if (typeof player.nextX === 'number' && typeof player.nextY === 'number') {
+        player.x = player.nextX;
+        player.y = player.nextY;
+      }
+      player.nextX = null;
+      player.nextY = null;
+      
+      // Check for edge-based map transitions
+      checkMapEdgeTransition();
+    }
+    } else {
+    let dx = 0;
+    let dy = 0;
+
+    // don't allow movement while inventory or options menu is open
+    if (!inventoryOpen && !optionsMenuOpen) {
+      if (keys.ArrowUp || keys.w || touchDirections.up) {
+        dy = -1;
+        player.dir = 'up';
+      } else if (keys.ArrowDown || keys.s || touchDirections.down) {
+        dy = 1;
+        player.dir = 'down';
+      } else if (keys.ArrowLeft || keys.a || touchDirections.left) {
+        dx = -1;
+        player.dir = 'left';
+      } else if (keys.ArrowRight || keys.d || touchDirections.right) {
+        dx = 1;
+        player.dir = 'right';
+      }
+    }
+
+    if (dx !== 0 || dy !== 0) {
+      tryStartMove(dx, dy);
+    }
+  }
+
+  updatePlayerAnimationState(player.moving);
+  // --- Sheep wool regrowth ---
+  if (!sheep.hasWool) {
+    sheep.woolTimer++;
+
+    // ~10 seconds at ~60fps (tune this if you like)
+    if (sheep.woolTimer > 600) {
+      sheep.hasWool = true;
+      sheep.woolTimer = 0;
+
+      if (currentMap === 'overworld') {
+        showMessage('Your sheep has grown its wool back.');
+      }
+    }
+  }
+
+  // Goat fur regrowth
+  if (!goat.hasFur) {
+    goat.furTimer++;
+    if (goat.furTimer > 600) {
+      goat.hasFur = true;
+      goat.furTimer = 0;
+      if (currentMap === 'overworld') {
+        showMessage("The goat's fur has grown back.");
+      }
+    }
+  }
+
+  // --- Message fade-out (timestamp-based, frame-rate independent) ---
+  if (message && performance.now() >= messageExpiryTime) {
+    message = null;
+  }
+}
+// #endregion UPDATE
+
+
+// =========================
+// RENDER
+// =========================
+// #region RENDER
+
+    function drawTile(t, x, y, targetCtx = ctx) {
+  const px = x * TILE_SIZE;
+  const py = y * TILE_SIZE;
+  if (drawTileFromTileset(t, x, y, targetCtx)) {
+    return;
+  }
+
+  // Small deterministic variation so grass/path aren’t identical
+  const variation = (x * 13 + y * 7) % 4;
+
+  if (t === 0) {
+    // GRASS - enhanced with layered swaying blades
+    // Base grass gradient
+    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#2f7a54');
+    g.addColorStop(1, '#1d4b3a');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    // Animated grass blades
+    const bladeCount = 6 + (variation % 3);
+    for (let i = 0; i < bladeCount; i++) {
+      const bladeX = px + 3 + ((i * 5 + variation * 3) % (TILE_SIZE - 6));
+      const bladeHeight = 6 + (i % 4) * 2;
+      const swayOffset = Math.sin(animationTime * 2 + x * 0.5 + y * 0.3 + i * 0.7) * 2;
+      
+      // Blade shadow
+      targetCtx.fillStyle = 'rgba(0,30,20,0.3)';
+      targetCtx.beginPath();
+      targetCtx.moveTo(bladeX + 1, py + TILE_SIZE - 2);
+      targetCtx.quadraticCurveTo(bladeX + 2 + swayOffset * 0.5, py + TILE_SIZE - bladeHeight * 0.5, bladeX + 3 + swayOffset, py + TILE_SIZE - bladeHeight);
+      targetCtx.lineTo(bladeX + 4 + swayOffset, py + TILE_SIZE - bladeHeight + 1);
+      targetCtx.quadraticCurveTo(bladeX + 3 + swayOffset * 0.5, py + TILE_SIZE - bladeHeight * 0.5 + 1, bladeX + 3, py + TILE_SIZE - 2);
+      targetCtx.fill();
+      
+      // Main blade
+      const bladeGreen = i % 2 === 0 ? '#4a9968' : '#3d8057';
+      targetCtx.fillStyle = bladeGreen;
+      targetCtx.beginPath();
+      targetCtx.moveTo(bladeX, py + TILE_SIZE - 2);
+      targetCtx.quadraticCurveTo(bladeX + 1 + swayOffset * 0.5, py + TILE_SIZE - bladeHeight * 0.5, bladeX + 2 + swayOffset, py + TILE_SIZE - bladeHeight);
+      targetCtx.lineTo(bladeX + 3 + swayOffset, py + TILE_SIZE - bladeHeight + 1);
+      targetCtx.quadraticCurveTo(bladeX + 2 + swayOffset * 0.5, py + TILE_SIZE - bladeHeight * 0.5 + 1, bladeX + 2, py + TILE_SIZE - 2);
+      targetCtx.fill();
+    }
+
+    // Stitched texture overlay
+    targetCtx.strokeStyle = 'rgba(210,255,220,0.25)';
+    targetCtx.lineWidth = 1;
+    targetCtx.beginPath();
+    const rowOffset = (variation % 2) * 4;
+    targetCtx.moveTo(px + 4, py + 6 + rowOffset);
+    targetCtx.lineTo(px + TILE_SIZE - 4, py + 6 + rowOffset);
+    targetCtx.stroke();
+
+  } else if (t === 1) {
+    // PATH - enhanced with pebbles and grass edge tufts
+    // Base path gradient
+    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#d0a676');
+    g.addColorStop(0.5, '#c49560');
+    g.addColorStop(1, '#9a6535');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    // Scattered pebbles with variety
+    const pebblePositions = [
+      {x: 5, y: 8, size: 3},
+      {x: 18, y: 12, size: 2},
+      {x: 11, y: 5, size: 2},
+      {x: 24, y: 20, size: 3},
+      {x: 7, y: 22, size: 2},
+      {x: 20, y: 6, size: 2}
+    ];
+    pebblePositions.forEach((peb, i) => {
+      if ((variation + i) % 3 !== 0) {
+        // Pebble shadow
+        targetCtx.fillStyle = 'rgba(60,40,20,0.4)';
+        targetCtx.beginPath();
+        targetCtx.ellipse(px + peb.x + 1, py + peb.y + 1, peb.size, peb.size * 0.7, 0, 0, Math.PI * 2);
+        targetCtx.fill();
+        // Pebble
+        const pebbleColor = i % 2 === 0 ? '#8a7055' : '#7a6045';
+        targetCtx.fillStyle = pebbleColor;
+        targetCtx.beginPath();
+        targetCtx.ellipse(px + peb.x, py + peb.y, peb.size, peb.size * 0.7, 0, 0, Math.PI * 2);
+        targetCtx.fill();
+        // Highlight
+        targetCtx.fillStyle = 'rgba(255,240,220,0.3)';
+        targetCtx.beginPath();
+        targetCtx.ellipse(px + peb.x - 1, py + peb.y - 1, peb.size * 0.4, peb.size * 0.3, 0, 0, Math.PI * 2);
+        targetCtx.fill();
+      }
+    });
+
+    // Edge grass tufts
+    const tuftCount = 2 + (variation % 2);
+    for (let i = 0; i < tuftCount; i++) {
+      const tuftX = px + (i === 0 ? 2 : TILE_SIZE - 4);
+      const tuftY = py + 4 + (i * 8) % (TILE_SIZE - 8);
+      const sway = Math.sin(animationTime * 1.5 + x + y + i) * 1;
+      targetCtx.fillStyle = '#3d7a50';
+      targetCtx.beginPath();
+      targetCtx.moveTo(tuftX, tuftY + 4);
+      targetCtx.quadraticCurveTo(tuftX + sway, tuftY + 2, tuftX + 1 + sway, tuftY);
+      targetCtx.quadraticCurveTo(tuftX + 2 + sway, tuftY + 2, tuftX + 2, tuftY + 4);
+      targetCtx.fill();
+    }
+
+  } else if (t === 2) {
+    // TREE - enhanced with shadow and animated canopy
+    const centerX = px + TILE_SIZE / 2;
+    const treePhase = (x * 7 + y * 11) % 10;
+    const canopySway = Math.sin(animationTime * 0.8 + treePhase) * 1.5;
+
+    // Tree shadow on ground
+    targetCtx.fillStyle = 'rgba(0,30,20,0.35)';
+    targetCtx.beginPath();
+    targetCtx.ellipse(centerX + 4, py + TILE_SIZE - 4, 12, 5, 0.3, 0, Math.PI * 2);
+    targetCtx.fill();
+
+    // Trunk with bark texture
+    const trunkGrad = targetCtx.createLinearGradient(px + 10, py, px + 22, py);
+    trunkGrad.addColorStop(0, '#4a2f1a');
+    trunkGrad.addColorStop(0.5, '#6b4528');
+    trunkGrad.addColorStop(1, '#4a2f1a');
+    targetCtx.fillStyle = trunkGrad;
+    targetCtx.fillRect(px + 11, py + 10, 10, TILE_SIZE - 12);
+    
+    // Bark lines
+    targetCtx.strokeStyle = 'rgba(30,15,5,0.4)';
+    targetCtx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      targetCtx.beginPath();
+      targetCtx.moveTo(px + 13 + i * 3, py + 12);
+      targetCtx.lineTo(px + 13 + i * 3, py + TILE_SIZE - 4);
+      targetCtx.stroke();
+    }
+
+    // Animated canopy layers
+    // Back layer (darker)
+    const backLeafGrad = targetCtx.createRadialGradient(
+      centerX + canopySway * 0.5, py + 8, 2,
+      centerX + canopySway * 0.5, py + 10, 16
+    );
+    backLeafGrad.addColorStop(0, '#3d8050');
+    backLeafGrad.addColorStop(1, '#1a4528');
+    targetCtx.fillStyle = backLeafGrad;
+    targetCtx.beginPath();
+    targetCtx.arc(centerX + canopySway * 0.5, py + 11, 13, 0, Math.PI * 2);
+    targetCtx.fill();
+
+    // Front layer (lighter, more sway)
+    const frontLeafGrad = targetCtx.createRadialGradient(
+      centerX + canopySway, py + 6, 3,
+      centerX + canopySway, py + 8, 14
+    );
+    frontLeafGrad.addColorStop(0, '#5ec47a');
+    frontLeafGrad.addColorStop(0.7, '#3a9055');
+    frontLeafGrad.addColorStop(1, '#2a6a40');
+    targetCtx.fillStyle = frontLeafGrad;
+    targetCtx.beginPath();
+    targetCtx.arc(centerX + canopySway, py + 9, 11, 0, Math.PI * 2);
+    targetCtx.fill();
+
+    // Leaf highlights
+    targetCtx.fillStyle = 'rgba(150,255,180,0.25)';
+    targetCtx.beginPath();
+    targetCtx.arc(centerX - 3 + canopySway, py + 6, 4, 0, Math.PI * 2);
+    targetCtx.fill();
+
+  } else if (t === 3) {
+    // WATER - enhanced with animated waves
+    // Base water gradient
+    const g = targetCtx.createLinearGradient(px, py, px + TILE_SIZE, py + TILE_SIZE);
+    g.addColorStop(0, '#4dc8ff');
+    g.addColorStop(0.5, '#2a95d8');
+    g.addColorStop(1, '#1a60a8');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    // Animated wave layers
+    const wavePhase = animationTime * 1.5 + x * 0.3 + y * 0.2;
+    
+    // Dark wave troughs
+    targetCtx.strokeStyle = 'rgba(10,50,100,0.3)';
+    targetCtx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) {
+      const waveY = py + 6 + i * 10;
+      const waveOffset = Math.sin(wavePhase + i * 1.2) * 3;
+      targetCtx.beginPath();
+      targetCtx.moveTo(px - 2, waveY + waveOffset);
+      targetCtx.quadraticCurveTo(px + TILE_SIZE * 0.25, waveY - 3 + waveOffset, px + TILE_SIZE * 0.5, waveY + waveOffset);
+      targetCtx.quadraticCurveTo(px + TILE_SIZE * 0.75, waveY + 3 + waveOffset, px + TILE_SIZE + 2, waveY + waveOffset);
+      targetCtx.stroke();
+    }
+
+    // Bright wave crests / shimmer
+    targetCtx.strokeStyle = 'rgba(255,255,255,0.5)';
+    targetCtx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const waveY = py + 4 + i * 10;
+      const waveOffset = Math.sin(wavePhase + i * 1.2) * 3;
+      targetCtx.beginPath();
+      targetCtx.moveTo(px + 2, waveY + waveOffset);
+      targetCtx.quadraticCurveTo(px + TILE_SIZE * 0.25, waveY - 2 + waveOffset, px + TILE_SIZE * 0.5, waveY + waveOffset);
+      targetCtx.quadraticCurveTo(px + TILE_SIZE * 0.75, waveY + 2 + waveOffset, px + TILE_SIZE - 2, waveY + waveOffset);
+      targetCtx.stroke();
+    }
+
+    // Sparkle highlights
+    const sparkleIntensity = (Math.sin(animationTime * 3 + x * 2 + y) + 1) * 0.3;
+    targetCtx.fillStyle = `rgba(255,255,255,${sparkleIntensity})`;
+    targetCtx.beginPath();
+    targetCtx.arc(px + 8 + (variation * 4), py + 7, 2, 0, Math.PI * 2);
+    targetCtx.fill();
+    targetCtx.beginPath();
+    targetCtx.arc(px + 22 - (variation * 3), py + 20, 1.5, 0, Math.PI * 2);
+    targetCtx.fill();
+
+  } else if (t === 4) {
+    // FENCE - enhanced with wood grain and shadows
+    // Post shadows
+    targetCtx.fillStyle = 'rgba(40,25,10,0.4)';
+    targetCtx.fillRect(px + 5, py + 9, 5, TILE_SIZE - 6);
+    targetCtx.fillRect(px + TILE_SIZE - 6, py + 9, 5, TILE_SIZE - 6);
+
+    // Rail shadow
+    targetCtx.fillStyle = 'rgba(40,25,10,0.3)';
+    targetCtx.fillRect(px + 2, py + 14, TILE_SIZE - 4, 9);
+
+    // Main rail with gradient
+    const railGrad = targetCtx.createLinearGradient(px, py + 11, px, py + 21);
+    railGrad.addColorStop(0, '#ddb87a');
+    railGrad.addColorStop(0.3, '#c9a46b');
+    railGrad.addColorStop(1, '#a88550');
+    targetCtx.fillStyle = railGrad;
+    targetCtx.fillRect(px, py + 11, TILE_SIZE, 10);
+
+    // Rail wood grain
+    targetCtx.strokeStyle = 'rgba(100,60,30,0.25)';
+    targetCtx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      targetCtx.beginPath();
+      targetCtx.moveTo(px + 2, py + 13 + i * 3);
+      targetCtx.lineTo(px + TILE_SIZE - 2, py + 13 + i * 3);
+      targetCtx.stroke();
+    }
+
+    // Posts with gradient
+    const postGrad = targetCtx.createLinearGradient(px + 3, py, px + 8, py);
+    postGrad.addColorStop(0, '#7a5530');
+    postGrad.addColorStop(0.5, '#9a7045');
+    postGrad.addColorStop(1, '#7a5530');
+    targetCtx.fillStyle = postGrad;
+    targetCtx.fillRect(px + 3, py + 6, 5, TILE_SIZE - 7);
+    targetCtx.fillRect(px + TILE_SIZE - 8, py + 6, 5, TILE_SIZE - 7);
+
+    // Post wood grain
+    targetCtx.strokeStyle = 'rgba(50,30,15,0.3)';
+    for (let i = 0; i < 2; i++) {
+      // Left post grain
+      targetCtx.beginPath();
+      targetCtx.moveTo(px + 4 + i * 2, py + 8);
+      targetCtx.lineTo(px + 4 + i * 2, py + TILE_SIZE - 3);
+      targetCtx.stroke();
+      // Right post grain
+      targetCtx.beginPath();
+      targetCtx.moveTo(px + TILE_SIZE - 7 + i * 2, py + 8);
+      targetCtx.lineTo(px + TILE_SIZE - 7 + i * 2, py + TILE_SIZE - 3);
+      targetCtx.stroke();
+    }
+
+    // Post caps (top highlights)
+    targetCtx.fillStyle = 'rgba(255,230,180,0.4)';
+    targetCtx.fillRect(px + 3, py + 6, 5, 2);
+    targetCtx.fillRect(px + TILE_SIZE - 8, py + 6, 5, 2);
+
+  } else if (t === 5) {
+    // COTTAGE ROOF – tiled effect
+    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#d59b62');
+    g.addColorStop(1, '#a36434');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    // tile rows
+    targetCtx.strokeStyle = 'rgba(90,50,30,0.5)';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px, py + TILE_SIZE / 2);
+    targetCtx.lineTo(px + TILE_SIZE, py + TILE_SIZE / 2);
+    targetCtx.stroke();
+
+  } else if (t === 6) {
+    // DOOR – more contrasty
+    targetCtx.fillStyle = '#6a3a22';
+    targetCtx.fillRect(px + 6, py + 4, TILE_SIZE - 12, TILE_SIZE - 4);
+
+    // top trim
+    targetCtx.fillStyle = '#3b2114';
+    targetCtx.fillRect(px + 6, py + 4, TILE_SIZE - 12, 4);
+
+    // handle
+    targetCtx.fillStyle = '#f7e3a1';
+    targetCtx.fillRect(px + TILE_SIZE - 12, py + TILE_SIZE - 12, 3, 3);
+
+  } else if (t === 7) {
+    // INTERIOR WALL – wooden boards
+    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#4a3733');
+    g.addColorStop(1, '#2b1c1b');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    targetCtx.strokeStyle = 'rgba(20,10,10,0.6)';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px, py + TILE_SIZE / 2);
+    targetCtx.lineTo(px + TILE_SIZE, py + TILE_SIZE / 2);
+    targetCtx.stroke();
+
+  } else if (t === 8) {
+    // INTERIOR FLOOR – nicer planks
+    const g = targetCtx.createLinearGradient(px, py, px + TILE_SIZE, py + TILE_SIZE);
+    g.addColorStop(0, '#d8b07d');
+    g.addColorStop(1, '#a8743e');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+    targetCtx.strokeStyle = 'rgba(120,80,40,0.45)';
+    targetCtx.lineWidth = 1;
+    targetCtx.beginPath();
+    // plank line
+    targetCtx.moveTo(px, py + TILE_SIZE / 2);
+    targetCtx.lineTo(px + TILE_SIZE, py + TILE_SIZE / 2);
+    targetCtx.stroke();
+
+  } else if (t === 9) {
+    // STONE PATH - cobblestone for village
+    targetCtx.fillStyle = '#7a7a7a';
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    targetCtx.fillStyle = '#5a5a5a';
+    targetCtx.fillRect(px + 2, py + 2, 12, 12);
+    targetCtx.fillRect(px + 16, py + 16, 12, 12);
+    targetCtx.fillStyle = '#6a6a6a';
+    targetCtx.fillRect(px + 16, py + 2, 12, 12);
+    targetCtx.fillRect(px + 2, py + 16, 12, 12);
+
+  } else if (t === 10) {
+    // MARKET STALL
+    targetCtx.fillStyle = '#8b4513';
+    targetCtx.fillRect(px + 4, py + 8, TILE_SIZE - 8, TILE_SIZE - 8);
+    targetCtx.fillStyle = '#cd853f';
+    targetCtx.fillRect(px + 2, py + 4, TILE_SIZE - 4, 6);
+    // awning
+    targetCtx.fillStyle = '#c41e3a';
+    targetCtx.fillRect(px, py, TILE_SIZE, 6);
+
+  } else if (t === 11) {
+    // WELL
+    targetCtx.fillStyle = '#696969';
+    targetCtx.beginPath();
+    targetCtx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 12, 0, Math.PI * 2);
+    targetCtx.fill();
+    targetCtx.fillStyle = '#1a4d6e';
+    targetCtx.beginPath();
+    targetCtx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 8, 0, Math.PI * 2);
+    targetCtx.fill();
+    // roof supports
+    targetCtx.fillStyle = '#8b4513';
+    targetCtx.fillRect(px + 6, py + 2, 3, 10);
+    targetCtx.fillRect(px + TILE_SIZE - 9, py + 2, 3, 10);
+
+  } else if (t === 12) {
+    // FLOWER PATCH
+    targetCtx.fillStyle = '#2f7a54';
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    // flowers
+    const flowerColors = ['#ff6b9d', '#ffeb3b', '#ff5722', '#e91e63'];
+    for (let i = 0; i < 5; i++) {
+      const fx = px + 4 + (i * 6) % 24;
+      const fy = py + 4 + Math.floor(i / 4) * 12 + (variation * 3);
+      targetCtx.fillStyle = flowerColors[i % flowerColors.length];
+      targetCtx.beginPath();
+      targetCtx.arc(fx, fy, 3, 0, Math.PI * 2);
+      targetCtx.fill();
+    }
+
+  } else if (t === 13) {
+    // BUSH - for forest
+    targetCtx.fillStyle = '#2f7a54';
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    targetCtx.fillStyle = '#1d5a3a';
+    targetCtx.beginPath();
+    targetCtx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 12, 0, Math.PI * 2);
+    targetCtx.fill();
+    targetCtx.fillStyle = '#2a6a4a';
+    targetCtx.beginPath();
+    targetCtx.arc(px + TILE_SIZE/2 - 4, py + TILE_SIZE/2 - 2, 8, 0, Math.PI * 2);
+    targetCtx.fill();
+
+  } else if (t === 14) {
+    // BRIDGE
+    targetCtx.fillStyle = '#46c0ff';
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    targetCtx.fillStyle = '#8b7355';
+    targetCtx.fillRect(px + 2, py, TILE_SIZE - 4, TILE_SIZE);
+    targetCtx.strokeStyle = '#5a4a3a';
+    targetCtx.lineWidth = 2;
+    targetCtx.beginPath();
+    targetCtx.moveTo(px + 2, py);
+    targetCtx.lineTo(px + 2, py + TILE_SIZE);
+    targetCtx.moveTo(px + TILE_SIZE - 2, py);
+    targetCtx.lineTo(px + TILE_SIZE - 2, py + TILE_SIZE);
+    targetCtx.stroke();
+
+  } else if (t === 15) {
+    // SIGN POST - map transition marker
+    targetCtx.fillStyle = '#2f7a54';
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    // post
+    targetCtx.fillStyle = '#8b4513';
+    targetCtx.fillRect(px + 14, py + 10, 4, 22);
+    // sign
+    targetCtx.fillStyle = '#deb887';
+    targetCtx.fillRect(px + 6, py + 4, 20, 12);
+    targetCtx.fillStyle = '#654321';
+    targetCtx.font = '8px system-ui';
+    targetCtx.fillText('→', px + 12, py + 13);
+
+  } else if (t === 16) {
+    // SAND - beach terrain
+    const g = targetCtx.createLinearGradient(px, py, px + TILE_SIZE, py + TILE_SIZE);
+    g.addColorStop(0, '#f4d9a0');
+    g.addColorStop(1, '#e8c878');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    // sand texture dots
+    targetCtx.fillStyle = 'rgba(200,160,80,0.4)';
+    if (variation === 0) targetCtx.fillRect(px + 5, py + 8, 2, 2);
+    if (variation === 1) targetCtx.fillRect(px + 20, py + 12, 2, 2);
+    if (variation === 2) targetCtx.fillRect(px + 12, py + 22, 2, 2);
+    if (variation === 3) targetCtx.fillRect(px + 25, py + 6, 2, 2);
+
+  } else if (t === 17) {
+    // OCEAN - deep animated water
+    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#1a5590');
+    g.addColorStop(0.3, '#2080c0');
+    g.addColorStop(0.7, '#2090d0');
+    g.addColorStop(1, '#1a6090');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    
+    // Animated wave layers
+    const wavePhase = x * 0.3 + y * 0.5;
+    const waveTime = animationTime * 1.2 + wavePhase;
+    
+    // Dark wave troughs
+    targetCtx.strokeStyle = 'rgba(15, 60, 100, 0.4)';
+    targetCtx.lineWidth = 3;
+    targetCtx.beginPath();
+    const trough1 = Math.sin(waveTime * 0.6) * 4;
+    targetCtx.moveTo(px - 2, py + 22 + trough1);
+    targetCtx.quadraticCurveTo(px + 16, py + 18 + trough1, px + 34, py + 22 + trough1);
+    targetCtx.stroke();
+    
+    // Main wave crest
+    targetCtx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    targetCtx.lineWidth = 2;
+    targetCtx.beginPath();
+    const wave1 = Math.sin(waveTime) * 4;
+    targetCtx.moveTo(px - 2, py + 10 + wave1);
+    targetCtx.quadraticCurveTo(px + 16, py + 6 + wave1, px + 34, py + 10 + wave1);
+    targetCtx.stroke();
+    
+    // Secondary shimmer
+    targetCtx.strokeStyle = 'rgba(200, 235, 255, 0.35)';
+    targetCtx.lineWidth = 1;
+    const wave2 = Math.sin(waveTime + 1.5) * 3;
+    targetCtx.beginPath();
+    targetCtx.moveTo(px + 4, py + TILE_SIZE - 6 + wave2);
+    targetCtx.quadraticCurveTo(px + 16, py + TILE_SIZE - 10 + wave2, px + 28, py + TILE_SIZE - 6 + wave2);
+    targetCtx.stroke();
+    
+    // Sparkle effect
+    if (Math.sin(waveTime * 2.5 + variation) > 0.75) {
+      targetCtx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      targetCtx.beginPath();
+      targetCtx.arc(px + 8 + (variation * 5), py + 8 + (variation * 3), 1.5, 0, Math.PI * 2);
+      targetCtx.fill();
+    }
+
+  } else if (t === 18) {
+    // SHELLS - decorative sand with shells
+    const g = targetCtx.createLinearGradient(px, py, px + TILE_SIZE, py + TILE_SIZE);
+    g.addColorStop(0, '#f4d9a0');
+    g.addColorStop(1, '#e8c878');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    // shells
+    targetCtx.fillStyle = '#ffefd5';
+    targetCtx.beginPath();
+    targetCtx.arc(px + 10 + (variation * 3), py + 14, 4, 0, Math.PI, true);
+    targetCtx.fill();
+    targetCtx.fillStyle = '#ffe4c4';
+    targetCtx.beginPath();
+    targetCtx.arc(px + 22 - (variation * 2), py + 20, 3, 0, Math.PI, true);
+    targetCtx.fill();
+
+  } else if (t === 19) {
+    // ROCK - boulder (solid)
+    targetCtx.fillStyle = currentMap === 'beach' ? '#f4d9a0' : (currentMap === 'cave' ? '#3a3a3a' : '#4a5a4a');
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    const g = targetCtx.createRadialGradient(px + 16, py + 14, 4, px + 16, py + 16, 14);
+    g.addColorStop(0, '#8a8a8a');
+    g.addColorStop(1, '#4a4a4a');
+    targetCtx.fillStyle = g;
+    targetCtx.beginPath();
+    targetCtx.ellipse(px + 16, py + 18, 12, 10, 0, 0, Math.PI * 2);
+    targetCtx.fill();
+
+  } else if (t === 20) {
+    // DRIFTWOOD - beach decoration
+    const g = targetCtx.createLinearGradient(px, py, px + TILE_SIZE, py + TILE_SIZE);
+    g.addColorStop(0, '#f4d9a0');
+    g.addColorStop(1, '#e8c878');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    // driftwood log
+    targetCtx.fillStyle = '#a08060';
+    targetCtx.save();
+    targetCtx.translate(px + 16, py + 16);
+    targetCtx.rotate((variation * 0.3) - 0.4);
+    targetCtx.fillRect(-12, -3, 24, 6);
+    targetCtx.restore();
+
+  } else if (t === 21) {
+    // PALM TREE (solid) - with animated fronds
+    const g = targetCtx.createLinearGradient(px, py, px + TILE_SIZE, py + TILE_SIZE);
+    g.addColorStop(0, '#f4d9a0');
+    g.addColorStop(1, '#e8c878');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    
+    // Shadow
+    targetCtx.fillStyle = 'rgba(80, 60, 20, 0.25)';
+    targetCtx.beginPath();
+    targetCtx.ellipse(px + 18, py + TILE_SIZE - 4, 10, 4, 0, 0, Math.PI * 2);
+    targetCtx.fill();
+    
+    // trunk with bark texture
+    const trunkG = targetCtx.createLinearGradient(px + 13, py, px + 19, py);
+    trunkG.addColorStop(0, '#6a4a10');
+    trunkG.addColorStop(0.5, '#9b7420');
+    trunkG.addColorStop(1, '#6a4a10');
+    targetCtx.fillStyle = trunkG;
+    targetCtx.fillRect(px + 13, py + 12, 6, 20);
+    
+    // bark rings
+    targetCtx.strokeStyle = 'rgba(60, 40, 10, 0.4)';
+    targetCtx.lineWidth = 1;
+    for (let i = 0; i < 4; i++) {
+      targetCtx.beginPath();
+      targetCtx.moveTo(px + 13, py + 15 + i * 5);
+      targetCtx.lineTo(px + 19, py + 15 + i * 5);
+      targetCtx.stroke();
+    }
+    
+    // Animated leaf sway
+    const leafSway = Math.sin(animationTime * 0.8 + x * 0.5) * 2;
+    
+    // Left frond
+    targetCtx.fillStyle = '#1a7a1a';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px + 16, py + 9);
+    targetCtx.quadraticCurveTo(px + 6 + leafSway, py + 10, px + 2 + leafSway * 1.5, py + 18);
+    targetCtx.lineTo(px + 6 + leafSway, py + 15);
+    targetCtx.quadraticCurveTo(px + 10, py + 11, px + 16, py + 12);
+    targetCtx.fill();
+    
+    // Right frond  
+    targetCtx.fillStyle = '#228b22';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px + 16, py + 9);
+    targetCtx.quadraticCurveTo(px + 26 - leafSway, py + 10, px + 30 - leafSway * 1.5, py + 18);
+    targetCtx.lineTo(px + 26 - leafSway, py + 15);
+    targetCtx.quadraticCurveTo(px + 22, py + 11, px + 16, py + 12);
+    targetCtx.fill();
+    
+    // Top frond
+    targetCtx.fillStyle = '#2a9a2a';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px + 16, py + 7);
+    targetCtx.lineTo(px + 14 + leafSway * 0.5, py + 2);
+    targetCtx.lineTo(px + 18 + leafSway * 0.5, py + 2);
+    targetCtx.lineTo(px + 20, py + 10);
+    targetCtx.fill();
+    targetCtx.fill();
+
+  } else if (t === 22) {
+    // TIDE POOL - shallow water on beach
+    const g = targetCtx.createLinearGradient(px, py, px + TILE_SIZE, py + TILE_SIZE);
+    g.addColorStop(0, '#1e5799');
+    g.addColorStop(1, '#2989d8');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    // rocks around edge
+    targetCtx.fillStyle = '#6a6a6a';
+    targetCtx.beginPath();
+    targetCtx.arc(px + 6, py + 8, 4, 0, Math.PI * 2);
+    targetCtx.arc(px + 26, py + 24, 5, 0, Math.PI * 2);
+    targetCtx.arc(px + 8, py + 26, 4, 0, Math.PI * 2);
+    targetCtx.fill();
+
+  } else if (t === 23) {
+    // CLIFF - mountain wall (solid)
+    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#5a5a6a');
+    g.addColorStop(1, '#3a3a4a');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    // rock texture
+    targetCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+    targetCtx.lineWidth = 1;
+    targetCtx.beginPath();
+    targetCtx.moveTo(px + 4, py + 12);
+    targetCtx.lineTo(px + 20, py + 8);
+    targetCtx.moveTo(px + 8, py + 24);
+    targetCtx.lineTo(px + 28, py + 20);
+    targetCtx.stroke();
+
+  } else if (t === 24) {
+    // MOUNTAIN PATH
+    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#7a8a7a');
+    g.addColorStop(1, '#5a6a5a');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    // gravel
+    targetCtx.fillStyle = 'rgba(90,90,90,0.5)';
+    if (variation === 0) targetCtx.fillRect(px + 8, py + 6, 3, 3);
+    if (variation === 1) targetCtx.fillRect(px + 18, py + 18, 3, 3);
+    if (variation === 2) targetCtx.fillRect(px + 6, py + 22, 3, 3);
+
+  } else if (t === 25) {
+    // SNOW GRASS - mountain grass
+    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#6a8a6a');
+    g.addColorStop(1, '#4a6a4a');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    // snow patches
+    targetCtx.fillStyle = 'rgba(255,255,255,0.3)';
+    targetCtx.beginPath();
+    targetCtx.arc(px + 8 + (variation * 5), py + 12, 6, 0, Math.PI * 2);
+    targetCtx.fill();
+
+  } else if (t === 26) {
+    // CAVE ENTRANCE
+    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
+    g.addColorStop(0, '#5a5a6a');
+    g.addColorStop(1, '#3a3a4a');
+    targetCtx.fillStyle = g;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    // dark cave opening
+    targetCtx.fillStyle = '#1a1a2a';
+    targetCtx.beginPath();
+    targetCtx.arc(px + 16, py + 20, 10, Math.PI, 0, true);
+    targetCtx.lineTo(px + 26, py + 32);
+    targetCtx.lineTo(px + 6, py + 32);
+    targetCtx.closePath();
+    targetCtx.fill();
+
+  } else if (t === 27) {
+    // CRYSTAL SHARD - collectible/interactable
+    const bgColor = currentMap === 'beach' ? '#f4d9a0' : 
+                    currentMap === 'mountain' ? '#6a8a6a' : '#3a3a3a';
+    targetCtx.fillStyle = bgColor;
+    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    // glowing crystal
+    const glowPhase = (Date.now() / 500) % (Math.PI * 2);
+    const glowIntensity = 0.5 + Math.sin(glowPhase) * 0.3;
+    targetCtx.fillStyle = `rgba(150, 200, 255, ${glowIntensity})`;
+    targetCtx.beginPath();
+    targetCtx.moveTo(px + 16, py + 6);
+    targetCtx.lineTo(px + 22, py + 16);
+    targetCtx.lineTo(px + 20, py + 26);
+    targetCtx.lineTo(px + 12, py + 26);
+    targetCtx.lineTo(px + 10, py + 16);
+    targetCtx.closePath();
+    targetCtx.fill();
+    // highlight
+    targetCtx.fillStyle = 'rgba(255,255,255,0.6)';
+    targetCtx.beginPath();
+    targetCtx.moveTo(px + 14, py + 10);
+    targetCtx.lineTo(px + 18, py + 14);
+    targetCtx.lineTo(px + 14, py + 18);
+    targetCtx.closePath();
+    targetCtx.fill();
+  }
+}
+
+
+function getPlayerAnimationFrames(dirOverride = player.dir) {
+  const useLeft = SPRITE_CONFIG.mirrorRightFromLeft && dirOverride === 'right';
+  const dir = useLeft ? 'left' : dirOverride;
+  return SPRITE_CONFIG.player.animations[dir] || SPRITE_CONFIG.player.animations.down;
+}
+
+function getPlayerFrameCanvas(frameIndex, mirrored = false, dir = player.dir) {
+  const cacheKey = `${dir}-${frameIndex}-${mirrored ? 'm' : 'n'}`;
+  if (playerFrameCache.has(cacheKey)) return playerFrameCache.get(cacheKey);
+
+  const directionalAsset = artAssets.playerDirections?.[dir];
+  const asset = (directionalAsset && directionalAsset.loaded && !directionalAsset.error)
+    ? directionalAsset
+    : artAssets.player;
+  if (!asset.loaded || asset.error) return null;
+
+  const cols = asset.columns ?? SPRITE_CONFIG.player.columns;
+  const fw = asset.frameWidth ?? SPRITE_CONFIG.player.frameWidth;
+  const fh = asset.frameHeight ?? SPRITE_CONFIG.player.frameHeight;
+  const sx = (frameIndex % cols) * fw;
+  const sy = Math.floor(frameIndex / cols) * fh;
+
+  const off = document.createElement('canvas');
+  off.width = TILE_SIZE;
+  off.height = TILE_SIZE;
+  const offCtx = off.getContext('2d');
+  offCtx.imageSmoothingEnabled = false; // preserve sprite sharpness when drawing to cache
+
+  offCtx.save();
+  if (mirrored) {
+    offCtx.scale(-1, 1);
+    offCtx.translate(-TILE_SIZE, 0);
+  }
+
+  offCtx.drawImage(
+    asset.image,
+    sx,
+    sy,
+    fw,
+    fh,
+    0,
+    0,
+    TILE_SIZE,
+    TILE_SIZE
+  );
+  offCtx.restore();
+
+  // Color-key the top-left pixel (assumed background) to transparent to remove unwanted fill
+  const img = offCtx.getImageData(0, 0, TILE_SIZE, TILE_SIZE);
+  const data = img.data;
+  const keyR = data[0];
+  const keyG = data[1];
+  const keyB = data[2];
+  const tol = 6;
+  for (let i = 0; i < data.length; i += 4) {
+    const dr = Math.abs(data[i] - keyR);
+    const dg = Math.abs(data[i + 1] - keyG);
+    const db = Math.abs(data[i + 2] - keyB);
+    if (dr <= tol && dg <= tol && db <= tol) {
+      data[i + 3] = 0;
+    }
+  }
+  offCtx.putImageData(img, 0, 0);
+
+  playerFrameCache.set(cacheKey, off);
+  return off;
+}
+
+function updatePlayerAnimationState(isMoving) {
+  const frames = getPlayerAnimationFrames();
+  if (!frames || frames.length === 0) return;
+
+  if (isMoving) {
+    player.spriteTick = (player.spriteTick + 1) % 10000;
+    if (player.spriteTick % SPRITE_CONFIG.player.speedTicks === 0) {
+      player.spriteFrame = (player.spriteFrame + 1) % frames.length;
+    }
+  } else {
+    player.spriteTick = 0;
+    player.spriteFrame = Math.min(frames.length - 1, SPRITE_CONFIG.player.idleFrameIndex);
+  }
+}
+
+function drawPlayerFromSprites() {
+  const directional = artAssets.playerDirections?.[player.dir];
+  const hasDirectional = directional && directional.loaded && !directional.error;
+  const primaryAsset = hasDirectional ? directional : artAssets.player;
+  if (!primaryAsset.loaded || primaryAsset.error) return false;
+
+  const mirrorRight = !hasDirectional && SPRITE_CONFIG.mirrorRightFromLeft && player.dir === 'right';
+  const frames = getPlayerAnimationFrames(mirrorRight ? 'left' : player.dir);
+  if (!frames || frames.length === 0) return false;
+
+  const frameIndex = frames[Math.min(frames.length - 1, player.spriteFrame)] ?? frames[0];
+  const frameCanvas = getPlayerFrameCanvas(frameIndex, mirrorRight, player.dir);
+  if (!frameCanvas) return false;
+
+  const drawX = Math.round(player.px);
+  const drawY = Math.round(player.py);
+  ctx.drawImage(frameCanvas, drawX, drawY);
+
+  return true;
+}
+
+    function drawPlayer() {
+  if (drawPlayerFromSprites()) {
+    return;
+  }
+  const px = player.px;
+  const py = player.py;
+
+  // simple shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(px + 16, py + 24, 10, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // body
+  ctx.fillStyle = '#f4b3ff'; // cosy knitted jumper
+  ctx.fillRect(px + 10, py + 10, 12, 18);
+
+  // legs
+  ctx.fillStyle = '#2b3145';
+  ctx.fillRect(px + 11, py + 26, 4, 6);
+  ctx.fillRect(px + 17, py + 26, 4, 6);
+
+  // head
+  ctx.beginPath();
+  ctx.arc(px + 16, py + 8, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffcf9e';
+  ctx.fill();
+
+  // hair (simple bob)
+  ctx.beginPath();
+  ctx.arc(px + 16, py + 6, 7, Math.PI, 0);
+  ctx.fillStyle = '#e48bd9';
+  ctx.fill();
+
+  // scarf
+  ctx.fillStyle = '#ffd9a6';
+  ctx.fillRect(px + 10, py + 15, 12, 4);
+  ctx.fillRect(px + 19, py + 15, 3, 7);
+
+  // tiny face details – eyes
+  ctx.fillStyle = '#3a2a24';
+  ctx.fillRect(px + 13, py + 7, 1, 2);
+  ctx.fillRect(px + 18, py + 7, 1, 2);
+}
+
+function drawGoat() {
+  if (currentMap !== goat.map) return;
+
+  const px = goat.x * TILE_SIZE;
+  const py = goat.y * TILE_SIZE;
+
+  const asset = artAssets.goat;
+  if (asset && asset.loaded && !asset.error) {
+    const cols = asset.columns || 3;
+    const fw = asset.frameWidth || (asset.image.width / cols);
+    const fh = asset.frameHeight || asset.image.height;
+    const frame = cols ? Math.floor(goatAnimTick / 12) % cols : 0;
+    const sx = frame * fw;
+    const sy = 0;
+    // Scale full frame into the tile, with a small upward offset for padding
+    ctx.drawImage(asset.image, sx, sy, fw, fh, px, py + GOAT_DRAW_OFFSET_Y, TILE_SIZE, TILE_SIZE);
+  } else {
+    // fallback simple goat shape
+    ctx.fillStyle = '#d9d5cc';
+    ctx.beginPath();
+    ctx.ellipse(px + 16, py + 18, 12, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#b6ae9e';
+    ctx.beginPath();
+    ctx.ellipse(px + 10, py + 14, 7, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(px + 5, py + 11, 3, 3);
+    ctx.fillRect(px + 12, py + 11, 3, 3);
+  }
+}
+
+function drawSheep() {
+  if (currentMap !== sheep.map) return;
+
+  const px = sheep.x * TILE_SIZE;
+  const py = sheep.y * TILE_SIZE;
+
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(px + 16, py + 24, 10, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // body
+  if (sheep.hasWool) {
+    // fluffy
+    ctx.fillStyle = '#fdf9f2';
+    ctx.beginPath();
+    ctx.ellipse(px + 16, py + 18, 11, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // trimmed
+    ctx.fillStyle = '#e6dccb';
+    ctx.beginPath();
+    ctx.ellipse(px + 16, py + 18, 9, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // head
+  ctx.fillStyle = '#d3c0aa';
+  ctx.beginPath();
+  ctx.ellipse(px + 10, py + 14, 6, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // little ears
+  ctx.fillRect(px + 5, py + 10, 3, 3);
+  ctx.fillRect(px + 11, py + 10, 3, 3);
+
+  // face details
+  ctx.fillStyle = '#3a2a24';
+  ctx.fillRect(px + 8, py + 14, 1, 2);
+  ctx.fillRect(px + 11, py + 14, 1, 2);
+}
+
+function drawFurniture() {
+  if (currentMap === fireplaceSpot.map) {
+    const px = fireplaceSpot.x * TILE_SIZE;
+    const py = fireplaceSpot.y * TILE_SIZE;
+
+    ctx.fillStyle = '#2d1a14';
+    ctx.fillRect(px + 2, py + 8, TILE_SIZE - 4, TILE_SIZE - 6);
+
+    ctx.fillStyle = '#553429';
+    ctx.fillRect(px, py + 6, TILE_SIZE, 5);
+
+    ctx.fillStyle = '#26130f';
+    ctx.fillRect(px + 6, py + 16, TILE_SIZE - 12, TILE_SIZE - 20);
+
+    const flicker = 6 + Math.sin(fireAnimTick * 0.25) * 3;
+    const sway = Math.sin(fireAnimTick * 0.4) * 2;
+
+    ctx.fillStyle = '#f8d87c';
+    ctx.beginPath();
+    ctx.ellipse(px + 16 + sway, py + 20, 7, flicker, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ff964b';
+    ctx.beginPath();
+    ctx.ellipse(px + 16 + sway * 0.6, py + 21, 4, flicker - 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const glow = ctx.createRadialGradient(px + 16, py + 24, 2, px + 16, py + 24, 28);
+    glow.addColorStop(0, 'rgba(255, 173, 85, 0.45)');
+    glow.addColorStop(1, 'rgba(255, 173, 85, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(px - 20, py - 4, TILE_SIZE + 40, TILE_SIZE + 28);
+  }
+
+  if (currentMap === 'cottage') {
+    cottageFurniture.forEach((item) => {
+      if (item.map !== currentMap) return;
+      const px = item.x * TILE_SIZE;
+      const py = item.y * TILE_SIZE;
+
+      if (item.type === 'armchair') {
+        ctx.fillStyle = '#5f3b5b';
+        ctx.fillRect(px + 4, py + 8, TILE_SIZE - 8, TILE_SIZE - 6);
+        ctx.fillStyle = '#784d74';
+        ctx.fillRect(px + 8, py + 12, TILE_SIZE - 16, TILE_SIZE - 16);
+        ctx.fillStyle = '#f8d7d9';
+        ctx.fillRect(px + 12, py + 18, TILE_SIZE - 24, 6);
+      } else if (item.type === 'bookshelf') {
+        ctx.fillStyle = '#3b2a26';
+        ctx.fillRect(px + 6, py + 2, TILE_SIZE - 12, TILE_SIZE - 2);
+        ctx.fillStyle = '#6a4737';
+        ctx.fillRect(px + 8, py + 6, TILE_SIZE - 16, 4);
+        ctx.fillRect(px + 8, py + 14, TILE_SIZE - 16, 4);
+        ctx.fillStyle = '#d4bf8f';
+        ctx.fillRect(px + 10, py + 4, 6, 4);
+        ctx.fillStyle = '#a89ed8';
+        ctx.fillRect(px + 18, py + 12, 5, 6);
+      } else if (item.type === 'chest') {
+        ctx.fillStyle = '#7d4f2a';
+        ctx.fillRect(px + 8, py + 12, TILE_SIZE - 16, TILE_SIZE - 8);
+        ctx.fillStyle = '#b97f3a';
+        ctx.fillRect(px + 8, py + 12, TILE_SIZE - 16, 8);
+        ctx.fillStyle = '#2a1b10';
+        ctx.fillRect(px + 14, py + 16, TILE_SIZE - 28, 4);
+      }
+    });
+  }
+
+  if (currentMap === knittingSpot.map) {
+    const px = knittingSpot.x * TILE_SIZE;
+    const py = knittingSpot.y * TILE_SIZE;
+
+    ctx.fillStyle = '#4a3423';
+    ctx.fillRect(px + 4, py + 10, TILE_SIZE - 8, TILE_SIZE - 12);
+
+    ctx.fillStyle = '#7a5737';
+    ctx.fillRect(px + 6, py + 12, TILE_SIZE - 12, TILE_SIZE - 18);
+
+    ctx.fillStyle = '#d68caf';
+    ctx.beginPath();
+    ctx.arc(px + 12, py + 16, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#f2d27a';
+    ctx.beginPath();
+    ctx.arc(px + 20, py + 18, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (currentMap === marketSpot.map) {
+    const mx = marketSpot.x * TILE_SIZE;
+    const my = marketSpot.y * TILE_SIZE;
+
+    ctx.fillStyle = '#3a2830';
+    ctx.fillRect(mx + 2, my + 16, TILE_SIZE - 4, TILE_SIZE - 6);
+
+    ctx.fillStyle = '#8c4c5a';
+    ctx.fillRect(mx + 2, my + 4, TILE_SIZE - 4, 10);
+
+    ctx.fillStyle = '#f5d4e0';
+    ctx.fillRect(mx + 4, my + 6, TILE_SIZE - 8, 4);
+
+    ctx.fillStyle = '#e28faf';
+    ctx.fillRect(mx + 4, my + 10, TILE_SIZE - 8, 3);
+
+    ctx.fillStyle = '#f2f2ff';
+    ctx.fillRect(mx + TILE_SIZE - 10, my + 20, 4, 10);
+  }
+}
+
+
+
+function getMapOffsets() {
+  const mapWidth = MAP_COLS * TILE_SIZE;
+  const mapHeight = MAP_ROWS * TILE_SIZE;
+  const offsetX = Math.max(0, (canvas.width - mapWidth) / 2);
+  const offsetY = Math.max(0, (canvas.height - mapHeight) / 2);
+  return { offsetX, offsetY };
+}
+
+function drawDebugGridOverlay() {
+  if (!debugState.grid) return;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= MAP_COLS; x++) {
+    const px = x * TILE_SIZE;
+    ctx.beginPath();
+    ctx.moveTo(px, 0);
+    ctx.lineTo(px, MAP_ROWS * TILE_SIZE);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= MAP_ROWS; y++) {
+    const py = y * TILE_SIZE;
+    ctx.beginPath();
+    ctx.moveTo(0, py);
+    ctx.lineTo(MAP_COLS * TILE_SIZE, py);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawDebugCollisionOverlay() {
+  if (!debugState.collisions) return;
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,64,64,0.2)';
+  for (let y = 0; y < MAP_ROWS; y++) {
+    for (let x = 0; x < MAP_COLS; x++) {
+      if (isSolidTile(x, y)) {
+        ctx.fillRect(x * TILE_SIZE + 1, y * TILE_SIZE + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+      }
+    }
+  }
+  ctx.restore();
+}
+
+function drawDebugWorldOverlays(offsetX, offsetY) {
+  if (!debugState.grid && !debugState.collisions) return;
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  drawDebugCollisionOverlay();
+  drawDebugGridOverlay();
+  ctx.restore();
+}
+
+function drawDebugInfoPanel() {
+  const showStatus = debugState.statusMessage && performance.now() < debugState.statusUntil;
+  if (!debugState.info && !showStatus) return;
+
+  const lines = [];
+  if (debugState.info) {
+    lines.push(`Map: ${currentMap}`);
+    lines.push(`Player tile: ${player.x}, ${player.y}`);
+    lines.push(`Player px: ${Math.round(player.px)}, ${Math.round(player.py)}`);
+    lines.push(`Overlay: ${showOverlayMode ? 'mobile' : 'desktop'}`);
+  }
+  if (showStatus) {
+    lines.push(debugState.statusMessage);
+  }
+  if (!lines.length) return;
+
+  const panelWidth = 210;
+  const panelHeight = 20 + lines.length * 14;
+  ctx.save();
+  ctx.fillStyle = 'rgba(6,12,26,0.78)';
+  ctx.fillRect(12, 12, panelWidth, panelHeight);
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.strokeRect(12.5, 12.5, panelWidth - 1, panelHeight - 1);
+  ctx.fillStyle = '#c5e0ff';
+  ctx.font = '11px "Cascadia Code", "Fira Code", monospace';
+  ctx.textBaseline = 'top';
+  lines.forEach((line, idx) => {
+    ctx.fillText(line, 20, 18 + idx * 14);
+  });
+  ctx.restore();
+}
+
+
+
+function render() {
+  // Background sky
+  const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  sky.addColorStop(0, '#182c4e');
+  sky.addColorStop(0.6, '#07131f');
+  sky.addColorStop(1, '#020509');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const { offsetX, offsetY } = getMapOffsets();
+  const interactables = currentInteractables || [];
+
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+
+  const baseMapCanvas = ensureBaseMapCanvas(currentMap);
+  if (baseMapCanvas) {
+    ctx.drawImage(baseMapCanvas, 0, 0);
+  } else {
+    for (let y = 0; y < MAP_ROWS; y++) {
+      for (let x = 0; x < MAP_COLS; x++) {
+        drawTile(mapData[y][x], x, y);
+      }
+    }
+  }
+
+  drawFurniture();
+
+  drawInteractableGlows(interactables);
+
+  drawGoat();
+  drawSheep();
+  drawVillagers();
+  drawTravelingMerchant();
+
+  drawPlayer();
+
+  drawInteractableLabels(interactables);
+
+  ctx.restore();
+
+  drawDebugWorldOverlays(offsetX, offsetY);
+
+        // HUD – minimal (Wool + Gold only)
+  ctx.save();
+
+  const hudX = 8;
+  const hudY = 8;
+  const hudW = 150;
+  const hudH = 40;
+
+  // subtle background
+  ctx.fillStyle = 'rgba(5, 8, 16, 0.55)';
+  ctx.fillRect(hudX, hudY, hudW, hudH);
+
+  // border
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(hudX + 0.5, hudY + 0.5, hudW - 1, hudH - 1);
+
+  // label
+  ctx.fillStyle = '#a9b3cd';
+  ctx.font = '10px system-ui';
+  ctx.fillText('Yarnvale', hudX + 8, hudY + 14);
+
+  // Wool icon + count
+  ctx.fillStyle = '#f8f0d8';
+  ctx.beginPath();
+  ctx.arc(hudX + 14, hudY + 26, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#f5f7ff';
+  ctx.font = '12px system-ui';
+  ctx.fillText(`Wool: ${inventory.wool}`, hudX + 24, hudY + 29);
+
+  // Gold icon + count
+  ctx.fillStyle = '#f4c945';
+  ctx.beginPath();
+  ctx.arc(hudX + 95, hudY + 26, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#f5f7ff';
+  ctx.fillText(`G: ${inventory.gold}`, hudX + 105, hudY + 29);
+
+  ctx.restore();
+
+
+
+
+  // Message box - centered, compact, subtle
+  if (message) {
+    ctx.font = '13px system-ui';
+    const textWidth = ctx.measureText(message).width;
+    const boxW = Math.min(canvas.width - 40, textWidth + 40);
+    const boxH = 36;
+    const boxX = (canvas.width - boxW) / 2;
+    const boxY = canvas.height - boxH - 16;
+
+    // Rounded rectangle background
+    ctx.fillStyle = 'rgba(7,11,22,0.75)';
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxW, boxH, 12);
+    ctx.fill();
+
+    // Subtle border
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxW, boxH, 12);
+    ctx.stroke();
+
+    // Message text - centered
+    ctx.fillStyle = '#f5f7ff';
+    ctx.textAlign = 'center';
+    ctx.fillText(message, canvas.width / 2, boxY + 23);
+    ctx.textAlign = 'left'; // Reset alignment
+  }
+
+    // -----------------------------
+  // INVENTORY PANEL
+  // -----------------------------
+  if (inventoryOpen) {
+    const panelW = 360;
+    const panelH = 380;
+    const panelX = (canvas.width - panelW) / 2;
+    const panelY = (canvas.height - panelH) / 2;
+
+    // background
+    ctx.fillStyle = 'rgba(6, 12, 26, 0.94)';
+    ctx.fillRect(panelX, panelY, panelW, panelH);
+
+    // border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(panelX + 0.5, panelY + 0.5, panelW - 1, panelH - 1);
+
+    // header bar
+    ctx.fillStyle = 'rgba(18, 32, 64, 0.95)';
+    ctx.fillRect(panelX, panelY, panelW, 40);
+
+    // title
+    ctx.fillStyle = '#f5f7ff';
+    ctx.font = '18px system-ui';
+    ctx.fillText('Inventory', panelX + 20, panelY + 26);
+
+    // small hint text
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '11px system-ui';
+    ctx.fillText('Press I or Esc to close', panelX + panelW - 150, panelY + 26);
+
+    const rowHeight = 22;
+    let currentY = panelY + 52;
+
+    // --- MATERIALS SECTION ---
+    ctx.fillStyle = '#7a8ba8';
+    ctx.font = '10px system-ui';
+    ctx.fillText('MATERIALS', panelX + 16, currentY);
+    currentY += 18;
+
+    const materials = [
+      { name: 'Wool', key: 'wool', color: '#f8f0d8' },
+      { name: 'Goat Fur', key: 'goatFur', color: '#d6d0c6' },
+      { name: 'Yarn', key: 'yarn', color: '#f098c8' },
+      { name: 'Luxury Yarn', key: 'luxuryYarn', color: '#c8a0f0' }
+    ];
+
+    materials.forEach(mat => {
+      ctx.fillStyle = mat.color;
+      ctx.beginPath();
+      ctx.arc(panelX + 28, currentY - 3, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#a9b3cd';
+      ctx.font = '12px system-ui';
+      ctx.fillText(mat.name, panelX + 44, currentY);
+      ctx.fillStyle = '#f5f7ff';
+      ctx.fillText(`${inventory[mat.key]}`, panelX + panelW - 40, currentY);
+      currentY += rowHeight;
+    });
+
+    // --- CRAFTED ITEMS SECTION ---
+    currentY += 8;
+    ctx.fillStyle = '#7a8ba8';
+    ctx.font = '10px system-ui';
+    ctx.fillText('CRAFTED ITEMS', panelX + 16, currentY);
+    currentY += 18;
+
+    const craftedItems = [
+      { name: 'Socks', key: 'socks', color: '#a8d8a8', price: 8 },
+      { name: 'Scarf', key: 'scarf', color: '#f2d27a', price: 10 },
+      { name: 'Hat', key: 'hat', color: '#7eb8e8', price: 12 },
+      { name: 'Mittens', key: 'mittens', color: '#e8d0c0', price: 15 },
+      { name: 'Lux. Mittens', key: 'luxuryMittens', color: '#e0b8f0', price: 20 },
+      { name: 'Lux. Scarf', key: 'luxuryScarf', color: '#d8a0f8', price: 25 },
+      { name: 'Blanket', key: 'blanket', color: '#f0c8a0', price: 30 }
+    ];
+
+    craftedItems.forEach(item => {
+      ctx.fillStyle = item.color;
+      ctx.beginPath();
+      ctx.arc(panelX + 28, currentY - 3, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#a9b3cd';
+      ctx.font = '12px system-ui';
+      ctx.fillText(item.name, panelX + 44, currentY);
+      ctx.fillStyle = '#666';
+      ctx.font = '10px system-ui';
+      ctx.fillText(`${item.price}g`, panelX + 140, currentY);
+      ctx.fillStyle = '#f5f7ff';
+      ctx.font = '12px system-ui';
+      ctx.fillText(`${inventory[item.key]}`, panelX + panelW - 40, currentY);
+      currentY += rowHeight;
+    });
+
+    // --- CURRENCY SECTION ---
+    currentY += 8;
+    ctx.fillStyle = '#7a8ba8';
+    ctx.font = '10px system-ui';
+    ctx.fillText('CURRENCY', panelX + 16, currentY);
+    currentY += 18;
+
+    ctx.fillStyle = '#f4c945';
+    ctx.beginPath();
+    ctx.arc(panelX + 28, currentY - 3, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = '12px system-ui';
+    ctx.fillText('Gold', panelX + 44, currentY);
+    ctx.fillStyle = '#f4c945';
+    ctx.font = '14px system-ui';
+    ctx.fillText(`${inventory.gold}`, panelX + panelW - 40, currentY);
+  }
+
+  // -----------------------------
+  // CRAFTING MENU PANEL
+  // -----------------------------
+  if (craftingMenuOpen) {
+    // Responsive sizing - narrower on touch devices to avoid touch controls
+    const isMobile = isCoarsePointer || showOverlayMode;
+    const menuW = isMobile ? 220 : 400;
+    const menuH = isMobile ? Math.min(canvas.height - 10, 360) : 380;
+    const menuX = (canvas.width - menuW) / 2;
+    const menuY = isMobile ? 5 : (canvas.height - menuH) / 2;
+
+    // Dim background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Panel background
+    ctx.fillStyle = 'rgba(6, 12, 26, 0.95)';
+    ctx.fillRect(menuX, menuY, menuW, menuH);
+
+    // Border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(menuX + 0.5, menuY + 0.5, menuW - 1, menuH - 1);
+
+    // Header bar
+    ctx.fillStyle = 'rgba(80, 50, 40, 0.9)';
+    ctx.fillRect(menuX, menuY, menuW, 40);
+
+    // Title
+    ctx.fillStyle = '#f5f7ff';
+    ctx.font = isMobile ? '14px system-ui' : '18px system-ui';
+    ctx.fillText('🧶 Crafting', menuX + 12, menuY + 26);
+
+    // Controls hint (desktop only)
+    if (!isMobile) {
+      ctx.fillStyle = '#a9b3cd';
+      ctx.font = '10px system-ui';
+      ctx.fillText('↑↓ Select | E Craft | Esc Close | I Inventory', menuX + menuW - 230, menuY + 26);
+    } else {
+      // Mobile hint
+      ctx.fillStyle = '#a9b3cd';
+      ctx.font = '8px system-ui';
+      ctx.fillText('▲▼ Sel | Act: Craft', menuX + menuW - 95, menuY + 26);
+    }
+
+    // Calculate visible area for scrolling
+    const recipeHeight = isMobile ? 32 : 38;
+    const visibleAreaTop = menuY + (isMobile ? 38 : 48);
+    const visibleAreaBottom = menuY + menuH - (isMobile ? 32 : 44);
+    const visibleCount = Math.floor((visibleAreaBottom - visibleAreaTop) / recipeHeight);
+    
+    // Calculate scroll offset to keep selection visible
+    let scrollOffset = 0;
+    if (craftingMenuSelection >= visibleCount) {
+      scrollOffset = craftingMenuSelection - visibleCount + 1;
+    }
+
+    // Clip drawing to visible area
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(menuX, visibleAreaTop, menuW, visibleAreaBottom - visibleAreaTop);
+    ctx.clip();
+
+    // Draw recipes
+    craftingRecipes.forEach((recipe, index) => {
+      const visualIndex = index - scrollOffset;
+      const rowY = visibleAreaTop + visualIndex * recipeHeight;
+      
+      // Skip if outside visible area
+      if (rowY < visibleAreaTop - recipeHeight || rowY > visibleAreaBottom) return;
+      
+      const isSelected = index === craftingMenuSelection;
+      const canAfford = canAffordRecipe(recipe);
+
+      // Selection highlight
+      if (isSelected) {
+        ctx.fillStyle = canAfford ? 'rgba(100, 180, 255, 0.25)' : 'rgba(255, 100, 100, 0.2)';
+        ctx.fillRect(menuX + 4, rowY, menuW - 8, recipeHeight - 2);
+        
+        // Selection indicator
+        ctx.fillStyle = canAfford ? '#64b4ff' : '#ff6464';
+        ctx.fillRect(menuX + 4, rowY, 3, recipeHeight - 2);
+      }
+
+      // Recipe color dot
+      ctx.fillStyle = canAfford ? recipe.color : '#555';
+      ctx.beginPath();
+      ctx.arc(menuX + (isMobile ? 16 : 22), rowY + recipeHeight / 2 - 1, isMobile ? 4 : 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Recipe name + price on same line for mobile
+      ctx.fillStyle = canAfford ? '#f5f7ff' : '#666';
+      ctx.font = isMobile ? 'bold 10px system-ui' : 'bold 12px system-ui';
+      ctx.textAlign = 'left';
+      ctx.fillText(recipe.name, menuX + (isMobile ? 26 : 36), rowY + (isMobile ? 12 : 13));
+
+      // Price on right (mobile: same line as name)
+      if (recipe.sellPrice) {
+        ctx.textAlign = 'right';
+        ctx.fillStyle = canAfford ? '#f4c945' : '#554422';
+        ctx.font = isMobile ? '9px system-ui' : '10px system-ui';
+        ctx.fillText(`${recipe.sellPrice}g`, menuX + menuW - 8, rowY + (isMobile ? 12 : 26));
+        ctx.textAlign = 'left';
+      }
+
+      // Inputs text (second line)
+      const inputsStr = Object.entries(recipe.inputs)
+        .map(([item, amount]) => `${amount}${item.replace('goatFur', 'fur').replace('luxuryYarn', 'lux').replace('wool', 'wl').replace('yarn', 'yn')}`)
+        .join('+');
+      
+      ctx.fillStyle = canAfford ? '#7a8ba8' : '#555';
+      ctx.font = isMobile ? '8px system-ui' : '10px system-ui';
+      ctx.fillText(inputsStr, menuX + (isMobile ? 26 : 36), rowY + (isMobile ? 24 : 26));
+
+      // Output (mobile: second line right side)
+      if (!isMobile) {
+        ctx.textAlign = 'right';
+        const outputKey = Object.keys(recipe.outputs)[0];
+        const outputAmt = recipe.outputs[outputKey];
+        ctx.fillStyle = canAfford ? '#7cd87c' : '#555';
+        ctx.fillText(`→ ${outputAmt} ${outputKey.replace('luxuryYarn', 'lux').replace('luxuryScarf', 'luxScarf').replace('luxuryMittens', 'luxMitt')}`, menuX + menuW - 14, rowY + 13);
+        ctx.textAlign = 'left';
+      }
+    });
+
+    ctx.restore();
+
+    // Scroll indicators
+    if (scrollOffset > 0) {
+      ctx.fillStyle = '#7a8ba8';
+      ctx.font = isMobile ? '8px system-ui' : '10px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('▲', menuX + menuW / 2, visibleAreaTop + 8);
+    }
+    if (scrollOffset + visibleCount < craftingRecipes.length) {
+      ctx.fillStyle = '#7a8ba8';
+      ctx.font = isMobile ? '8px system-ui' : '10px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('▼', menuX + menuW / 2, visibleAreaBottom - 2);
+    }
+    ctx.textAlign = 'left';
+
+    // Footer with materials
+    const footerH = isMobile ? 28 : 36;
+    ctx.fillStyle = 'rgba(18, 32, 64, 0.95)';
+    ctx.fillRect(menuX, menuY + menuH - footerH, menuW, footerH);
+
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = isMobile ? '8px system-ui' : '10px system-ui';
+    if (isMobile) {
+      const matText = `W:${inventory.wool} F:${inventory.goatFur} Y:${inventory.yarn} L:${inventory.luxuryYarn}`;
+      ctx.fillText(matText, menuX + 6, menuY + menuH - 10);
+    } else {
+      ctx.fillStyle = '#7a8ba8';
+      ctx.font = '9px system-ui';
+      ctx.fillText('MATERIALS:', menuX + 10, menuY + menuH - 22);
+      ctx.font = '10px system-ui';
+      ctx.fillStyle = '#a9b3cd';
+      const matText = `Wool:${inventory.wool} Fur:${inventory.goatFur} Yarn:${inventory.yarn} Lux:${inventory.luxuryYarn}`;
+      ctx.fillText(matText, menuX + 10, menuY + menuH - 8);
+    }
+  }
+
+  // NPC Dialogue and Gift UI
+  drawDialogueUI();
+  drawGiftMenuUI();
+  
+  // Traveling Merchant Shop UI
+  drawMerchantShopUI();
+
+  drawDebugInfoPanel();
+
+}
+
+// #endregion RENDER
+
+// =========================
+// MAIN LOOP
+// =========================
+// #region MAIN LOOP
+function loop() {
+  // Update animation time for tile effects
+  animationTime += 0.05;
+  
+  update();
+  render();
+  requestAnimationFrame(loop);
+}
+
+loop();
+
+// #endregion MAIN LOOP
+
+  </script>
+</body>
+</html>

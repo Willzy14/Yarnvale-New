@@ -1,0 +1,6506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Yarnvale – Top-Down Prototype (Overworld + Cottage)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #050810;
+      color: #f5f7ff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 20px 12px 40px;
+    }
+
+    .frame {
+      background:#04060f;
+      border-radius:16px;
+      padding:10px;
+      box-shadow:0 18px 40px rgba(0,0,0,0.8);
+      width:min(96vw, 640px);
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    canvas {
+      image-rendering: pixelated;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.15);
+      background:#000;
+      display:block;
+      width:100%;
+      height:auto;
+      max-width:608px;
+    }
+
+    .hud {
+      font-size:12px;
+      text-align:center;
+      color:#a9b3cd;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .hud .instructions {
+      line-height:1.4;
+    }
+
+    .music-controls {
+      margin-top:6px;
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .music-controls button {
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      border:1px solid rgba(255,255,255,0.25);
+      background:rgba(255,255,255,0.08);
+      color:#f5f7ff;
+      cursor:pointer;
+      font-size:16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+    }
+
+    .music-controls button:focus-visible,
+    .touch-controls button:focus-visible,
+    #touch-inventory:focus-visible {
+      outline:2px solid #7cd3ff;
+      outline-offset:2px;
+    }
+
+    .music-controls button.muted::after {
+      content:"✕";
+      position:absolute;
+      font-size:12px;
+      color:#ffb0b0;
+      transform:translate(6px,-6px);
+    }
+
+    .music-controls .volume-label {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height:auto;
+    }
+
+    .music-controls input[type="range"] {
+      width:150px;
+      height:4px;
+      -webkit-appearance:none;
+      appearance:none;
+    }
+
+    #touch-inventory {
+      display:none;
+      position:absolute;
+      top:12px;
+      right:12px;
+      width:120px;
+      padding:10px 0;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.25);
+      background:rgba(7,11,22,0.55);
+      color:#f5f7ff;
+      font-size:14px;
+      text-align:center;
+      pointer-events:auto;
+      box-shadow:0 10px 24px rgba(0,0,0,0.25);
+    }
+
+    .sr-only {
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+
+    .touch-controls {
+      margin-top:6px;
+      display:none;
+      gap:12px;
+      justify-content:space-between;
+      align-items:center;
+      color:#f5f7ff;
+      width:100%;
+      pointer-events:auto;
+    }
+
+    .dpad {
+      display:grid;
+      grid-template-columns:repeat(3, 44px);
+      grid-template-rows:repeat(3, 44px);
+      gap:4px;
+      justify-items:center;
+      align-items:center;
+    }
+
+    .dpad span {
+      width:44px;
+      height:44px;
+    }
+
+    .touch-controls button {
+      width:44px;
+      height:44px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.25);
+      background:rgba(7,11,22,0.35);
+      color:#f5f7ff;
+      font-size:16px;
+      cursor:pointer;
+      touch-action:none;
+      pointer-events:auto;
+      backdrop-filter:blur(6px);
+    }
+
+    .touch-actions {
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .touch-actions button {
+      width:90px;
+    }
+
+    @media (pointer: coarse) {
+      body {
+        padding-top:30px;
+      }
+
+      .touch-controls {
+        display:flex;
+        flex-wrap:wrap;
+      }
+
+      .music-controls {
+        flex-direction:column;
+      }
+
+      #touch-inventory {
+        display:block;
+        width:120px;
+      }
+    }
+
+    @media (pointer: coarse) and (orientation: landscape) and (max-width: 1100px) {
+      body {
+        padding:0;
+        align-items:stretch;
+      }
+
+      .frame {
+        width:100vw;
+        height:100vh;
+        max-width:none;
+        border-radius:0;
+        padding:0;
+        box-shadow:none;
+      }
+
+      canvas {
+        width:100%;
+        height:100%;
+        max-width:none;
+        border-radius:0;
+      }
+
+      .hud {
+        position:absolute;
+        top:16px;
+        left:16px;
+        gap:4px;
+        width:auto;
+        align-items:flex-start;
+        background:rgba(5,8,16,0.65);
+        padding:10px 14px;
+        border-radius:12px;
+        box-shadow:0 12px 24px rgba(0,0,0,0.4);
+        font-size:11px;
+      }
+
+      .hud .instructions {
+        display:none;
+      }
+
+      .touch-controls {
+        position:absolute;
+        left:0;
+        right:0;
+        bottom:0;
+        top:auto;
+        height: min(45vh, 280px);
+        padding:0;
+        display:block;
+        pointer-events:auto;
+        z-index:1;
+      }
+
+      .touch-controls .dpad {
+        position:absolute;
+        left:24px;
+        bottom:24px;
+        grid-template-columns:repeat(3, 56px);
+        grid-template-rows:repeat(3, 56px);
+        gap:6px;
+      }
+
+      .touch-controls button {
+        width:56px;
+        height:56px;
+        border-radius:16px;
+        background:rgba(7,11,22,0.45);
+        border-color:rgba(255,255,255,0.2);
+        font-size:20px;
+        pointer-events:auto;
+      }
+
+      .touch-actions {
+        position:absolute;
+        right:24px;
+        bottom:24px;
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+      }
+
+      .touch-actions button {
+        width:140px;
+        padding:10px 0;
+        background:rgba(7,11,22,0.45);
+        align-self:flex-end;
+        pointer-events:auto;
+      }
+
+      #touch-inventory {
+        position:absolute;
+        top:16px;
+        right:16px;
+        width:140px;
+        padding:10px 0;
+        background:rgba(7,11,22,0.55);
+        pointer-events:auto;
+      }
+
+      .music-controls {
+        position:absolute;
+        top:88px;
+        right:22px;
+        background:rgba(5,8,16,0.7);
+        padding:8px 10px;
+        border-radius:10px;
+        box-shadow:0 10px 20px rgba(0,0,0,0.35);
+        flex-direction:column;
+        align-items:center;
+        gap:6px;
+        min-width:auto;
+        z-index:2;
+      }
+
+      .music-controls input[type="range"] {
+        width:9px;
+        height:120px;
+        writing-mode:vertical-lr;
+        direction:rtl;
+        -webkit-appearance:none;
+        appearance:none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <!-- Full map size: 19 * 32 by 13 * 32 -->
+    <canvas id="game" width="608" height="416" role="img" aria-label="Yarnvale game world"></canvas>
+    <div class="hud">
+      <div class="instructions">
+        Yarnvale · Move with <strong>WASD / Arrow keys</strong> · Press <strong>E</strong> or <strong>Space</strong> at a door to go in/out.
+      </div>
+    </div>
+    <div class="music-controls" id="music-controls">
+      <button id="music-toggle" type="button" title="Toggle music" aria-label="Toggle music">
+        <span aria-hidden="true">♪</span>
+      </button>
+      <label class="volume-label" for="music-volume">
+        <span class="sr-only">Music volume</span>
+        <input id="music-volume" type="range" min="0" max="1" step="0.05" value="0.35">
+      </label>
+    </div>
+    <div class="touch-controls" id="touch-controls">
+      <div class="dpad">
+        <span></span>
+        <button type="button" data-dir="up">▲</button>
+        <span></span>
+        <button type="button" data-dir="left">◄</button>
+        <span></span>
+        <button type="button" data-dir="right">►</button>
+        <span></span>
+        <button type="button" data-dir="down">▼</button>
+        <span></span>
+      </div>
+      <div class="touch-actions">
+        <button type="button" id="touch-action">Interact</button>
+      </div>
+    </div>
+    <button type="button" id="touch-inventory" class="touch-floating">Inventory</button>
+    <button type="button" id="touch-save" class="touch-floating" style="position:absolute; top:16px; right:170px; width:60px; padding:10px 0; background:rgba(7,11,22,0.55); display:none;">Save</button>
+    <button type="button" id="touch-load" class="touch-floating" style="position:absolute; top:16px; right:235px; width:60px; padding:10px 0; background:rgba(7,11,22,0.55); display:none;">Load</button>
+  </div>
+
+  <script>
+    
+ // =========================
+// CONFIG
+// =========================
+// #region CONFIG
+
+const ASSET_BASE = 'Yarnvale Assets/Audio/';
+const DEFAULT_MASTER_VOLUME = 0.35;
+const SHEAR_VOLUME_MULTIPLIER = 0.8;
+const FIRE_VOLUME_MULTIPLIER = 0.55;
+const MUSIC_INTERIOR_SCALE = 0.55;
+const HELPER_LABEL_DURATION = 3500;
+let masterVolume = DEFAULT_MASTER_VOLUME;
+let audioMuted = false;
+const helperLabelState = {};
+let currentInteractables = [];
+let showOverlayMode = false;
+const isFileProtocol = window.location.protocol === 'file:';
+
+const debugState = {
+  grid: false,
+  collisions: false,
+  info: false,
+  statusMessage: '',
+  statusUntil: 0
+};
+
+const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+let GRASS_ZOOM = isCoarsePointer ? 0.45 : 0.30; // ~5% tighter on desktop
+
+const SPRITE_CONFIG = {
+  tileSize: 32,
+  tileColumns: 8,
+  mirrorRightFromLeft: true,
+  player: {
+    frameWidth: 64,
+    frameHeight: 64,
+    columns: 4,
+    animations: {
+      down: [0],
+      left: [0],
+      right: [0],
+      up: [0]
+    },
+    idleFrameIndex: 0,
+    speedTicks: 8
+  }
+};
+
+function createImageAsset(path, options = {}) {
+  const asset = {
+    image: new Image(),
+    loaded: false,
+    error: false,
+    path,
+    frameWidth: options.frameWidth ?? null,
+    frameHeight: options.frameHeight ?? null,
+    columns: options.columns ?? null
+  };
+
+  asset.image.onload = () => {
+    asset.loaded = true;
+    if (!asset.columns) {
+      const divisor = options.frameWidth ?? SPRITE_CONFIG.tileSize;
+      asset.columns = Math.max(1, Math.floor(asset.image.width / divisor));
+    }
+    if (!asset.frameWidth) {
+      if (asset.columns) {
+        asset.frameWidth = asset.image.width / asset.columns;
+      } else {
+        asset.frameWidth = SPRITE_CONFIG.tileSize;
+      }
+    }
+    if (!asset.frameHeight) {
+      asset.frameHeight = options.frameHeight ?? asset.image.height ?? SPRITE_CONFIG.tileSize;
+    }
+  };
+
+  asset.image.onerror = () => {
+    asset.error = true;
+    console.warn(`Missing art asset: ${path}`);
+  };
+
+  asset.image.src = path;
+  return asset;
+}
+
+const artAssets = {
+  terrain: createImageAsset('Yarnvale Assets/Art/Tile Set Grass and Water.png', {
+    frameWidth: 256,
+    frameHeight: 256
+  }),
+  foliage: createImageAsset('Yarnvale Assets/Art/Tile Set Trees and Plants.png', {
+    frameWidth: 256,
+    frameHeight: 256
+  }),
+  grass1: createImageAsset('Yarnvale Assets/Art/Grass/Grass 1 64.png', {
+    frameWidth: 64,
+    frameHeight: 64,
+    columns: 1
+  }),
+  grass2: createImageAsset('Yarnvale Assets/Art/Grass/Grass 2 64.png', {
+    frameWidth: 64,
+    frameHeight: 64,
+    columns: 1
+  }),
+  grass3: createImageAsset('Yarnvale Assets/Art/Grass/Grass 3 64.png', {
+    frameWidth: 64,
+    frameHeight: 64,
+    columns: 1
+  }),
+  player: createImageAsset('Yarnvale Assets/Art/Sprite/Yarnya Front 64.png', {
+    frameWidth: 64,
+    frameHeight: 64,
+    columns: 1
+  }),
+  playerDirections: {
+    down: createImageAsset('Yarnvale Assets/Art/Sprite/Yarnya Front 64.png', {
+      frameWidth: 64,
+      frameHeight: 64,
+      columns: 1
+    }),
+    up: createImageAsset('Yarnvale Assets/Art/Sprite/Yarnya Back 64.png', {
+      frameWidth: 64,
+      frameHeight: 64,
+      columns: 1
+    }),
+    left: createImageAsset('Yarnvale Assets/Art/Sprite/Yarnya Left 64.png', {
+      frameWidth: 64,
+      frameHeight: 64,
+      columns: 1
+    }),
+    right: createImageAsset('Yarnvale Assets/Art/Sprite/Yarnya Right 64.png', {
+      frameWidth: 64,
+      frameHeight: 64,
+      columns: 1
+    })
+  },
+  goat: createImageAsset('Yarnvale Assets/Art/Animals/Goat.png', {
+    columns: 3,
+    frameHeight: 332
+  })
+};
+
+const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+let audioContext = null;
+let musicGainNode = null;
+const musicSources = new Map();
+const playerFrameCache = new Map();
+
+function ensureAudioContext() {
+  if (audioContext || !AudioContextClass) return;
+  try {
+    audioContext = new AudioContextClass();
+    musicGainNode = audioContext.createGain();
+    musicGainNode.gain.value = masterVolume;
+    musicGainNode.connect(audioContext.destination);
+  } catch (error) {
+    console.warn('AudioContext unavailable', error);
+    audioContext = null;
+    musicGainNode = null;
+  }
+}
+
+ensureAudioContext();
+
+function connectTrackToGain(audio) {
+  ensureAudioContext();
+  if (!audioContext || !musicGainNode || musicSources.has(audio)) return;
+  try {
+    const source = audioContext.createMediaElementSource(audio);
+    source.connect(musicGainNode);
+    musicSources.set(audio, source);
+  } catch (error) {
+    console.warn('Unable to route music track through AudioContext', error);
+  }
+}
+
+function resumeAudioContextIfNeeded() {
+  ensureAudioContext();
+  if (audioContext && audioContext.state === 'suspended') {
+    audioContext.resume().catch(() => {});
+  }
+}
+
+// #endregion CONFIG
+
+// =========================
+// AUDIO
+// =========================
+// #region AUDIO
+
+const sounds = {};
+const footstepVoices = [];
+let nextFootstepVoice = 0;
+
+// Load multiple sheep sounds into an array
+const sheepSoundFiles = ['Sheep 1.wav', 'Sheep 2.wav', 'Sheep 3.wav'];
+const sheepSounds = sheepSoundFiles.map((filename) => {
+  const audio = new Audio(ASSET_BASE + filename);
+  audio.addEventListener('error', () => {
+    console.warn(`Failed to load sheep sound: ${filename}`);
+  });
+  applySfxVolume(audio, 'sheep');
+  return audio;
+});
+
+function getInteractablesForMap(mapName) {
+  const nodes = interactableLocations
+    .filter((item) => item.map === mapName)
+    .map((item) => ({ ...item }));
+
+  const doorTiles = doorTilesByMap[mapName] || [];
+  doorTiles.forEach(({ x, y }) => {
+    nodes.push({
+      map: mapName,
+      x,
+      y,
+      label: mapName === 'overworld' ? 'Enter Cottage' : 'Exit Cottage',
+      helperRange: 1,
+      glow: mapName === 'overworld'
+        ? { inner: 'rgba(148, 232, 255, 0.85)', outer: 'rgba(148, 232, 255, 0)' }
+        : { inner: 'rgba(255, 228, 180, 0.9)', outer: 'rgba(255, 228, 180, 0)' }
+    });
+  });
+
+  // Add villager NPCs as interactables (guard against villagers being undefined during initialization)
+  if (typeof villagers !== 'undefined') {
+    villagers.forEach((npc) => {
+      if (npc.map === mapName) {
+        nodes.push({
+          map: mapName,
+          x: npc.x,
+          y: npc.y,
+          label: `Talk to ${npc.name.split(' ')[0]}`,
+          helperRange: 1,
+          glow: { inner: 'rgba(255, 248, 180, 0.7)', outer: 'rgba(255, 248, 180, 0)' },
+          dynamic: true,
+          npcId: npc.id
+        });
+      }
+    });
+  }
+
+  return nodes;
+}
+
+function helperKey(node) {
+  return `${node.map}:${node.x},${node.y}`;
+}
+
+function drawInteractableGlows(nodes) {
+  nodes.forEach((node, index) => {
+    const glowColors = node.glow || { inner: 'rgba(255,255,255,0.45)', outer: 'rgba(255,255,255,0)' };
+    const centerX = node.x * TILE_SIZE + TILE_SIZE / 2;
+    const centerY = node.y * TILE_SIZE + TILE_SIZE / 2;
+    const pulse = 0.03 + 0.03 * Math.sin((fireAnimTick + index * 7) * 0.25);
+    const radius = TILE_SIZE * (0.45 + pulse);
+    const gradient = ctx.createRadialGradient(centerX, centerY, 3, centerX, centerY, radius);
+    gradient.addColorStop(0, glowColors.inner);
+    gradient.addColorStop(1, glowColors.outer);
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function playerNearInteractable(node) {
+  const range = node.helperRange ?? 0;
+  const dx = Math.abs(player.x - node.x);
+  const dy = Math.abs(player.y - node.y);
+  return dx + dy <= range;
+}
+
+function updateHelperLabelState(nodes, forceReset = false) {
+  const now = performance.now();
+  const seen = new Set();
+
+  nodes.forEach((node) => {
+    const key = helperKey(node);
+    seen.add(key);
+    const near = playerNearInteractable(node);
+    const state = helperLabelState[key] || { visibleUntil: 0, wasNear: false };
+
+    if (forceReset) {
+      state.wasNear = false;
+    }
+
+    if (near && !state.wasNear) {
+      state.visibleUntil = now + HELPER_LABEL_DURATION;
+    }
+
+    state.wasNear = near;
+    helperLabelState[key] = state;
+  });
+
+  Object.keys(helperLabelState).forEach((key) => {
+    if (!seen.has(key)) {
+      delete helperLabelState[key];
+    }
+  });
+}
+
+function drawInteractableLabels(nodes) {
+  const now = performance.now();
+  nodes.forEach((node) => {
+    if (!node.label) return;
+    const key = helperKey(node);
+    const state = helperLabelState[key];
+    if (!state || state.visibleUntil < now) return;
+
+    const text = node.label;
+    const baseX = node.x * TILE_SIZE + TILE_SIZE / 2;
+    const baseY = node.y * TILE_SIZE - 8;
+    ctx.font = '11px system-ui';
+    const textWidth = ctx.measureText(text).width;
+    const padding = 8;
+    const boxW = textWidth + padding * 2;
+    const boxH = 20;
+    const boxX = baseX - boxW / 2;
+    const boxY = baseY - boxH;
+
+    ctx.fillStyle = 'rgba(5, 8, 16, 0.85)';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxW - 1, boxH - 1);
+
+    ctx.fillStyle = '#f5f7ff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, baseX, boxY + boxH / 2);
+
+    ctx.beginPath();
+    ctx.moveTo(baseX - 4, boxY + boxH);
+    ctx.lineTo(baseX + 4, boxY + boxH);
+    ctx.lineTo(baseX, boxY + boxH + 6);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(5, 8, 16, 0.85)';
+    ctx.fill();
+  });
+
+  ctx.textAlign = 'start';
+  ctx.textBaseline = 'alphabetic';
+}
+
+function getSfxMultiplier(name) {
+  return name === 'shear' ? SHEAR_VOLUME_MULTIPLIER : 1;
+}
+
+function getEffectiveMasterVolume() {
+  return audioMuted ? 0 : masterVolume;
+}
+
+function applySfxVolume(audio, name) {
+  const effective = getEffectiveMasterVolume();
+  audio.volume = Math.min(1, Math.max(0, effective * getSfxMultiplier(name)));
+}
+
+function refreshAllSfxVolumes() {
+  Object.entries(sounds).forEach(([name, audio]) => applySfxVolume(audio, name));
+  sheepSounds.forEach(audio => applySfxVolume(audio, 'sheep'));
+  footstepVoices.forEach(audio => applySfxVolume(audio, 'step'));
+}
+
+
+// Helper to load audio with error logging
+function loadSound(name, filename) {
+  const audio = new Audio(ASSET_BASE + filename);
+  applySfxVolume(audio, name);
+  audio.addEventListener('error', () => {
+    console.warn(`Failed to load sound: ${filename}`);
+  });
+  sounds[name] = audio;
+}
+
+loadSound('step', 'step.wav');
+loadSound('shear', 'shear.wav');
+loadSound('knit', 'Knit.wav');
+loadSound('sell', 'sell.wav');
+
+function createFootstepVoices(count = 3) {
+  footstepVoices.length = 0;
+  nextFootstepVoice = 0;
+  for (let i = 0; i < count; i++) {
+    const audio = new Audio(ASSET_BASE + 'step.wav');
+    applySfxVolume(audio, 'step');
+    audio.addEventListener('error', () => {
+      console.warn('Failed to load footstep voice');
+    });
+    footstepVoices.push(audio);
+  }
+}
+
+createFootstepVoices(3);
+
+function playFootstepSound() {
+  const voice = footstepVoices[nextFootstepVoice];
+  nextFootstepVoice = (nextFootstepVoice + 1) % footstepVoices.length;
+  if (!voice) {
+    if (sounds.step) {
+      sounds.step.currentTime = 0;
+      sounds.step.play().catch(() => {});
+    }
+    return;
+  }
+  voice.currentTime = 0;
+  voice.play().catch(() => {});
+}
+
+// #endregion AUDIO
+
+
+// =========================
+// AMBIENT AUDIO
+// =========================
+// #region AMBIENT_AUDIO
+
+// Duplicate declaration removed. See earlier in file.
+
+function updateFireLoopVolume() {
+  const targetVolume = fireLoopActive ? Math.min(1, Math.max(0, getEffectiveMasterVolume() * FIRE_VOLUME_MULTIPLIER)) : 0;
+  fireLoop.volume = targetVolume;
+  if (fireLoopActive && targetVolume > 0) {
+    fireLoop.play().catch(() => {});
+  } else {
+    fireLoop.pause();
+    fireLoop.currentTime = 0;
+  }
+}
+
+function setFireLoopActive(active) {
+  fireLoopActive = active;
+  updateFireLoopVolume();
+}
+
+// #endregion AMBIENT_AUDIO
+
+
+
+// =========================
+// MUSIC MANAGER
+// =========================
+// #region MUSIC
+
+// Duplicate declarations removed. See earlier in file.
+
+function createMusicTrack(basePath, filename) {
+  const audio = new Audio(basePath + filename);
+  audio.preload = 'auto';
+  audio.loop = false;
+  audio.volume = 0;
+  audio.addEventListener('error', () => {
+    console.warn(`Failed to load music track: ${filename}`);
+  });
+  connectTrackToGain(audio);
+  return audio;
+}
+
+// Duplicate declaration removed. See earlier in file.
+
+// Track per-scene resume info so music continues where it left off when re-entering
+// Duplicate declaration removed. See earlier in file.
+
+// Duplicate declaration removed. See earlier in file.
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function allMusicTracks() {
+  return [
+    ...(musicTracksByScene.overworld || []),
+    ...(musicTracksByScene.cottage || [])
+  ];
+}
+
+function getActiveTracks() {
+  return musicTracksByScene[musicState.scene] || [];
+}
+
+function ensureMusicQueue() {
+  const scene = musicState.scene;
+  const tracks = getActiveTracks();
+  if (!tracks.length) return;
+
+  if (!musicState.orderByScene[scene] || musicState.orderByScene[scene].length === 0) {
+    musicState.orderByScene[scene] = shuffle(tracks.map((_, idx) => idx));
+    musicState.orderIndexByScene[scene] = 0;
+  }
+}
+
+function currentMusicTrack() {
+  ensureMusicQueue();
+  const tracks = getActiveTracks();
+  const scene = musicState.scene;
+  const order = musicState.orderByScene[scene] || [];
+  if (!tracks.length || !order.length) return null;
+  const orderIndex = musicState.orderIndexByScene[scene] ?? 0;
+  const trackIndex = order[orderIndex];
+  return tracks[trackIndex];
+}
+
+function advanceMusicTrack() {
+  const scene = musicState.scene;
+  const tracks = getActiveTracks();
+  const order = musicState.orderByScene[scene] || [];
+  if (!order.length || !tracks.length) return;
+
+  musicState.orderIndexByScene[scene] = (musicState.orderIndexByScene[scene] ?? 0) + 1;
+  if (musicState.orderIndexByScene[scene] >= order.length) {
+    musicState.orderByScene[scene] = shuffle(tracks.map((_, idx) => idx));
+    musicState.orderIndexByScene[scene] = 0;
+  }
+}
+
+function playCurrentMusic() {
+  const track = currentMusicTrack();
+  if (!track) return;
+  if (musicState.playing && musicState.playing !== track) {
+    musicState.playing.pause();
+  }
+  const scene = musicState.scene;
+  const resumeInfo = musicResumeState[scene];
+  const tracks = getActiveTracks();
+  const order = musicState.orderByScene[scene] || [];
+  const orderIndex = musicState.orderIndexByScene[scene] ?? 0;
+  const trackIndex = order[orderIndex];
+
+  // If we have resume info for this scene and it matches the current track, keep its timestamp
+  if (resumeInfo && typeof resumeInfo.trackIndex === 'number' && resumeInfo.trackIndex === trackIndex) {
+    track.currentTime = resumeInfo.time ?? 0;
+  } else {
+    track.currentTime = 0;
+  }
+  musicResumeState[scene] = null;
+  musicState.playing = track;
+  applyMusicVolume();
+  track.play().catch((err) => {
+    console.warn('Music playback blocked until user interaction', err);
+  });
+}
+
+function handleMusicEnded() {
+  musicState.playing = null;
+  advanceMusicTrack();
+  playCurrentMusic();
+}
+
+function beginMusicOnInteraction() {
+  resumeAudioContextIfNeeded();
+  if (musicState.started) return;
+  ensureAudioContext();
+  musicState.started = true;
+  allMusicTracks().forEach(track => track.addEventListener('ended', handleMusicEnded));
+  playCurrentMusic();
+  window.removeEventListener('pointerdown', beginMusicOnInteraction);
+  window.removeEventListener('keydown', beginMusicOnInteraction);
+}
+
+window.addEventListener('pointerdown', beginMusicOnInteraction);
+window.addEventListener('keydown', beginMusicOnInteraction);
+
+// #endregion MUSIC
+
+// =========================
+// MUSIC CONTROLS UI
+// =========================
+// #region MUSIC_CONTROLS
+
+// Duplicate declaration removed. See earlier in file.
+
+if (musicVolumeSlider) {
+  musicVolumeSlider.value = masterVolume.toString();
+}
+
+function applyMusicVolume() {
+  const effectiveVolume = musicState.muted ? 0 : musicState.volume * musicState.sceneScale;
+  const clamped = Math.min(1, Math.max(0, effectiveVolume));
+  if (musicGainNode) {
+    musicGainNode.gain.value = clamped;
+  }
+  if (musicState.playing) {
+    musicState.playing.volume = clamped;
+    musicState.playing.muted = musicState.muted;
+  }
+}
+
+function updateMusicControls() {
+  if (musicToggleBtn) {
+    musicToggleBtn.classList.toggle('muted', musicState.muted);
+    musicToggleBtn.setAttribute('aria-label', musicState.muted ? 'Unmute music' : 'Mute music');
+    musicToggleBtn.setAttribute('aria-pressed', String(!musicState.muted));
+  }
+  if (musicVolumeSlider && musicVolumeSlider !== document.activeElement) {
+    musicVolumeSlider.value = musicState.volume.toString();
+  }
+}
+
+function setAudioMuted(muted) {
+  audioMuted = muted;
+  musicState.muted = muted;
+  applyMusicVolume();
+  refreshAllSfxVolumes();
+  updateFireLoopVolume();
+  updateMusicControls();
+}
+
+function setMusicSceneScale(scale) {
+  musicState.sceneScale = Math.min(1, Math.max(0, scale));
+  applyMusicVolume();
+}
+
+function setMusicScene(scene) {
+  if (musicState.scene === scene) return;
+  const prevScene = musicState.scene;
+
+  const enteringOverworld = scene === 'overworld' && prevScene !== 'overworld';
+  const enteringCottage = scene === 'cottage' && prevScene !== 'cottage';
+
+  // Save resume info for the scene we are leaving
+  if (musicState.playing) {
+    const prevTracks = musicTracksByScene[prevScene] || [];
+    const trackIndex = prevTracks.indexOf(musicState.playing);
+    if (trackIndex !== -1) {
+      musicResumeState[prevScene] = {
+        trackIndex,
+        time: musicState.playing.currentTime
+      };
+    }
+    musicState.playing.pause();
+    musicState.playing = null;
+  }
+
+  musicState.scene = scene;
+  musicState.orderByScene[scene] = musicState.orderByScene[scene] || [];
+  musicState.orderIndexByScene[scene] = musicState.orderIndexByScene[scene] ?? 0;
+  ensureMusicQueue();
+
+  // When returning to overworld, advance to the next track instead of resuming the same one.
+  if (enteringOverworld) {
+    musicResumeState.overworld = null;
+    advanceMusicTrack();
+  }
+
+  // When entering cottage, start fresh from the next track instead of resuming.
+  if (enteringCottage) {
+    musicResumeState.cottage = null;
+    advanceMusicTrack();
+  }
+
+  if (musicState.started) {
+    playCurrentMusic();
+  }
+}
+
+function setMasterVolume(value) {
+  const clamped = Math.min(1, Math.max(0, Number(value)));
+  masterVolume = clamped;
+  musicState.volume = clamped;
+  applyMusicVolume();
+  refreshAllSfxVolumes();
+  updateFireLoopVolume();
+  updateMusicControls();
+}
+
+musicToggleBtn?.addEventListener('click', () => {
+  resumeAudioContextIfNeeded();
+  ensureAudioContext();
+  setAudioMuted(!musicState.muted);
+});
+
+musicVolumeSlider?.addEventListener('input', (event) => {
+  resumeAudioContextIfNeeded();
+  setMasterVolume(event.target.value);
+});
+
+setMasterVolume(masterVolume);
+
+
+// #endregion MUSIC_CONTROLS
+
+
+// =========================
+// TOUCH INPUT
+// =========================
+// #region TOUCH_INPUT
+
+// Duplicate declarations removed. See earlier in file.
+
+function updateTouchControlsVisibility() {
+  const overlayQuery = '(pointer: coarse) and (orientation: landscape) and (max-width: 1100px)';
+  showOverlayMode = window.matchMedia(overlayQuery).matches;
+  if (touchControlsNode) {
+    touchControlsNode.style.pointerEvents = 'auto';
+  }
+  // Show save/load buttons on touch devices
+  if (touchSaveButton) touchSaveButton.style.display = isCoarsePointer ? 'block' : 'none';
+  if (touchLoadButton) touchLoadButton.style.display = isCoarsePointer ? 'block' : 'none';
+}
+
+// Hide touch dpad when menus/dialogue are open, update action button text
+function updateTouchControlsForMenuState() {
+  if (!touchControlsNode) return;
+  
+  const dpad = touchControlsNode.querySelector('.dpad');
+  const shouldHideDpad = dialogueOpen || giftMenuOpen || merchantShopOpen || shopOpen;
+  
+  if (dpad) {
+    dpad.style.opacity = shouldHideDpad ? '0.3' : '1';
+  }
+  
+  // Update action button text based on state
+  if (touchActionButton) {
+    if (dialogueOpen) {
+      touchActionButton.textContent = 'Close';
+    } else if (giftMenuOpen) {
+      touchActionButton.textContent = 'Give';
+    } else if (merchantShopOpen || shopOpen) {
+      touchActionButton.textContent = 'Buy';
+    } else if (craftingMenuOpen) {
+      touchActionButton.textContent = 'Craft';
+    } else {
+      touchActionButton.textContent = 'Interact';
+    }
+  }
+}
+
+window.addEventListener('resize', updateTouchControlsVisibility);
+updateTouchControlsVisibility();
+
+function setTouchDirection(dir, pressed) {
+  if (!(dir in touchDirections)) return;
+  touchDirections[dir] = pressed;
+}
+
+function bindPointerButton(element, onPress, onRelease) {
+  if (!element) return;
+
+  const pressHandler = (event) => {
+    event.preventDefault();
+    element.setPointerCapture?.(event.pointerId);
+    onPress?.(event);
+  };
+
+  const releaseHandler = (event) => {
+    event.preventDefault();
+    onRelease?.(event);
+    element.releasePointerCapture?.(event.pointerId);
+  };
+
+  element.addEventListener('pointerdown', pressHandler);
+  element.addEventListener('pointerup', releaseHandler);
+  element.addEventListener('pointerleave', releaseHandler);
+  element.addEventListener('pointercancel', releaseHandler);
+  element.addEventListener('contextmenu', (event) => event.preventDefault());
+}
+
+touchDirButtons.forEach((button) => {
+  const dir = button.dataset.dir;
+  bindPointerButton(
+    button,
+    () => {
+      if (craftingMenuOpen) {
+        // Use up/down for menu navigation
+        if (dir === 'up') {
+          craftingMenuSelection = Math.max(0, craftingMenuSelection - 1);
+        } else if (dir === 'down') {
+          craftingMenuSelection = Math.min(craftingRecipes.length - 1, craftingMenuSelection + 1);
+        }
+      } else {
+        setTouchDirection(dir, true);
+      }
+    },
+    () => {
+      if (!craftingMenuOpen) {
+        setTouchDirection(dir, false);
+      }
+    }
+  );
+});
+
+bindPointerButton(touchActionButton, () => {
+  if (dialogueOpen) {
+    // Close dialogue
+    closeDialogue();
+  } else if (giftMenuOpen) {
+    // Give selected gift
+    giveGift();
+  } else if (merchantShopOpen) {
+    // Purchase from merchant
+    purchaseFromMerchant();
+  } else if (shopOpen) {
+    // Purchase from shop
+    purchaseShopItem();
+  } else if (craftingMenuOpen) {
+    // Craft selected recipe
+    const recipe = craftingRecipes[craftingMenuSelection];
+    if (canAffordRecipe(recipe)) {
+      craftRecipe(recipe);
+      showMessage(`Crafted ${getRecipeOutputsText(recipe)}!`);
+      if (sounds.knit) sounds.knit.play().catch(() => {});
+    } else {
+      showMessage(`Not enough materials for ${recipe.name}.`);
+    }
+  } else {
+    handleAction();
+  }
+}, null);
+
+bindPointerButton(touchInventoryButton, () => {
+  if (merchantShopOpen) {
+    merchantShopOpen = false;
+    showMessage("Willa: \"Safe travels! Come back soon!\"");
+  } else if (shopOpen) {
+    shopOpen = false;
+    showMessage('You close the shop menu.');
+  } else if (giftMenuOpen) {
+    closeGiftMenu();
+  } else if (craftingMenuOpen) {
+    craftingMenuOpen = false;
+  } else {
+    inventoryOpen = !inventoryOpen;
+  }
+}, null);
+
+// Touch save/load buttons
+bindPointerButton(touchSaveButton, () => {
+  saveGame();
+}, null);
+
+bindPointerButton(touchLoadButton, () => {
+  loadGame();
+}, null);
+
+
+function ensureMobileAudioUnlock() {
+  resumeAudioContextIfNeeded();
+  if (!musicState.started) {
+    beginMusicOnInteraction();
+  }
+}
+
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    ensureMobileAudioUnlock();
+  }
+});
+
+touchControlsNode?.addEventListener('pointerdown', ensureMobileAudioUnlock);
+
+// #endregion TOUCH_INPUT
+
+// #endregion TOUCH_INPUT
+
+
+// =========================
+// ENVIRONMENT AUDIO MANAGEMENT
+// =========================
+// #region ENV_AUDIO
+
+function handleEnvironmentAudio(mapName) {
+  const insideCottage = mapName === 'cottage';
+  setMusicSceneScale(insideCottage ? MUSIC_INTERIOR_SCALE : 1);
+  setMusicScene(insideCottage ? 'cottage' : 'overworld');
+  setFireLoopActive(insideCottage);
+}
+
+// #endregion ENV_AUDIO
+
+
+
+// =========================
+// CONFIG & MAPS
+// =========================
+// #region CONFIG & MAPS
+    const TILE_SIZE = 32;
+
+    // Tile legend:
+    // 0 grass, 1 path, 2 tree (solid), 3 water (solid), 4 fence (solid),
+    // 5 cottage roof, 6 door, 7 interior wall (solid), 8 interior floor
+    // 9 stone/cobble path, 10 market stall (solid), 11 well (solid)
+    // 12 flower patch, 13 bush (solid), 14 bridge, 15 sign
+    const maps = {
+      overworld: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,6,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Walk right off the map on the path at row 10
+          { edge: 'right', col: 18, toMap: 'village', toX: 1, toY: 8, condition: (y) => y === 10 }
+        ]
+      },
+      cottage: {
+        cols: 9,
+        rows: 7,
+        data: [
+          [7,7,7,7,7,7,7,7,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,6,8,8,8,7],
+          [7,7,7,7,7,7,7,7,7]
+        ]
+      },
+      village: {
+        cols: 19,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,12,0,0,9,9,9,9,9,9,9,9,9,0,0,12,0,2],
+          [2,0,0,0,10,9,9,9,11,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,10,9,9,9,9,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,0,9,9,9,9,9,9,9,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,9,9,9,9,9,0,0,0,0,0,13,0,2],
+          [2,0,0,12,0,0,0,9,9,9,0,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,13,0,0,0,12,0,0,12,0,0,0,13,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on the main path (row 8)
+          { edge: 'left', col: 0, toMap: 'overworld', toX: 17, toY: 11, condition: (y) => y === 8 },
+          // Right: walk off the right edge on the main path (row 8)  
+          { edge: 'right', col: 18, toMap: 'forest', toX: 1, toY: 7, condition: (y) => y === 8 },
+          // Bottom: bridge path at col 8
+          { edge: 'bottom', row: 14, toMap: 'forest', toX: 9, toY: 1, condition: (x) => x === 8 }
+        ]
+      },
+      forest: {
+        cols: 21,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,2,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,2],
+          [2,0,12,0,0,2,0,0,0,1,0,0,12,0,0,0,2,0,12,0,2],
+          [2,2,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,12,0,0,0,0,0,1,0,0,2,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,2,0,0,0,1,0,0,0,0,0,0,0,2,0,0,2],
+          [2,0,12,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,2],
+          [2,0,2,0,0,12,0,0,0,0,0,0,12,0,0,0,0,0,12,0,2],
+          [2,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,2,0,0,0,2],
+          [2,0,0,0,12,0,0,0,0,0,12,0,0,0,0,0,0,0,0,0,2],
+          [2,0,2,0,0,0,0,0,0,2,0,0,0,2,0,0,0,0,2,0,2],
+          [2,0,0,0,0,0,12,0,0,0,0,0,0,0,0,12,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on main path (row 7)
+          { edge: 'left', col: 0, toMap: 'village', toX: 17, toY: 8, condition: (y) => y === 7 },
+          // Top: walk off the top at the path (col 9)
+          { edge: 'top', row: 0, toMap: 'village', toX: 8, toY: 13, condition: (x) => x === 9 }
+        ]
+      }
+    };
+
+const doorTilesByMap = {};
+for (const [name, map] of Object.entries(maps)) {
+  doorTilesByMap[name] = [];
+  for (let row = 0; row < map.rows; row++) {
+    for (let col = 0; col < map.cols; col++) {
+      if (map.data[row][col] === 6) {
+        doorTilesByMap[name].push({ x: col, y: row });
+      }
+    }
+  }
+}
+
+// Static tile layer cache per map to avoid redrawing terrain every frame
+const baseMapCanvases = {};
+
+function invalidateBaseMaps() {
+  Object.keys(baseMapCanvases).forEach(key => delete baseMapCanvases[key]);
+}
+
+function ensureBaseMapCanvas(mapName) {
+  if (baseMapCanvases[mapName]) return baseMapCanvases[mapName];
+  const map = maps[mapName];
+  if (!map) return null;
+
+  const offscreen = document.createElement('canvas');
+  offscreen.width = map.cols * TILE_SIZE;
+  offscreen.height = map.rows * TILE_SIZE;
+  const offCtx = offscreen.getContext('2d');
+  for (let y = 0; y < map.rows; y++) {
+    for (let x = 0; x < map.cols; x++) {
+      drawTile(map.data[y][x], x, y, offCtx);
+    }
+  }
+
+  baseMapCanvases[mapName] = offscreen;
+  return offscreen;
+}
+
+['grass1', 'grass2', 'grass3'].forEach(name => {
+  const asset = artAssets[name];
+  if (asset?.image) {
+    asset.image.addEventListener('load', invalidateBaseMaps);
+  }
+});
+
+// ===== INVENTORY =====
+let inventoryOpen = false;
+
+let inventory = {
+  wool: 0,
+  yarn: 0,
+  luxuryYarn: 0,
+  goatFur: 0,
+  scarf: 0,
+  luxuryScarf: 0,
+  mittens: 0,
+  luxuryMittens: 0,
+  socks: 0,
+  hat: 0,
+  blanket: 0,
+  gold: 0
+};
+
+// ===== CRAFTING MENU =====
+let craftingMenuOpen = false;
+let craftingMenuSelection = 0;
+
+const craftingRecipes = [
+  // --- Material Processing ---
+  {
+    id: 'luxuryYarn',
+    name: 'Luxury Yarn',
+    description: 'Soft blend of wool and goat fur',
+    inputs: { wool: 1, goatFur: 1 },
+    outputs: { luxuryYarn: 2 },
+    color: '#c8a0f0'
+  },
+  {
+    id: 'yarn',
+    name: 'Yarn',
+    description: 'Spin wool into yarn',
+    inputs: { wool: 2 },
+    outputs: { yarn: 1 },
+    color: '#f098c8'
+  },
+  // --- Basic Items ---
+  {
+    id: 'socks',
+    name: 'Socks',
+    description: 'Cosy knitted socks',
+    inputs: { yarn: 2 },
+    outputs: { socks: 1 },
+    sellPrice: 8,
+    color: '#a8d8a8'
+  },
+  {
+    id: 'mittens',
+    name: 'Mittens',
+    description: 'Warm fluffy mittens',
+    inputs: { goatFur: 2 },
+    outputs: { mittens: 1 },
+    sellPrice: 15,
+    color: '#e8d0c0'
+  },
+  {
+    id: 'scarf',
+    name: 'Scarf',
+    description: 'A cosy knitted scarf',
+    inputs: { yarn: 3 },
+    outputs: { scarf: 1 },
+    sellPrice: 10,
+    color: '#f2d27a'
+  },
+  {
+    id: 'hat',
+    name: 'Hat',
+    description: 'A warm woolly hat',
+    inputs: { yarn: 2, wool: 1 },
+    outputs: { hat: 1 },
+    sellPrice: 12,
+    color: '#7eb8e8'
+  },
+  // --- Premium Items ---
+  {
+    id: 'luxuryMittens',
+    name: 'Luxury Mittens',
+    description: 'Silky soft premium mittens',
+    inputs: { luxuryYarn: 2 },
+    outputs: { luxuryMittens: 1 },
+    sellPrice: 20,
+    color: '#e0b8f0'
+  },
+  {
+    id: 'luxuryScarf',
+    name: 'Luxury Scarf',
+    description: 'An exquisite shimmering scarf',
+    inputs: { luxuryYarn: 3 },
+    outputs: { luxuryScarf: 1 },
+    sellPrice: 25,
+    color: '#d8a0f8'
+  },
+  // --- Large Items ---
+  {
+    id: 'blanket',
+    name: 'Blanket',
+    description: 'A large cosy blanket',
+    inputs: { yarn: 4, wool: 2 },
+    outputs: { blanket: 1 },
+    sellPrice: 30,
+    color: '#f0c8a0'
+  }
+];
+
+function canAffordRecipe(recipe) {
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    if ((inventory[item] || 0) < amount) return false;
+  }
+  return true;
+}
+
+function craftRecipe(recipe) {
+  if (!canAffordRecipe(recipe)) return false;
+  
+  // Deduct inputs
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    inventory[item] -= amount;
+  }
+  
+  // Add outputs (with spinning wheel upgrade bonus for yarn)
+  for (const [item, amount] of Object.entries(recipe.outputs)) {
+    let finalAmount = amount;
+    // Spinning Wheel upgrade: double yarn output
+    if (item === 'yarn' && upgrades.spinningWheelUpgrade) {
+      finalAmount = amount * 2;
+    }
+    inventory[item] = (inventory[item] || 0) + finalAmount;
+  }
+  
+  return true;
+}
+
+function getRecipeInputsText(recipe) {
+  return Object.entries(recipe.inputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(' + ');
+}
+
+function getRecipeOutputsText(recipe) {
+  return Object.entries(recipe.outputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(', ');
+}
+
+
+
+
+let message = null;
+let messageExpiryTime = 0; // timestamp when current message should disappear
+
+// One starter sheep in the paddock (overworld)
+const sheep = {
+  map: 'overworld',
+  x: 8,
+  y: 10,
+  hasWool: true,
+  woolTimer: 0 // counts frames until wool grows back
+};
+
+// One goat in the paddock (overworld)
+const goat = {
+  map: 'overworld',
+  x: 12,
+  y: 11,
+  hasFur: true,
+  furTimer: 0
+};
+
+// Knitting spot inside the cottage (must be on a floor tile)
+const knittingSpot = {
+  map: 'cottage',
+  x: 3,
+  y: 4
+};
+
+const marketSpot = {
+  map: 'overworld',
+  x: 13,  // tweak later if you want it somewhere else
+  y: 9
+};
+
+const shopSpot = {
+  map: 'overworld',
+  x: 15,
+  y: 9
+};
+
+// ===== SHOP SYSTEM =====
+let shopOpen = false;
+let shopSelectedIndex = 0;
+
+// ===== NPC DIALOGUE STATE =====
+let dialogueOpen = false;
+let activeNPC = null;
+let dialogueText = '';
+
+// ===== GIFT MENU STATE =====
+let giftMenuOpen = false;
+let giftMenuNPC = null;
+let giftSelectedIndex = 0;
+
+// Upgrades the player has purchased
+let upgrades = {
+  goldenShears: false,      // Faster wool regrowth
+  spinningWheelUpgrade: false, // Bonus yarn when spinning
+  extraSheep: 0,            // Number of extra sheep purchased
+  extraGoat: 0              // Number of extra goats purchased
+};
+
+// Shop items available for purchase
+const shopItems = [
+  {
+    id: 'extraSheep',
+    name: 'Extra Sheep',
+    description: 'A fluffy new sheep for your paddock',
+    price: 50,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#f8f0d8' }
+  },
+  {
+    id: 'extraGoat',
+    name: 'Extra Goat',
+    description: 'A fuzzy goat for more fur',
+    price: 75,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#d6c8b8' }
+  },
+  {
+    id: 'goldenShears',
+    name: 'Golden Shears',
+    description: 'Wool & fur regrows twice as fast',
+    price: 100,
+    type: 'oneTime',
+    icon: { type: 'rect', color: '#f4c945' }
+  },
+  {
+    id: 'spinningWheelUpgrade',
+    name: 'Spinning Wheel+',
+    description: 'Get 2 yarn instead of 1 when spinning',
+    price: 75,
+    type: 'oneTime',
+    icon: { type: 'circle', color: '#f098c8' }
+  }
+];
+
+// ===== VILLAGER NPCs =====
+const villagers = [
+  {
+    id: 'granny',
+    name: 'Granny Willow',
+    map: 'overworld',
+    x: 3,
+    y: 6,
+    color: '#e8b8d8',  // pink-ish dress
+    hairColor: '#d0d0d0',
+    dialogue: [
+      "Oh hello, dear! The yarn you make is simply wonderful.",
+      "Back in my day, we knit everything by hand. No fancy wheels!",
+      "Have you tried making a nice warm blanket? Perfect for cold nights.",
+      "My joints ache when rain is coming. Mark my words!"
+    ],
+    friendlyDialogue: [
+      "You're such a dear friend! Here, take this - I insist.",
+      "My favourite crafter in all of Yarnvale! How lovely to see you.",
+      "You remind me of myself when I was young. So talented!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 180,
+    facing: 'down',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['blanket', 'socks'],
+    likedGifts: ['scarf', 'mittens', 'yarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'merchant',
+    name: 'Felix the Merchant',
+    map: 'overworld',
+    x: 14,
+    y: 10,
+    color: '#8b6914',  // brown coat
+    hairColor: '#4a3728',
+    dialogue: [
+      "Business is good today! Your scarves are selling well in town.",
+      "I hear there's demand for luxury goods. Goat fur fetches a premium!",
+      "The shop has some fine upgrades if you've got the gold.",
+      "Keep up the good work! Quality craftsmanship never goes out of style."
+    ],
+    friendlyDialogue: [
+      "Ah, my favourite business partner! Let me give you a little bonus.",
+      "Your crafts are the talk of the town! People love them.",
+      "I've set aside something special for you, friend."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 120,
+    facing: 'left',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['luxuryScarf', 'hat'],
+    likedGifts: ['scarf', 'luxuryYarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'shepherd',
+    name: 'Young Tom',
+    map: 'overworld',
+    x: 6,
+    y: 9,
+    color: '#7eb87e',  // green shirt
+    hairColor: '#c4a574',
+    dialogue: [
+      "Heya! I love watching the sheep. They're so fluffy!",
+      "Did you know goats are smarter than sheep? It's true!",
+      "I want to have my own farm someday, just like yours.",
+      "The animals seem happy here. You take good care of them!"
+    ],
+    friendlyDialogue: [
+      "You're the coolest! I found something for you while exploring!",
+      "Best friends forever! Here, I want you to have this.",
+      "When I grow up, I wanna be just like you!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 90,
+    facing: 'right',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['mittens', 'socks'],
+    likedGifts: ['scarf', 'yarn', 'wool'],
+    giftCooldown: 0
+  },
+  {
+    id: 'gardener',
+    name: 'Mira the Gardener',
+    map: 'village',
+    x: 5,
+    y: 4,
+    color: '#6db7d6',  // blue dress
+    hairColor: '#3a2c1a',
+    dialogue: [
+      "The flowers in Yarnvale bloom brightest after a gentle rain.",
+      "I can teach you about natural dyes if you bring me some berries!",
+      "Every plant has a story. What's your favourite flower?",
+      "If you ever need a bouquet, just ask!"
+    ],
+    friendlyDialogue: [
+      "Thank you for helping with the garden! Here, take these rare seeds.",
+      "You're always so thoughtful. The plants love you!",
+      "Let me show you a secret spot for wild herbs."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 150,
+    facing: 'down',
+    friendship: 0,
+    lovedGifts: ['flowers', 'berries'],
+    likedGifts: ['yarn', 'scarf'],
+    giftCooldown: 0
+  }
+];
+
+// Friendship levels and rewards
+// Duplicate declaration removed. See earlier in file.
+// Duplicate declaration removed. See earlier in file.
+// ...existing code...
+
+// Rewards given at friendship milestones
+// Duplicate declaration removed. See earlier in file.
+// ...existing code...
+
+// Track which rewards have been claimed
+// Duplicate declaration removed. See earlier in file.
+// ...existing code...
+
+// ===== NPC REQUEST SYSTEM =====
+// Possible requests NPCs can make
+// Duplicate declaration removed. See earlier in file.
+  granny: [
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "Could you make me a warm scarf, dear?" },
+    { item: 'socks', count: 2, gold: 25, friendship: 15, text: "My feet get so cold! Could you make me 2 pairs of socks?" },
+    { item: 'blanket', count: 1, gold: 40, friendship: 20, text: "I'd love a cosy blanket for my chair. Can you make one?" },
+    { item: 'mittens', count: 1, gold: 20, friendship: 12, text: "These old hands need warm mittens. Could you help?" }
+  ],
+  merchant: [
+    { item: 'scarf', count: 2, gold: 30, friendship: 10, text: "I need 2 scarves for a customer order. Can you help?" },
+    { item: 'luxuryScarf', count: 1, gold: 35, friendship: 15, text: "A noble wants a luxury scarf. Big opportunity!" },
+    { item: 'hat', count: 2, gold: 35, friendship: 12, text: "Hats are in fashion! Can you make me 2?" },
+    { item: 'luxuryMittens', count: 1, gold: 30, friendship: 15, text: "I have a buyer for luxury mittens. Interested?" }
+  ],
+  shepherd: [
+    { item: 'yarn', count: 3, gold: 12, friendship: 8, text: "I wanna learn to knit! Can you spare 3 yarn?" },
+    { item: 'socks', count: 1, gold: 12, friendship: 10, text: "My boots have holes... can you make me socks?" },
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "I want a cool scarf like yours! Can you make one?" },
+    { item: 'mittens', count: 1, gold: 18, friendship: 12, text: "Herding sheep in winter is cold! Need mittens please!" }
+  ],
+  gardener: [
+    { item: 'flowers', count: 3, gold: 10, friendship: 8, text: "Could you bring me some flowers? I have a plan for a new garden." },
+    { item: 'berries', count: 5, gold: 15, friendship: 10, text: "I need some fresh berries for dyeing. Can you help?" },
+    { item: 'yarn', count: 2, gold: 12, friendship: 8, text: "Yarn is great for plant ties. Can you spare some?" },
+    { item: 'scarf', count: 1, gold: 20, friendship: 12, text: "A warm scarf would be perfect for the chilly evenings." }
+  ]
+};
+
+// Active requests for each NPC (null = no active request)
+let npcRequests = {
+  granny: null,
+  merchant: null,
+  shepherd: null,
+  gardener: null
+};
+
+// Cooldown before new request appears (in frames, ~60fps)
+let requestCooldowns = {
+  granny: 0,
+  merchant: 0,
+  shepherd: 0,
+  gardener: 0
+};
+
+const REQUEST_COOLDOWN_TIME = 1800; // ~30 seconds between requests
+
+function generateNewRequest(npcId) {
+  const requests = possibleRequests[npcId];
+  if (!requests || requests.length === 0) return null;
+  
+  const request = requests[Math.floor(Math.random() * requests.length)];
+  return { ...request, npcId };
+}
+
+function checkAndGenerateRequests() {
+  for (const npcId of Object.keys(npcRequests)) {
+    // If no active request and cooldown is done, maybe generate one
+    if (!npcRequests[npcId] && requestCooldowns[npcId] <= 0) {
+      // 30% chance each check to generate a request
+      if (Math.random() < 0.3) {
+        npcRequests[npcId] = generateNewRequest(npcId);
+      }
+    }
+    
+    // Decrease cooldown
+    if (requestCooldowns[npcId] > 0) {
+      requestCooldowns[npcId]--;
+    }
+  }
+}
+
+function canFulfillRequest(request) {
+  if (!request) return false;
+  return (inventory[request.item] || 0) >= request.count;
+}
+
+function fulfillRequest(npcId) {
+  const request = npcRequests[npcId];
+  if (!request) return false;
+  
+  if (!canFulfillRequest(request)) {
+    showMessage(`You don't have enough ${getItemDisplayName(request.item)} yet.`);
+    return false;
+  }
+  
+  // Take the items
+  inventory[request.item] -= request.count;
+  
+  // Give rewards
+  inventory.gold += request.gold;
+  
+  // Add friendship
+  const npc = villagers.find(v => v.id === npcId);
+  if (npc) {
+    npc.friendship = Math.min(FRIENDSHIP_MAX, npc.friendship + request.friendship);
+  }
+  
+  // Clear request and start cooldown
+  npcRequests[npcId] = null;
+  requestCooldowns[npcId] = REQUEST_COOLDOWN_TIME;
+  
+  // Show success message
+  const npcName = npc ? npc.name.split(' ')[0] : 'They';
+  showMessage(`${npcName}: "Thank you so much!" (+${request.gold}g, +${request.friendship} friendship)`);
+  
+  if (sounds.sell) sounds.sell.play().catch(() => {});
+}
+
+function createFootstepVoices(count = 3) {
+  footstepVoices.length = 0;
+  nextFootstepVoice = 0;
+  for (let i = 0; i < count; i++) {
+    const audio = new Audio(ASSET_BASE + 'step.wav');
+    applySfxVolume(audio, 'step');
+    audio.addEventListener('error', () => {
+      console.warn('Failed to load footstep voice');
+    });
+    footstepVoices.push(audio);
+  }
+}
+
+createFootstepVoices(3);
+
+function playFootstepSound() {
+  const voice = footstepVoices[nextFootstepVoice];
+  nextFootstepVoice = (nextFootstepVoice + 1) % footstepVoices.length;
+  if (!voice) {
+    if (sounds.step) {
+      sounds.step.currentTime = 0;
+      sounds.step.play().catch(() => {});
+    }
+    return;
+  }
+  voice.currentTime = 0;
+  voice.play().catch(() => {});
+}
+
+// #endregion AUDIO
+
+
+// =========================
+// AMBIENT AUDIO
+// =========================
+// #region AMBIENT_AUDIO
+
+const fireLoop = new Audio(ASSET_BASE + 'Fire.wav');
+fireLoop.loop = true;
+fireLoop.volume = 0;
+fireLoop.addEventListener('error', () => {
+  console.warn('Failed to load ambient fire loop');
+});
+let fireLoopActive = false;
+
+function updateFireLoopVolume() {
+  const targetVolume = fireLoopActive ? Math.min(1, Math.max(0, getEffectiveMasterVolume() * FIRE_VOLUME_MULTIPLIER)) : 0;
+  fireLoop.volume = targetVolume;
+  if (fireLoopActive && targetVolume > 0) {
+    fireLoop.play().catch(() => {});
+  } else {
+    fireLoop.pause();
+    fireLoop.currentTime = 0;
+  }
+}
+
+function setFireLoopActive(active) {
+  fireLoopActive = active;
+  updateFireLoopVolume();
+}
+
+// #endregion AMBIENT_AUDIO
+
+
+
+// =========================
+// MUSIC MANAGER
+// =========================
+// #region MUSIC
+
+const MUSIC_BASE = `${ASSET_BASE}Background music/`;
+const MUSIC_INTERIOR_BASE = `${MUSIC_BASE}In The House/`;
+const MUSIC_TRACK_FILES_OVERWORLD = [
+  'Golden Fields (1).mp3',
+  'Golden Fields (2).mp3',
+  'Knitting by the Fire (1).mp3',
+  'Knitting by the Fire 2.mp3',
+  'Knitting the Threads of Life.mp3',
+  'Knitting the Threads of Life (1).mp3',
+  'Sunlit Fields (1).mp3',
+  'Sunlit Fields 2.mp3',
+  'Sunshine Fields (1).mp3',
+  'Sunshine Fields 2.mp3',
+  'Threads of Harmony.mp3',
+  'Threads of Harmony (1).mp3',
+  'Threads of the Meadow (1).mp3',
+  'Threads of the Meadow 2.mp3'
+];
+
+const MUSIC_TRACK_FILES_COTTAGE = [
+  'By the Hearth.mp3',
+  'By the Hearth (1).mp3',
+  'Warm Threads by the Hearth.mp3',
+  'Warm Threads by the Hearth (1).mp3'
+];
+
+function createMusicTrack(basePath, filename) {
+  const audio = new Audio(basePath + filename);
+  audio.preload = 'auto';
+  audio.loop = false;
+  audio.volume = 0;
+  audio.addEventListener('error', () => {
+    console.warn(`Failed to load music track: ${filename}`);
+  });
+  connectTrackToGain(audio);
+  return audio;
+}
+
+const musicTracksByScene = {
+  overworld: MUSIC_TRACK_FILES_OVERWORLD.map((file) => createMusicTrack(MUSIC_BASE, file)),
+  cottage: MUSIC_TRACK_FILES_COTTAGE.map((file) => createMusicTrack(MUSIC_INTERIOR_BASE, file))
+};
+
+// Track per-scene resume info so music continues where it left off when re-entering
+const musicResumeState = {
+  overworld: null,
+  cottage: null
+};
+
+const musicState = {
+  scene: 'overworld',
+  orderByScene: { overworld: [], cottage: [] },
+  orderIndexByScene: { overworld: 0, cottage: 0 },
+  started: false,
+  muted: false,
+  volume: masterVolume,
+  playing: null,
+  sceneScale: 1
+};
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function allMusicTracks() {
+  return [
+    ...(musicTracksByScene.overworld || []),
+    ...(musicTracksByScene.cottage || [])
+  ];
+}
+
+function getActiveTracks() {
+  return musicTracksByScene[musicState.scene] || [];
+}
+
+function ensureMusicQueue() {
+  const scene = musicState.scene;
+  const tracks = getActiveTracks();
+  if (!tracks.length) return;
+
+  if (!musicState.orderByScene[scene] || musicState.orderByScene[scene].length === 0) {
+    musicState.orderByScene[scene] = shuffle(tracks.map((_, idx) => idx));
+    musicState.orderIndexByScene[scene] = 0;
+  }
+}
+
+function currentMusicTrack() {
+  ensureMusicQueue();
+  const tracks = getActiveTracks();
+  const scene = musicState.scene;
+  const order = musicState.orderByScene[scene] || [];
+  if (!tracks.length || !order.length) return null;
+  const orderIndex = musicState.orderIndexByScene[scene] ?? 0;
+  const trackIndex = order[orderIndex];
+  return tracks[trackIndex];
+}
+
+function advanceMusicTrack() {
+  const scene = musicState.scene;
+  const tracks = getActiveTracks();
+  const order = musicState.orderByScene[scene] || [];
+  if (!order.length || !tracks.length) return;
+
+  musicState.orderIndexByScene[scene] = (musicState.orderIndexByScene[scene] ?? 0) + 1;
+  if (musicState.orderIndexByScene[scene] >= order.length) {
+    musicState.orderByScene[scene] = shuffle(tracks.map((_, idx) => idx));
+    musicState.orderIndexByScene[scene] = 0;
+  }
+}
+
+function playCurrentMusic() {
+  const track = currentMusicTrack();
+  if (!track) return;
+  if (musicState.playing && musicState.playing !== track) {
+    musicState.playing.pause();
+  }
+  const scene = musicState.scene;
+  const resumeInfo = musicResumeState[scene];
+  const tracks = getActiveTracks();
+  const order = musicState.orderByScene[scene] || [];
+  const orderIndex = musicState.orderIndexByScene[scene] ?? 0;
+  const trackIndex = order[orderIndex];
+
+  // If we have resume info for this scene and it matches the current track, keep its timestamp
+  if (resumeInfo && typeof resumeInfo.trackIndex === 'number' && resumeInfo.trackIndex === trackIndex) {
+    track.currentTime = resumeInfo.time ?? 0;
+  } else {
+    track.currentTime = 0;
+  }
+  musicResumeState[scene] = null;
+  musicState.playing = track;
+  applyMusicVolume();
+  track.play().catch((err) => {
+    console.warn('Music playback blocked until user interaction', err);
+  });
+}
+
+function handleMusicEnded() {
+  musicState.playing = null;
+  advanceMusicTrack();
+  playCurrentMusic();
+}
+
+function beginMusicOnInteraction() {
+  resumeAudioContextIfNeeded();
+  if (musicState.started) return;
+  ensureAudioContext();
+  musicState.started = true;
+  allMusicTracks().forEach(track => track.addEventListener('ended', handleMusicEnded));
+  playCurrentMusic();
+  window.removeEventListener('pointerdown', beginMusicOnInteraction);
+  window.removeEventListener('keydown', beginMusicOnInteraction);
+}
+
+window.addEventListener('pointerdown', beginMusicOnInteraction);
+window.addEventListener('keydown', beginMusicOnInteraction);
+
+// #endregion MUSIC
+
+// =========================
+// MUSIC CONTROLS UI
+// =========================
+// #region MUSIC_CONTROLS
+
+const musicToggleBtn = document.getElementById('music-toggle');
+const musicVolumeSlider = document.getElementById('music-volume');
+
+if (musicVolumeSlider) {
+  musicVolumeSlider.value = masterVolume.toString();
+}
+
+function applyMusicVolume() {
+  const effectiveVolume = musicState.muted ? 0 : musicState.volume * musicState.sceneScale;
+  const clamped = Math.min(1, Math.max(0, effectiveVolume));
+  if (musicGainNode) {
+    musicGainNode.gain.value = clamped;
+  }
+  if (musicState.playing) {
+    musicState.playing.volume = clamped;
+    musicState.playing.muted = musicState.muted;
+  }
+}
+
+function updateMusicControls() {
+  if (musicToggleBtn) {
+    musicToggleBtn.classList.toggle('muted', musicState.muted);
+    musicToggleBtn.setAttribute('aria-label', musicState.muted ? 'Unmute music' : 'Mute music');
+    musicToggleBtn.setAttribute('aria-pressed', String(!musicState.muted));
+  }
+  if (musicVolumeSlider && musicVolumeSlider !== document.activeElement) {
+    musicVolumeSlider.value = musicState.volume.toString();
+  }
+}
+
+function setAudioMuted(muted) {
+  audioMuted = muted;
+  musicState.muted = muted;
+  applyMusicVolume();
+  refreshAllSfxVolumes();
+  updateFireLoopVolume();
+  updateMusicControls();
+}
+
+function setMusicSceneScale(scale) {
+  musicState.sceneScale = Math.min(1, Math.max(0, scale));
+  applyMusicVolume();
+}
+
+function setMusicScene(scene) {
+  if (musicState.scene === scene) return;
+  const prevScene = musicState.scene;
+
+  const enteringOverworld = scene === 'overworld' && prevScene !== 'overworld';
+  const enteringCottage = scene === 'cottage' && prevScene !== 'cottage';
+
+  // Save resume info for the scene we are leaving
+  if (musicState.playing) {
+    const prevTracks = musicTracksByScene[prevScene] || [];
+    const trackIndex = prevTracks.indexOf(musicState.playing);
+    if (trackIndex !== -1) {
+      musicResumeState[prevScene] = {
+        trackIndex,
+        time: musicState.playing.currentTime
+      };
+    }
+    musicState.playing.pause();
+    musicState.playing = null;
+  }
+
+  musicState.scene = scene;
+  musicState.orderByScene[scene] = musicState.orderByScene[scene] || [];
+  musicState.orderIndexByScene[scene] = musicState.orderIndexByScene[scene] ?? 0;
+  ensureMusicQueue();
+
+  // When returning to overworld, advance to the next track instead of resuming the same one.
+  if (enteringOverworld) {
+    musicResumeState.overworld = null;
+    advanceMusicTrack();
+  }
+
+  // When entering cottage, start fresh from the next track instead of resuming.
+  if (enteringCottage) {
+    musicResumeState.cottage = null;
+    advanceMusicTrack();
+  }
+
+  if (musicState.started) {
+    playCurrentMusic();
+  }
+}
+
+function setMasterVolume(value) {
+  const clamped = Math.min(1, Math.max(0, Number(value)));
+  masterVolume = clamped;
+  musicState.volume = clamped;
+  applyMusicVolume();
+  refreshAllSfxVolumes();
+  updateFireLoopVolume();
+  updateMusicControls();
+}
+
+musicToggleBtn?.addEventListener('click', () => {
+  resumeAudioContextIfNeeded();
+  ensureAudioContext();
+  setAudioMuted(!musicState.muted);
+});
+
+musicVolumeSlider?.addEventListener('input', (event) => {
+  resumeAudioContextIfNeeded();
+  setMasterVolume(event.target.value);
+});
+
+setMasterVolume(masterVolume);
+
+
+// #endregion MUSIC_CONTROLS
+
+
+// =========================
+// TOUCH INPUT
+// =========================
+// #region TOUCH_INPUT
+
+const touchControls = document.getElementById('touch-controls');
+const touchDirButtons = document.querySelectorAll('[data-dir]');
+const touchActionButton = document.getElementById('touch-action');
+const touchInventoryButton = document.getElementById('touch-inventory');
+const touchSaveButton = document.getElementById('touch-save');
+const touchLoadButton = document.getElementById('touch-load');
+const touchControlsNode = document.getElementById('touch-controls');
+
+function updateTouchControlsVisibility() {
+  const overlayQuery = '(pointer: coarse) and (orientation: landscape) and (max-width: 1100px)';
+  showOverlayMode = window.matchMedia(overlayQuery).matches;
+  if (touchControlsNode) {
+    touchControlsNode.style.pointerEvents = 'auto';
+  }
+  // Show save/load buttons on touch devices
+  if (touchSaveButton) touchSaveButton.style.display = isCoarsePointer ? 'block' : 'none';
+  if (touchLoadButton) touchLoadButton.style.display = isCoarsePointer ? 'block' : 'none';
+}
+
+// Hide touch dpad when menus/dialogue are open, update action button text
+function updateTouchControlsForMenuState() {
+  if (!touchControlsNode) return;
+  
+  const dpad = touchControlsNode.querySelector('.dpad');
+  const shouldHideDpad = dialogueOpen || giftMenuOpen || merchantShopOpen || shopOpen;
+  
+  if (dpad) {
+    dpad.style.opacity = shouldHideDpad ? '0.3' : '1';
+  }
+  
+  // Update action button text based on state
+  if (touchActionButton) {
+    if (dialogueOpen) {
+      touchActionButton.textContent = 'Close';
+    } else if (giftMenuOpen) {
+      touchActionButton.textContent = 'Give';
+    } else if (merchantShopOpen || shopOpen) {
+      touchActionButton.textContent = 'Buy';
+    } else if (craftingMenuOpen) {
+      touchActionButton.textContent = 'Craft';
+    } else {
+      touchActionButton.textContent = 'Interact';
+    }
+  }
+}
+
+window.addEventListener('resize', updateTouchControlsVisibility);
+updateTouchControlsVisibility();
+
+function setTouchDirection(dir, pressed) {
+  if (!(dir in touchDirections)) return;
+  touchDirections[dir] = pressed;
+}
+
+function bindPointerButton(element, onPress, onRelease) {
+  if (!element) return;
+
+  const pressHandler = (event) => {
+    event.preventDefault();
+    element.setPointerCapture?.(event.pointerId);
+    onPress?.(event);
+  };
+
+  const releaseHandler = (event) => {
+    event.preventDefault();
+    onRelease?.(event);
+    element.releasePointerCapture?.(event.pointerId);
+  };
+
+  element.addEventListener('pointerdown', pressHandler);
+  element.addEventListener('pointerup', releaseHandler);
+  element.addEventListener('pointerleave', releaseHandler);
+  element.addEventListener('pointercancel', releaseHandler);
+  element.addEventListener('contextmenu', (event) => event.preventDefault());
+}
+
+touchDirButtons.forEach((button) => {
+  const dir = button.dataset.dir;
+  bindPointerButton(
+    button,
+    () => {
+      if (craftingMenuOpen) {
+        // Use up/down for menu navigation
+        if (dir === 'up') {
+          craftingMenuSelection = Math.max(0, craftingMenuSelection - 1);
+        } else if (dir === 'down') {
+          craftingMenuSelection = Math.min(craftingRecipes.length - 1, craftingMenuSelection + 1);
+        }
+      } else {
+        setTouchDirection(dir, true);
+      }
+    },
+    () => {
+      if (!craftingMenuOpen) {
+        setTouchDirection(dir, false);
+      }
+    }
+  );
+});
+
+bindPointerButton(touchActionButton, () => {
+  if (dialogueOpen) {
+    // Close dialogue
+    closeDialogue();
+  } else if (giftMenuOpen) {
+    // Give selected gift
+    giveGift();
+  } else if (merchantShopOpen) {
+    // Purchase from merchant
+    purchaseFromMerchant();
+  } else if (shopOpen) {
+    // Purchase from shop
+    purchaseShopItem();
+  } else if (craftingMenuOpen) {
+    // Craft selected recipe
+    const recipe = craftingRecipes[craftingMenuSelection];
+    if (canAffordRecipe(recipe)) {
+      craftRecipe(recipe);
+      showMessage(`Crafted ${getRecipeOutputsText(recipe)}!`);
+      if (sounds.knit) sounds.knit.play().catch(() => {});
+    } else {
+      showMessage(`Not enough materials for ${recipe.name}.`);
+    }
+  } else {
+    handleAction();
+  }
+}, null);
+
+bindPointerButton(touchInventoryButton, () => {
+  if (merchantShopOpen) {
+    merchantShopOpen = false;
+    showMessage("Willa: \"Safe travels! Come back soon!\"");
+  } else if (shopOpen) {
+    shopOpen = false;
+    showMessage('You close the shop menu.');
+  } else if (giftMenuOpen) {
+    closeGiftMenu();
+  } else if (craftingMenuOpen) {
+    craftingMenuOpen = false;
+  } else {
+    inventoryOpen = !inventoryOpen;
+  }
+}, null);
+
+// Touch save/load buttons
+bindPointerButton(touchSaveButton, () => {
+  saveGame();
+}, null);
+
+bindPointerButton(touchLoadButton, () => {
+  loadGame();
+}, null);
+
+
+function ensureMobileAudioUnlock() {
+  resumeAudioContextIfNeeded();
+  if (!musicState.started) {
+    beginMusicOnInteraction();
+  }
+}
+
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    ensureMobileAudioUnlock();
+  }
+});
+
+touchControlsNode?.addEventListener('pointerdown', ensureMobileAudioUnlock);
+
+// #endregion TOUCH_INPUT
+
+// #endregion TOUCH_INPUT
+
+
+// =========================
+// ENVIRONMENT AUDIO MANAGEMENT
+// =========================
+// #region ENV_AUDIO
+
+function handleEnvironmentAudio(mapName) {
+  const insideCottage = mapName === 'cottage';
+  setMusicSceneScale(insideCottage ? MUSIC_INTERIOR_SCALE : 1);
+  setMusicScene(insideCottage ? 'cottage' : 'overworld');
+  setFireLoopActive(insideCottage);
+}
+
+// #endregion ENV_AUDIO
+
+
+
+// =========================
+// CONFIG & MAPS
+// =========================
+// #region CONFIG & MAPS
+    const TILE_SIZE = 32;
+
+    // Tile legend:
+    // 0 grass, 1 path, 2 tree (solid), 3 water (solid), 4 fence (solid),
+    // 5 cottage roof, 6 door, 7 interior wall (solid), 8 interior floor
+    // 9 stone/cobble path, 10 market stall (solid), 11 well (solid)
+    // 12 flower patch, 13 bush (solid), 14 bridge, 15 sign
+    const maps = {
+      overworld: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,6,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Walk right off the map on the path at row 10
+          { edge: 'right', col: 18, toMap: 'village', toX: 1, toY: 8, condition: (y) => y === 10 }
+        ]
+      },
+      cottage: {
+        cols: 9,
+        rows: 7,
+        data: [
+          [7,7,7,7,7,7,7,7,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,6,8,8,8,7],
+          [7,7,7,7,7,7,7,7,7]
+        ]
+      },
+      village: {
+        cols: 19,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,12,0,0,9,9,9,9,9,9,9,9,9,0,0,12,0,2],
+          [2,0,0,0,10,9,9,9,11,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,10,9,9,9,9,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,0,9,9,9,9,9,9,9,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,9,9,9,9,9,0,0,0,0,0,13,0,2],
+          [2,0,0,12,0,0,0,9,9,9,0,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,13,0,0,0,12,0,0,12,0,0,0,13,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on the main path (row 8)
+          { edge: 'left', col: 0, toMap: 'overworld', toX: 17, toY: 11, condition: (y) => y === 8 },
+          // Right: walk off the right edge on the main path (row 8)  
+          { edge: 'right', col: 18, toMap: 'forest', toX: 1, toY: 7, condition: (y) => y === 8 },
+          // Bottom: bridge path at col 8
+          { edge: 'bottom', row: 14, toMap: 'forest', toX: 9, toY: 1, condition: (x) => x === 8 }
+        ]
+      },
+      forest: {
+        cols: 21,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,2,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,2],
+          [2,0,12,0,0,2,0,0,0,1,0,0,12,0,0,0,2,0,12,0,2],
+          [2,2,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,12,0,0,0,0,0,1,0,0,2,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,2,0,0,0,1,0,0,0,0,0,0,0,2,0,0,2],
+          [2,0,12,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,2],
+          [2,0,2,0,0,12,0,0,0,0,0,0,12,0,0,0,0,0,12,0,2],
+          [2,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,2,0,0,0,2],
+          [2,0,0,0,12,0,0,0,0,0,12,0,0,0,0,0,0,0,0,0,2],
+          [2,0,2,0,0,0,0,0,0,2,0,0,0,2,0,0,0,0,2,0,2],
+          [2,0,0,0,0,0,12,0,0,0,0,0,0,0,0,12,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on main path (row 7)
+          { edge: 'left', col: 0, toMap: 'village', toX: 17, toY: 8, condition: (y) => y === 7 },
+          // Top: walk off the top at the path (col 9)
+          { edge: 'top', row: 0, toMap: 'village', toX: 8, toY: 13, condition: (x) => x === 9 }
+        ]
+      }
+    };
+
+const doorTilesByMap = {};
+for (const [name, map] of Object.entries(maps)) {
+  doorTilesByMap[name] = [];
+  for (let row = 0; row < map.rows; row++) {
+    for (let col = 0; col < map.cols; col++) {
+      if (map.data[row][col] === 6) {
+        doorTilesByMap[name].push({ x: col, y: row });
+      }
+    }
+  }
+}
+
+// Static tile layer cache per map to avoid redrawing terrain every frame
+const baseMapCanvases = {};
+
+function invalidateBaseMaps() {
+  Object.keys(baseMapCanvases).forEach(key => delete baseMapCanvases[key]);
+}
+
+function ensureBaseMapCanvas(mapName) {
+  if (baseMapCanvases[mapName]) return baseMapCanvases[mapName];
+  const map = maps[mapName];
+  if (!map) return null;
+
+  const offscreen = document.createElement('canvas');
+  offscreen.width = map.cols * TILE_SIZE;
+  offscreen.height = map.rows * TILE_SIZE;
+  const offCtx = offscreen.getContext('2d');
+  for (let y = 0; y < map.rows; y++) {
+    for (let x = 0; x < map.cols; x++) {
+      drawTile(map.data[y][x], x, y, offCtx);
+    }
+  }
+
+  baseMapCanvases[mapName] = offscreen;
+  return offscreen;
+}
+
+['grass1', 'grass2', 'grass3'].forEach(name => {
+  const asset = artAssets[name];
+  if (asset?.image) {
+    asset.image.addEventListener('load', invalidateBaseMaps);
+  }
+});
+
+// ===== INVENTORY =====
+let inventoryOpen = false;
+
+let inventory = {
+  wool: 0,
+  yarn: 0,
+  luxuryYarn: 0,
+  goatFur: 0,
+  scarf: 0,
+  luxuryScarf: 0,
+  mittens: 0,
+  luxuryMittens: 0,
+  socks: 0,
+  hat: 0,
+  blanket: 0,
+  gold: 0
+};
+
+// ===== CRAFTING MENU =====
+let craftingMenuOpen = false;
+let craftingMenuSelection = 0;
+
+const craftingRecipes = [
+  // --- Material Processing ---
+  {
+    id: 'luxuryYarn',
+    name: 'Luxury Yarn',
+    description: 'Soft blend of wool and goat fur',
+    inputs: { wool: 1, goatFur: 1 },
+    outputs: { luxuryYarn: 2 },
+    color: '#c8a0f0'
+  },
+  {
+    id: 'yarn',
+    name: 'Yarn',
+    description: 'Spin wool into yarn',
+    inputs: { wool: 2 },
+    outputs: { yarn: 1 },
+    color: '#f098c8'
+  },
+  // --- Basic Items ---
+  {
+    id: 'socks',
+    name: 'Socks',
+    description: 'Cosy knitted socks',
+    inputs: { yarn: 2 },
+    outputs: { socks: 1 },
+    sellPrice: 8,
+    color: '#a8d8a8'
+  },
+  {
+    id: 'mittens',
+    name: 'Mittens',
+    description: 'Warm fluffy mittens',
+    inputs: { goatFur: 2 },
+    outputs: { mittens: 1 },
+    sellPrice: 15,
+    color: '#e8d0c0'
+  },
+  {
+    id: 'scarf',
+    name: 'Scarf',
+    description: 'A cosy knitted scarf',
+    inputs: { yarn: 3 },
+    outputs: { scarf: 1 },
+    sellPrice: 10,
+    color: '#f2d27a'
+  },
+  {
+    id: 'hat',
+    name: 'Hat',
+    description: 'A warm woolly hat',
+    inputs: { yarn: 2, wool: 1 },
+    outputs: { hat: 1 },
+    sellPrice: 12,
+    color: '#7eb8e8'
+  },
+  // --- Premium Items ---
+  {
+    id: 'luxuryMittens',
+    name: 'Luxury Mittens',
+    description: 'Silky soft premium mittens',
+    inputs: { luxuryYarn: 2 },
+    outputs: { luxuryMittens: 1 },
+    sellPrice: 20,
+    color: '#e0b8f0'
+  },
+  {
+    id: 'luxuryScarf',
+    name: 'Luxury Scarf',
+    description: 'An exquisite shimmering scarf',
+    inputs: { luxuryYarn: 3 },
+    outputs: { luxuryScarf: 1 },
+    sellPrice: 25,
+    color: '#d8a0f8'
+  },
+  // --- Large Items ---
+  {
+    id: 'blanket',
+    name: 'Blanket',
+    description: 'A large cosy blanket',
+    inputs: { yarn: 4, wool: 2 },
+    outputs: { blanket: 1 },
+    sellPrice: 30,
+    color: '#f0c8a0'
+  }
+];
+
+function canAffordRecipe(recipe) {
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    if ((inventory[item] || 0) < amount) return false;
+  }
+  return true;
+}
+
+function craftRecipe(recipe) {
+  if (!canAffordRecipe(recipe)) return false;
+  
+  // Deduct inputs
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    inventory[item] -= amount;
+  }
+  
+  // Add outputs (with spinning wheel upgrade bonus for yarn)
+  for (const [item, amount] of Object.entries(recipe.outputs)) {
+    let finalAmount = amount;
+    // Spinning Wheel upgrade: double yarn output
+    if (item === 'yarn' && upgrades.spinningWheelUpgrade) {
+      finalAmount = amount * 2;
+    }
+    inventory[item] = (inventory[item] || 0) + finalAmount;
+  }
+  
+  return true;
+}
+
+function getRecipeInputsText(recipe) {
+  return Object.entries(recipe.inputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(' + ');
+}
+
+function getRecipeOutputsText(recipe) {
+  return Object.entries(recipe.outputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(', ');
+}
+
+
+
+
+let message = null;
+let messageExpiryTime = 0; // timestamp when current message should disappear
+
+// One starter sheep in the paddock (overworld)
+const sheep = {
+  map: 'overworld',
+  x: 8,
+  y: 10,
+  hasWool: true,
+  woolTimer: 0 // counts frames until wool grows back
+};
+
+// One goat in the paddock (overworld)
+const goat = {
+  map: 'overworld',
+  x: 12,
+  y: 11,
+  hasFur: true,
+  furTimer: 0
+};
+
+// Knitting spot inside the cottage (must be on a floor tile)
+const knittingSpot = {
+  map: 'cottage',
+  x: 3,
+  y: 4
+};
+
+const marketSpot = {
+  map: 'overworld',
+  x: 13,  // tweak later if you want it somewhere else
+  y: 9
+};
+
+const shopSpot = {
+  map: 'overworld',
+  x: 15,
+  y: 9
+};
+
+// ===== SHOP SYSTEM =====
+let shopOpen = false;
+let shopSelectedIndex = 0;
+
+// ===== NPC DIALOGUE STATE =====
+let dialogueOpen = false;
+let activeNPC = null;
+let dialogueText = '';
+
+// ===== GIFT MENU STATE =====
+let giftMenuOpen = false;
+let giftMenuNPC = null;
+let giftSelectedIndex = 0;
+
+// Upgrades the player has purchased
+let upgrades = {
+  goldenShears: false,      // Faster wool regrowth
+  spinningWheelUpgrade: false, // Bonus yarn when spinning
+  extraSheep: 0,            // Number of extra sheep purchased
+  extraGoat: 0              // Number of extra goats purchased
+};
+
+// Shop items available for purchase
+const shopItems = [
+  {
+    id: 'extraSheep',
+    name: 'Extra Sheep',
+    description: 'A fluffy new sheep for your paddock',
+    price: 50,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#f8f0d8' }
+  },
+  {
+    id: 'extraGoat',
+    name: 'Extra Goat',
+    description: 'A fuzzy goat for more fur',
+    price: 75,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#d6c8b8' }
+  },
+  {
+    id: 'goldenShears',
+    name: 'Golden Shears',
+    description: 'Wool & fur regrows twice as fast',
+    price: 100,
+    type: 'oneTime',
+    icon: { type: 'rect', color: '#f4c945' }
+  },
+  {
+    id: 'spinningWheelUpgrade',
+    name: 'Spinning Wheel+',
+    description: 'Get 2 yarn instead of 1 when spinning',
+    price: 75,
+    type: 'oneTime',
+    icon: { type: 'circle', color: '#f098c8' }
+  }
+];
+
+// ===== VILLAGER NPCs =====
+const villagers = [
+  {
+    id: 'granny',
+    name: 'Granny Willow',
+    map: 'overworld',
+    x: 3,
+    y: 6,
+    color: '#e8b8d8',  // pink-ish dress
+    hairColor: '#d0d0d0',
+    dialogue: [
+      "Oh hello, dear! The yarn you make is simply wonderful.",
+      "Back in my day, we knit everything by hand. No fancy wheels!",
+      "Have you tried making a nice warm blanket? Perfect for cold nights.",
+      "My joints ache when rain is coming. Mark my words!"
+    ],
+    friendlyDialogue: [
+      "You're such a dear friend! Here, take this - I insist.",
+      "My favourite crafter in all of Yarnvale! How lovely to see you.",
+      "You remind me of myself when I was young. So talented!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 180,
+    facing: 'down',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['blanket', 'socks'],
+    likedGifts: ['scarf', 'mittens', 'yarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'merchant',
+    name: 'Felix the Merchant',
+    map: 'overworld',
+    x: 14,
+    y: 10,
+    color: '#8b6914',  // brown coat
+    hairColor: '#4a3728',
+    dialogue: [
+      "Business is good today! Your scarves are selling well in town.",
+      "I hear there's demand for luxury goods. Goat fur fetches a premium!",
+      "The shop has some fine upgrades if you've got the gold.",
+      "Keep up the good work! Quality craftsmanship never goes out of style."
+    ],
+    friendlyDialogue: [
+      "Ah, my favourite business partner! Let me give you a little bonus.",
+      "Your crafts are the talk of the town! People love them.",
+      "I've set aside something special for you, friend."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 120,
+    facing: 'left',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['luxuryScarf', 'hat'],
+    likedGifts: ['scarf', 'luxuryYarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'shepherd',
+    name: 'Young Tom',
+    map: 'overworld',
+    x: 6,
+    y: 9,
+    color: '#7eb87e',  // green shirt
+    hairColor: '#c4a574',
+    dialogue: [
+      "Heya! I love watching the sheep. They're so fluffy!",
+      "Did you know goats are smarter than sheep? It's true!",
+      "I want to have my own farm someday, just like yours.",
+      "The animals seem happy here. You take good care of them!"
+    ],
+    friendlyDialogue: [
+      "You're the coolest! I found something for you while exploring!",
+      "Best friends forever! Here, I want you to have this.",
+      "When I grow up, I wanna be just like you!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 90,
+    facing: 'right',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['mittens', 'socks'],
+    likedGifts: ['scarf', 'yarn', 'wool'],
+    giftCooldown: 0
+  },
+  {
+    id: 'gardener',
+    name: 'Mira the Gardener',
+    map: 'village',
+    x: 5,
+    y: 4,
+    color: '#6db7d6',  // blue dress
+    hairColor: '#3a2c1a',
+    dialogue: [
+      "The flowers in Yarnvale bloom brightest after a gentle rain.",
+      "I can teach you about natural dyes if you bring me some berries!",
+      "Every plant has a story. What's your favourite flower?",
+      "If you ever need a bouquet, just ask!"
+    ],
+    friendlyDialogue: [
+      "Thank you for helping with the garden! Here, take these rare seeds.",
+      "You're always so thoughtful. The plants love you!",
+      "Let me show you a secret spot for wild herbs."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 150,
+    facing: 'down',
+    friendship: 0,
+    lovedGifts: ['flowers', 'berries'],
+    likedGifts: ['yarn', 'scarf'],
+    giftCooldown: 0
+  }
+];
+
+// Friendship levels and rewards
+const FRIENDSHIP_MAX = 100;
+const FRIENDSHIP_LEVELS = [
+  { points: 0, name: 'Stranger' },
+  { points: 20, name: 'Acquaintance' },
+  { points: 50, name: 'Friend' },
+  { points: 80, name: 'Good Friend' },
+  { points: 100, name: 'Best Friend' }
+];
+
+// Rewards given at friendship milestones
+const friendshipRewards = {
+  granny: [
+    { level: 20, reward: { gold: 25 }, message: "Here's a little something for being so kind." },
+    { level: 50, reward: { gold: 50, yarn: 3 }, message: "You've been such a good friend! Take these." },
+    { level: 100, reward: { gold: 100, luxuryYarn: 5 }, message: "My dearest friend! Please accept this gift." }
+  ],
+  merchant: [
+    { level: 20, reward: { gold: 30 }, message: "A bonus for my favourite customer!" },
+    { level: 50, reward: { gold: 75 }, message: "Business partners deserve rewards!" },
+    { level: 100, reward: { gold: 150 }, message: "You're like family now. Here's something special." }
+  ],
+  shepherd: [
+    { level: 20, reward: { wool: 3 }, message: "I collected extra wool for you!" },
+    { level: 50, reward: { wool: 5, goatFur: 3 }, message: "Found these while herding! They're yours!" },
+    { level: 100, reward: { gold: 50, wool: 10, goatFur: 5 }, message: "Best friends share everything!" }
+  ],
+  gardener: [
+    { level: 20, reward: { gold: 20 }, message: "For your kindness to the garden." },
+    { level: 50, reward: { seeds: 5 }, message: "These seeds are rare, plant them well!" },
+    { level: 100, reward: { gold: 100, flowers: 10 }, message: "A token of my deepest gratitude." }
+  ]
+};
+
+// Track which rewards have been claimed
+let claimedRewards = {
+  granny: [],
+  merchant: [],
+  shepherd: [],
+  gardener: []
+};
+
+// ===== NPC REQUEST SYSTEM =====
+// Possible requests NPCs can make
+const possibleRequests = {
+  granny: [
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "Could you make me a warm scarf, dear?" },
+    { item: 'socks', count: 2, gold: 25, friendship: 15, text: "My feet get so cold! Could you make me 2 pairs of socks?" },
+    { item: 'blanket', count: 1, gold: 40, friendship: 20, text: "I'd love a cosy blanket for my chair. Can you make one?" },
+    { item: 'mittens', count: 1, gold: 20, friendship: 12, text: "These old hands need warm mittens. Could you help?" }
+  ],
+  merchant: [
+    { item: 'scarf', count: 2, gold: 30, friendship: 10, text: "I need 2 scarves for a customer order. Can you help?" },
+    { item: 'luxuryScarf', count: 1, gold: 35, friendship: 15, text: "A noble wants a luxury scarf. Big opportunity!" },
+    { item: 'hat', count: 2, gold: 35, friendship: 12, text: "Hats are in fashion! Can you make me 2?" },
+    { item: 'luxuryMittens', count: 1, gold: 30, friendship: 15, text: "I have a buyer for luxury mittens. Interested?" }
+  ],
+  shepherd: [
+    { item: 'yarn', count: 3, gold: 12, friendship: 8, text: "I wanna learn to knit! Can you spare 3 yarn?" },
+    { item: 'socks', count: 1, gold: 12, friendship: 10, text: "My boots have holes... can you make me socks?" },
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "I want a cool scarf like yours! Can you make one?" },
+    { item: 'mittens', count: 1, gold: 18, friendship: 12, text: "Herding sheep in winter is cold! Need mittens please!" }
+  ],
+  gardener: [
+    { item: 'flowers', count: 3, gold: 10, friendship: 8, text: "Could you bring me some flowers? I have a plan for a new garden." },
+    { item: 'berries', count: 5, gold: 15, friendship: 10, text: "I need some fresh berries for dyeing. Can you help?" },
+    { item: 'yarn', count: 2, gold: 12, friendship: 8, text: "Yarn is great for plant ties. Can you spare some?" },
+    { item: 'scarf', count: 1, gold: 20, friendship: 12, text: "A warm scarf would be perfect for the chilly evenings." }
+  ]
+};
+
+// Active requests for each NPC (null = no active request)
+let npcRequests = {
+  granny: null,
+  merchant: null,
+  shepherd: null,
+  gardener: null
+};
+
+// Cooldown before new request appears (in frames, ~60fps)
+let requestCooldowns = {
+  granny: 0,
+  merchant: 0,
+  shepherd: 0,
+  gardener: 0
+};
+
+const REQUEST_COOLDOWN_TIME = 1800; // ~30 seconds between requests
+
+function generateNewRequest(npcId) {
+  const requests = possibleRequests[npcId];
+  if (!requests || requests.length === 0) return null;
+  
+  const request = requests[Math.floor(Math.random() * requests.length)];
+  return { ...request, npcId };
+}
+
+function checkAndGenerateRequests() {
+  for (const npcId of Object.keys(npcRequests)) {
+    // If no active request and cooldown is done, maybe generate one
+    if (!npcRequests[npcId] && requestCooldowns[npcId] <= 0) {
+      // 30% chance each check to generate a request
+      if (Math.random() < 0.3) {
+        npcRequests[npcId] = generateNewRequest(npcId);
+      }
+    }
+    
+    // Decrease cooldown
+    if (requestCooldowns[npcId] > 0) {
+      requestCooldowns[npcId]--;
+    }
+  }
+}
+
+function canFulfillRequest(request) {
+  if (!request) return false;
+  return (inventory[request.item] || 0) >= request.count;
+}
+
+function fulfillRequest(npcId) {
+  const request = npcRequests[npcId];
+  if (!request) return false;
+  
+  if (!canFulfillRequest(request)) {
+    showMessage(`You don't have enough ${getItemDisplayName(request.item)} yet.`);
+    return false;
+  }
+  
+  // Take the items
+  inventory[request.item] -= request.count;
+  
+  // Give rewards
+  inventory.gold += request.gold;
+  
+  // Add friendship
+  const npc = villagers.find(v => v.id === npcId);
+  if (npc) {
+    npc.friendship = Math.min(FRIENDSHIP_MAX, npc.friendship + request.friendship);
+  }
+  
+  // Clear request and start cooldown
+  npcRequests[npcId] = null;
+  requestCooldowns[npcId] = REQUEST_COOLDOWN_TIME;
+  
+  // Show success message
+  const npcName = npc ? npc.name.split(' ')[0] : 'They';
+  showMessage(`${npcName}: "Thank you so much!" (+${request.gold}g, +${request.friendship} friendship)`);
+  
+  if (sounds.sell) sounds.sell.play().catch(() => {});
+}
+
+// =========================
+// CONFIG & MAPS
+// =========================
+// #region CONFIG & MAPS
+    const TILE_SIZE = 32;
+
+    // Tile legend:
+    // 0 grass, 1 path, 2 tree (solid), 3 water (solid), 4 fence (solid),
+    // 5 cottage roof, 6 door, 7 interior wall (solid), 8 interior floor
+    // 9 stone/cobble path, 10 market stall (solid), 11 well (solid)
+    // 12 flower patch, 13 bush (solid), 14 bridge, 15 sign
+    const maps = {
+      overworld: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,6,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Walk right off the map on the path at row 10
+          { edge: 'right', col: 18, toMap: 'village', toX: 1, toY: 8, condition: (y) => y === 10 }
+        ]
+      },
+      cottage: {
+        cols: 9,
+        rows: 7,
+        data: [
+          [7,7,7,7,7,7,7,7,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,6,8,8,8,7],
+          [7,7,7,7,7,7,7,7,7]
+        ]
+      },
+      village: {
+        cols: 19,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,12,0,0,9,9,9,9,9,9,9,9,9,0,0,12,0,2],
+          [2,0,0,0,10,9,9,9,11,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,10,9,9,9,9,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,0,9,9,9,9,9,9,9,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,9,9,9,9,9,0,0,0,0,0,13,0,2],
+          [2,0,0,12,0,0,0,9,9,9,0,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,13,0,0,0,12,0,0,12,0,0,0,13,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on the main path (row 8)
+          { edge: 'left', col: 0, toMap: 'overworld', toX: 17, toY: 11, condition: (y) => y === 8 },
+          // Right: walk off the right edge on the main path (row 8)  
+          { edge: 'right', col: 18, toMap: 'forest', toX: 1, toY: 7, condition: (y) => y === 8 },
+          // Bottom: bridge path at col 8
+          { edge: 'bottom', row: 14, toMap: 'forest', toX: 9, toY: 1, condition: (x) => x === 8 }
+        ]
+      },
+      forest: {
+        cols: 21,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,2,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,2],
+          [2,0,12,0,0,2,0,0,0,1,0,0,12,0,0,0,2,0,12,0,2],
+          [2,2,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,12,0,0,0,0,0,1,0,0,2,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,2,0,0,0,1,0,0,0,0,0,0,0,2,0,0,2],
+          [2,0,12,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,2],
+          [2,0,2,0,0,12,0,0,0,0,0,0,12,0,0,0,0,0,12,0,2],
+          [2,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,2,0,0,0,2],
+          [2,0,0,0,12,0,0,0,0,0,12,0,0,0,0,0,0,0,0,0,2],
+          [2,0,2,0,0,0,0,0,0,2,0,0,0,2,0,0,0,0,2,0,2],
+          [2,0,0,0,0,0,12,0,0,0,0,0,0,0,0,12,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on main path (row 7)
+          { edge: 'left', col: 0, toMap: 'village', toX: 17, toY: 8, condition: (y) => y === 7 },
+          // Top: walk off the top at the path (col 9)
+          { edge: 'top', row: 0, toMap: 'village', toX: 8, toY: 13, condition: (x) => x === 9 }
+        ]
+      }
+    };
+
+const doorTilesByMap = {};
+for (const [name, map] of Object.entries(maps)) {
+  doorTilesByMap[name] = [];
+  for (let row = 0; row < map.rows; row++) {
+    for (let col = 0; col < map.cols; col++) {
+      if (map.data[row][col] === 6) {
+        doorTilesByMap[name].push({ x: col, y: row });
+      }
+    }
+  }
+}
+
+// Static tile layer cache per map to avoid redrawing terrain every frame
+const baseMapCanvases = {};
+
+function invalidateBaseMaps() {
+  Object.keys(baseMapCanvases).forEach(key => delete baseMapCanvases[key]);
+}
+
+function ensureBaseMapCanvas(mapName) {
+  if (baseMapCanvases[mapName]) return baseMapCanvases[mapName];
+  const map = maps[mapName];
+  if (!map) return null;
+
+  const offscreen = document.createElement('canvas');
+  offscreen.width = map.cols * TILE_SIZE;
+  offscreen.height = map.rows * TILE_SIZE;
+  const offCtx = offscreen.getContext('2d');
+  for (let y = 0; y < map.rows; y++) {
+    for (let x = 0; x < map.cols; x++) {
+      drawTile(map.data[y][x], x, y, offCtx);
+    }
+  }
+
+  baseMapCanvases[mapName] = offscreen;
+  return offscreen;
+}
+
+['grass1', 'grass2', 'grass3'].forEach(name => {
+  const asset = artAssets[name];
+  if (asset?.image) {
+    asset.image.addEventListener('load', invalidateBaseMaps);
+  }
+});
+
+// ===== INVENTORY =====
+let inventoryOpen = false;
+
+let inventory = {
+  wool: 0,
+  yarn: 0,
+  luxuryYarn: 0,
+  goatFur: 0,
+  scarf: 0,
+  luxuryScarf: 0,
+  mittens: 0,
+  luxuryMittens: 0,
+  socks: 0,
+  hat: 0,
+  blanket: 0,
+  gold: 0
+};
+
+// ===== CRAFTING MENU =====
+let craftingMenuOpen = false;
+let craftingMenuSelection = 0;
+
+const craftingRecipes = [
+  // --- Material Processing ---
+  {
+    id: 'luxuryYarn',
+    name: 'Luxury Yarn',
+    description: 'Soft blend of wool and goat fur',
+    inputs: { wool: 1, goatFur: 1 },
+    outputs: { luxuryYarn: 2 },
+    color: '#c8a0f0'
+  },
+  {
+    id: 'yarn',
+    name: 'Yarn',
+    description: 'Spin wool into yarn',
+    inputs: { wool: 2 },
+    outputs: { yarn: 1 },
+    color: '#f098c8'
+  },
+  // --- Basic Items ---
+  {
+    id: 'socks',
+    name: 'Socks',
+    description: 'Cosy knitted socks',
+    inputs: { yarn: 2 },
+    outputs: { socks: 1 },
+    sellPrice: 8,
+    color: '#a8d8a8'
+  },
+  {
+    id: 'mittens',
+    name: 'Mittens',
+    description: 'Warm fluffy mittens',
+    inputs: { goatFur: 2 },
+    outputs: { mittens: 1 },
+    sellPrice: 15,
+    color: '#e8d0c0'
+  },
+  {
+    id: 'scarf',
+    name: 'Scarf',
+    description: 'A cosy knitted scarf',
+    inputs: { yarn: 3 },
+    outputs: { scarf: 1 },
+    sellPrice: 10,
+    color: '#f2d27a'
+  },
+  {
+    id: 'hat',
+    name: 'Hat',
+    description: 'A warm woolly hat',
+    inputs: { yarn: 2, wool: 1 },
+    outputs: { hat: 1 },
+    sellPrice: 12,
+    color: '#7eb8e8'
+  },
+  // --- Premium Items ---
+  {
+    id: 'luxuryMittens',
+    name: 'Luxury Mittens',
+    description: 'Silky soft premium mittens',
+    inputs: { luxuryYarn: 2 },
+    outputs: { luxuryMittens: 1 },
+    sellPrice: 20,
+    color: '#e0b8f0'
+  },
+  {
+    id: 'luxuryScarf',
+    name: 'Luxury Scarf',
+    description: 'An exquisite shimmering scarf',
+    inputs: { luxuryYarn: 3 },
+    outputs: { luxuryScarf: 1 },
+    sellPrice: 25,
+    color: '#d8a0f8'
+  },
+  // --- Large Items ---
+  {
+    id: 'blanket',
+    name: 'Blanket',
+    description: 'A large cosy blanket',
+    inputs: { yarn: 4, wool: 2 },
+    outputs: { blanket: 1 },
+    sellPrice: 30,
+    color: '#f0c8a0'
+  }
+];
+
+function canAffordRecipe(recipe) {
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    if ((inventory[item] || 0) < amount) return false;
+  }
+  return true;
+}
+
+function craftRecipe(recipe) {
+  if (!canAffordRecipe(recipe)) return false;
+  
+  // Deduct inputs
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    inventory[item] -= amount;
+  }
+  
+  // Add outputs (with spinning wheel upgrade bonus for yarn)
+  for (const [item, amount] of Object.entries(recipe.outputs)) {
+    let finalAmount = amount;
+    // Spinning Wheel upgrade: double yarn output
+    if (item === 'yarn' && upgrades.spinningWheelUpgrade) {
+      finalAmount = amount * 2;
+    }
+    inventory[item] = (inventory[item] || 0) + finalAmount;
+  }
+  
+  return true;
+}
+
+function getRecipeInputsText(recipe) {
+  return Object.entries(recipe.inputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(' + ');
+}
+
+function getRecipeOutputsText(recipe) {
+  return Object.entries(recipe.outputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(', ');
+}
+
+
+
+
+let message = null;
+let messageExpiryTime = 0; // timestamp when current message should disappear
+
+// One starter sheep in the paddock (overworld)
+const sheep = {
+  map: 'overworld',
+  x: 8,
+  y: 10,
+  hasWool: true,
+  woolTimer: 0 // counts frames until wool grows back
+};
+
+// One goat in the paddock (overworld)
+const goat = {
+  map: 'overworld',
+  x: 12,
+  y: 11,
+  hasFur: true,
+  furTimer: 0
+};
+
+// Knitting spot inside the cottage (must be on a floor tile)
+const knittingSpot = {
+  map: 'cottage',
+  x: 3,
+  y: 4
+};
+
+const marketSpot = {
+  map: 'overworld',
+  x: 13,  // tweak later if you want it somewhere else
+  y: 9
+};
+
+const shopSpot = {
+  map: 'overworld',
+  x: 15,
+  y: 9
+};
+
+// ===== SHOP SYSTEM =====
+let shopOpen = false;
+let shopSelectedIndex = 0;
+
+// ===== NPC DIALOGUE STATE =====
+let dialogueOpen = false;
+let activeNPC = null;
+let dialogueText = '';
+
+// ===== GIFT MENU STATE =====
+let giftMenuOpen = false;
+let giftMenuNPC = null;
+let giftSelectedIndex = 0;
+
+// Upgrades the player has purchased
+let upgrades = {
+  goldenShears: false,      // Faster wool regrowth
+  spinningWheelUpgrade: false, // Bonus yarn when spinning
+  extraSheep: 0,            // Number of extra sheep purchased
+  extraGoat: 0              // Number of extra goats purchased
+};
+
+// Shop items available for purchase
+const shopItems = [
+  {
+    id: 'extraSheep',
+    name: 'Extra Sheep',
+    description: 'A fluffy new sheep for your paddock',
+    price: 50,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#f8f0d8' }
+  },
+  {
+    id: 'extraGoat',
+    name: 'Extra Goat',
+    description: 'A fuzzy goat for more fur',
+    price: 75,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#d6c8b8' }
+  },
+  {
+    id: 'goldenShears',
+    name: 'Golden Shears',
+    description: 'Wool & fur regrows twice as fast',
+    price: 100,
+    type: 'oneTime',
+    icon: { type: 'rect', color: '#f4c945' }
+  },
+  {
+    id: 'spinningWheelUpgrade',
+    name: 'Spinning Wheel+',
+    description: 'Get 2 yarn instead of 1 when spinning',
+    price: 75,
+    type: 'oneTime',
+    icon: { type: 'circle', color: '#f098c8' }
+  }
+];
+
+// ===== VILLAGER NPCs =====
+const villagers = [
+  {
+    id: 'granny',
+    name: 'Granny Willow',
+    map: 'overworld',
+    x: 3,
+    y: 6,
+    color: '#e8b8d8',  // pink-ish dress
+    hairColor: '#d0d0d0',
+    dialogue: [
+      "Oh hello, dear! The yarn you make is simply wonderful.",
+      "Back in my day, we knit everything by hand. No fancy wheels!",
+      "Have you tried making a nice warm blanket? Perfect for cold nights.",
+      "My joints ache when rain is coming. Mark my words!"
+    ],
+    friendlyDialogue: [
+      "You're such a dear friend! Here, take this - I insist.",
+      "My favourite crafter in all of Yarnvale! How lovely to see you.",
+      "You remind me of myself when I was young. So talented!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 180,
+    facing: 'down',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['blanket', 'socks'],
+    likedGifts: ['scarf', 'mittens', 'yarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'merchant',
+    name: 'Felix the Merchant',
+    map: 'overworld',
+    x: 14,
+    y: 10,
+    color: '#8b6914',  // brown coat
+    hairColor: '#4a3728',
+    dialogue: [
+      "Business is good today! Your scarves are selling well in town.",
+      "I hear there's demand for luxury goods. Goat fur fetches a premium!",
+      "The shop has some fine upgrades if you've got the gold.",
+      "Keep up the good work! Quality craftsmanship never goes out of style."
+    ],
+    friendlyDialogue: [
+      "Ah, my favourite business partner! Let me give you a little bonus.",
+      "Your crafts are the talk of the town! People love them.",
+      "I've set aside something special for you, friend."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 120,
+    facing: 'left',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['luxuryScarf', 'hat'],
+    likedGifts: ['scarf', 'luxuryYarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'shepherd',
+    name: 'Young Tom',
+    map: 'overworld',
+    x: 6,
+    y: 9,
+    color: '#7eb87e',  // green shirt
+    hairColor: '#c4a574',
+    dialogue: [
+      "Heya! I love watching the sheep. They're so fluffy!",
+      "Did you know goats are smarter than sheep? It's true!",
+      "I want to have my own farm someday, just like yours.",
+      "The animals seem happy here. You take good care of them!"
+    ],
+    friendlyDialogue: [
+      "You're the coolest! I found something for you while exploring!",
+      "Best friends forever! Here, I want you to have this.",
+      "When I grow up, I wanna be just like you!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 90,
+    facing: 'right',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['mittens', 'socks'],
+    likedGifts: ['scarf', 'yarn', 'wool'],
+    giftCooldown: 0
+  },
+  {
+    id: 'gardener',
+    name: 'Mira the Gardener',
+    map: 'village',
+    x: 5,
+    y: 4,
+    color: '#6db7d6',  // blue dress
+    hairColor: '#3a2c1a',
+    dialogue: [
+      "The flowers in Yarnvale bloom brightest after a gentle rain.",
+      "I can teach you about natural dyes if you bring me some berries!",
+      "Every plant has a story. What's your favourite flower?",
+      "If you ever need a bouquet, just ask!"
+    ],
+    friendlyDialogue: [
+      "Thank you for helping with the garden! Here, take these rare seeds.",
+      "You're always so thoughtful. The plants love you!",
+      "Let me show you a secret spot for wild herbs."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 150,
+    facing: 'down',
+    friendship: 0,
+    lovedGifts: ['flowers', 'berries'],
+    likedGifts: ['yarn', 'scarf'],
+    giftCooldown: 0
+  }
+];
+
+// Friendship levels and rewards
+const FRIENDSHIP_MAX = 100;
+const FRIENDSHIP_LEVELS = [
+  { points: 0, name: 'Stranger' },
+  { points: 20, name: 'Acquaintance' },
+  { points: 50, name: 'Friend' },
+  { points: 80, name: 'Good Friend' },
+  { points: 100, name: 'Best Friend' }
+];
+
+// Rewards given at friendship milestones
+const friendshipRewards = {
+  granny: [
+    { level: 20, reward: { gold: 25 }, message: "Here's a little something for being so kind." },
+    { level: 50, reward: { gold: 50, yarn: 3 }, message: "You've been such a good friend! Take these." },
+    { level: 100, reward: { gold: 100, luxuryYarn: 5 }, message: "My dearest friend! Please accept this gift." }
+  ],
+  merchant: [
+    { level: 20, reward: { gold: 30 }, message: "A bonus for my favourite customer!" },
+    { level: 50, reward: { gold: 75 }, message: "Business partners deserve rewards!" },
+    { level: 100, reward: { gold: 150 }, message: "You're like family now. Here's something special." }
+  ],
+  shepherd: [
+    { level: 20, reward: { wool: 3 }, message: "I collected extra wool for you!" },
+    { level: 50, reward: { wool: 5, goatFur: 3 }, message: "Found these while herding! They're yours!" },
+    { level: 100, reward: { gold: 50, wool: 10, goatFur: 5 }, message: "Best friends share everything!" }
+  ],
+  gardener: [
+    { level: 20, reward: { gold: 20 }, message: "For your kindness to the garden." },
+    { level: 50, reward: { seeds: 5 }, message: "These seeds are rare, plant them well!" },
+    { level: 100, reward: { gold: 100, flowers: 10 }, message: "A token of my deepest gratitude." }
+  ]
+};
+
+// Track which rewards have been claimed
+let claimedRewards = {
+  granny: [],
+  merchant: [],
+  shepherd: [],
+  gardener: []
+};
+
+// ===== NPC REQUEST SYSTEM =====
+// Possible requests NPCs can make
+const possibleRequests = {
+  granny: [
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "Could you make me a warm scarf, dear?" },
+    { item: 'socks', count: 2, gold: 25, friendship: 15, text: "My feet get so cold! Could you make me 2 pairs of socks?" },
+    { item: 'blanket', count: 1, gold: 40, friendship: 20, text: "I'd love a cosy blanket for my chair. Can you make one?" },
+    { item: 'mittens', count: 1, gold: 20, friendship: 12, text: "These old hands need warm mittens. Could you help?" }
+  ],
+  merchant: [
+    { item: 'scarf', count: 2, gold: 30, friendship: 10, text: "I need 2 scarves for a customer order. Can you help?" },
+    { item: 'luxuryScarf', count: 1, gold: 35, friendship: 15, text: "A noble wants a luxury scarf. Big opportunity!" },
+    { item: 'hat', count: 2, gold: 35, friendship: 12, text: "Hats are in fashion! Can you make me 2?" },
+    { item: 'luxuryMittens', count: 1, gold: 30, friendship: 15, text: "I have a buyer for luxury mittens. Interested?" }
+  ],
+  shepherd: [
+    { item: 'yarn', count: 3, gold: 12, friendship: 8, text: "I wanna learn to knit! Can you spare 3 yarn?" },
+    { item: 'socks', count: 1, gold: 12, friendship: 10, text: "My boots have holes... can you make me socks?" },
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "I want a cool scarf like yours! Can you make one?" },
+    { item: 'mittens', count: 1, gold: 18, friendship: 12, text: "Herding sheep in winter is cold! Need mittens please!" }
+  ],
+  gardener: [
+    { item: 'flowers', count: 3, gold: 10, friendship: 8, text: "Could you bring me some flowers? I have a plan for a new garden." },
+    { item: 'berries', count: 5, gold: 15, friendship: 10, text: "I need some fresh berries for dyeing. Can you help?" },
+    { item: 'yarn', count: 2, gold: 12, friendship: 8, text: "Yarn is great for plant ties. Can you spare some?" },
+    { item: 'scarf', count: 1, gold: 20, friendship: 12, text: "A warm scarf would be perfect for the chilly evenings." }
+  ]
+};
+
+// Active requests for each NPC (null = no active request)
+let npcRequests = {
+  granny: null,
+  merchant: null,
+  shepherd: null,
+  gardener: null
+};
+
+// Cooldown before new request appears (in frames, ~60fps)
+let requestCooldowns = {
+  granny: 0,
+  merchant: 0,
+  shepherd: 0,
+  gardener: 0
+};
+
+const REQUEST_COOLDOWN_TIME = 1800; // ~30 seconds between requests
+
+function generateNewRequest(npcId) {
+  const requests = possibleRequests[npcId];
+  if (!requests || requests.length === 0) return null;
+  
+  const request = requests[Math.floor(Math.random() * requests.length)];
+  return { ...request, npcId };
+}
+
+function checkAndGenerateRequests() {
+  for (const npcId of Object.keys(npcRequests)) {
+    // If no active request and cooldown is done, maybe generate one
+    if (!npcRequests[npcId] && requestCooldowns[npcId] <= 0) {
+      // 30% chance each check to generate a request
+      if (Math.random() < 0.3) {
+        npcRequests[npcId] = generateNewRequest(npcId);
+      }
+    }
+    
+    // Decrease cooldown
+    if (requestCooldowns[npcId] > 0) {
+      requestCooldowns[npcId]--;
+    }
+  }
+}
+
+function canFulfillRequest(request) {
+  if (!request) return false;
+  return (inventory[request.item] || 0) >= request.count;
+}
+
+function fulfillRequest(npcId) {
+  const request = npcRequests[npcId];
+  if (!request) return false;
+  
+  if (!canFulfillRequest(request)) {
+    showMessage(`You don't have enough ${getItemDisplayName(request.item)} yet.`);
+    return false;
+  }
+  
+  // Take the items
+  inventory[request.item] -= request.count;
+  
+  // Give rewards
+  inventory.gold += request.gold;
+  
+  // Add friendship
+  const npc = villagers.find(v => v.id === npcId);
+  if (npc) {
+    npc.friendship = Math.min(FRIENDSHIP_MAX, npc.friendship + request.friendship);
+  }
+  
+  // Clear request and start cooldown
+  npcRequests[npcId] = null;
+  requestCooldowns[npcId] = REQUEST_COOLDOWN_TIME;
+  
+  // Show success message
+  const npcName = npc ? npc.name.split(' ')[0] : 'They';
+  showMessage(`${npcName}: "Thank you so much!" (+${request.gold}g, +${request.friendship} friendship)`);
+  
+  if (sounds.sell) sounds.sell.play().catch(() => {});
+}
+
+// =========================
+// CONFIG & MAPS
+// =========================
+// #region CONFIG & MAPS
+    const TILE_SIZE = 32;
+
+    // Tile legend:
+    // 0 grass, 1 path, 2 tree (solid), 3 water (solid), 4 fence (solid),
+    // 5 cottage roof, 6 door, 7 interior wall (solid), 8 interior floor
+    // 9 stone/cobble path, 10 market stall (solid), 11 well (solid)
+    // 12 flower patch, 13 bush (solid), 14 bridge, 15 sign
+    const maps = {
+      overworld: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,6,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Walk right off the map on the path at row 10
+          { edge: 'right', col: 18, toMap: 'village', toX: 1, toY: 8, condition: (y) => y === 10 }
+        ]
+      },
+      cottage: {
+        cols: 9,
+        rows: 7,
+        data: [
+          [7,7,7,7,7,7,7,7,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,6,8,8,8,7],
+          [7,7,7,7,7,7,7,7,7]
+        ]
+      },
+      village: {
+        cols: 19,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,12,0,0,9,9,9,9,9,9,9,9,9,0,0,12,0,2],
+          [2,0,0,0,10,9,9,9,11,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,10,9,9,9,9,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,0,9,9,9,9,9,9,9,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,9,9,9,9,9,0,0,0,0,0,13,0,2],
+          [2,0,0,12,0,0,0,9,9,9,0,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,13,0,0,0,12,0,0,12,0,0,0,13,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on the main path (row 8)
+          { edge: 'left', col: 0, toMap: 'overworld', toX: 17, toY: 11, condition: (y) => y === 8 },
+          // Right: walk off the right edge on the main path (row 8)  
+          { edge: 'right', col: 18, toMap: 'forest', toX: 1, toY: 7, condition: (y) => y === 8 },
+          // Bottom: bridge path at col 8
+          { edge: 'bottom', row: 14, toMap: 'forest', toX: 9, toY: 1, condition: (x) => x === 8 }
+        ]
+      },
+      forest: {
+        cols: 21,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,2,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,2],
+          [2,0,12,0,0,2,0,0,0,1,0,0,12,0,0,0,2,0,12,0,2],
+          [2,2,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,12,0,0,0,0,0,1,0,0,2,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,2,0,0,0,1,0,0,0,0,0,0,0,2,0,0,2],
+          [2,0,12,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,2],
+          [2,0,2,0,0,12,0,0,0,0,0,0,12,0,0,0,0,0,12,0,2],
+          [2,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,2,0,0,0,2],
+          [2,0,0,0,12,0,0,0,0,0,12,0,0,0,0,0,0,0,0,0,2],
+          [2,0,2,0,0,0,0,0,0,2,0,0,0,2,0,0,0,0,2,0,2],
+          [2,0,0,0,0,0,12,0,0,0,0,0,0,0,0,12,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on main path (row 7)
+          { edge: 'left', col: 0, toMap: 'village', toX: 17, toY: 8, condition: (y) => y === 7 },
+          // Top: walk off the top at the path (col 9)
+          { edge: 'top', row: 0, toMap: 'village', toX: 8, toY: 13, condition: (x) => x === 9 }
+        ]
+      }
+    };
+
+const doorTilesByMap = {};
+for (const [name, map] of Object.entries(maps)) {
+  doorTilesByMap[name] = [];
+  for (let row = 0; row < map.rows; row++) {
+    for (let col = 0; col < map.cols; col++) {
+      if (map.data[row][col] === 6) {
+        doorTilesByMap[name].push({ x: col, y: row });
+      }
+    }
+  }
+}
+
+// Static tile layer cache per map to avoid redrawing terrain every frame
+const baseMapCanvases = {};
+
+function invalidateBaseMaps() {
+  Object.keys(baseMapCanvases).forEach(key => delete baseMapCanvases[key]);
+}
+
+function ensureBaseMapCanvas(mapName) {
+  if (baseMapCanvases[mapName]) return baseMapCanvases[mapName];
+  const map = maps[mapName];
+  if (!map) return null;
+
+  const offscreen = document.createElement('canvas');
+  offscreen.width = map.cols * TILE_SIZE;
+  offscreen.height = map.rows * TILE_SIZE;
+  const offCtx = offscreen.getContext('2d');
+  for (let y = 0; y < map.rows; y++) {
+    for (let x = 0; x < map.cols; x++) {
+      drawTile(map.data[y][x], x, y, offCtx);
+    }
+  }
+
+  baseMapCanvases[mapName] = offscreen;
+  return offscreen;
+}
+
+['grass1', 'grass2', 'grass3'].forEach(name => {
+  const asset = artAssets[name];
+  if (asset?.image) {
+    asset.image.addEventListener('load', invalidateBaseMaps);
+  }
+});
+
+// ===== INVENTORY =====
+let inventoryOpen = false;
+
+let inventory = {
+  wool: 0,
+  yarn: 0,
+  luxuryYarn: 0,
+  goatFur: 0,
+  scarf: 0,
+  luxuryScarf: 0,
+  mittens: 0,
+  luxuryMittens: 0,
+  socks: 0,
+  hat: 0,
+  blanket: 0,
+  gold: 0
+};
+
+// ===== CRAFTING MENU =====
+let craftingMenuOpen = false;
+let craftingMenuSelection = 0;
+
+const craftingRecipes = [
+  // --- Material Processing ---
+  {
+    id: 'luxuryYarn',
+    name: 'Luxury Yarn',
+    description: 'Soft blend of wool and goat fur',
+    inputs: { wool: 1, goatFur: 1 },
+    outputs: { luxuryYarn: 2 },
+    color: '#c8a0f0'
+  },
+  {
+    id: 'yarn',
+    name: 'Yarn',
+    description: 'Spin wool into yarn',
+    inputs: { wool: 2 },
+    outputs: { yarn: 1 },
+    color: '#f098c8'
+  },
+  // --- Basic Items ---
+  {
+    id: 'socks',
+    name: 'Socks',
+    description: 'Cosy knitted socks',
+    inputs: { yarn: 2 },
+    outputs: { socks: 1 },
+    sellPrice: 8,
+    color: '#a8d8a8'
+  },
+  {
+    id: 'mittens',
+    name: 'Mittens',
+    description: 'Warm fluffy mittens',
+    inputs: { goatFur: 2 },
+    outputs: { mittens: 1 },
+    sellPrice: 15,
+    color: '#e8d0c0'
+  },
+  {
+    id: 'scarf',
+    name: 'Scarf',
+    description: 'A cosy knitted scarf',
+    inputs: { yarn: 3 },
+    outputs: { scarf: 1 },
+    sellPrice: 10,
+    color: '#f2d27a'
+  },
+  {
+    id: 'hat',
+    name: 'Hat',
+    description: 'A warm woolly hat',
+    inputs: { yarn: 2, wool: 1 },
+    outputs: { hat: 1 },
+    sellPrice: 12,
+    color: '#7eb8e8'
+  },
+  // --- Premium Items ---
+  {
+    id: 'luxuryMittens',
+    name: 'Luxury Mittens',
+    description: 'Silky soft premium mittens',
+    inputs: { luxuryYarn: 2 },
+    outputs: { luxuryMittens: 1 },
+    sellPrice: 20,
+    color: '#e0b8f0'
+  },
+  {
+    id: 'luxuryScarf',
+    name: 'Luxury Scarf',
+    description: 'An exquisite shimmering scarf',
+    inputs: { luxuryYarn: 3 },
+    outputs: { luxuryScarf: 1 },
+    sellPrice: 25,
+    color: '#d8a0f8'
+  },
+  // --- Large Items ---
+  {
+    id: 'blanket',
+    name: 'Blanket',
+    description: 'A large cosy blanket',
+    inputs: { yarn: 4, wool: 2 },
+    outputs: { blanket: 1 },
+    sellPrice: 30,
+    color: '#f0c8a0'
+  }
+];
+
+function canAffordRecipe(recipe) {
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    if ((inventory[item] || 0) < amount) return false;
+  }
+  return true;
+}
+
+function craftRecipe(recipe) {
+  if (!canAffordRecipe(recipe)) return false;
+  
+  // Deduct inputs
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    inventory[item] -= amount;
+  }
+  
+  // Add outputs (with spinning wheel upgrade bonus for yarn)
+  for (const [item, amount] of Object.entries(recipe.outputs)) {
+    let finalAmount = amount;
+    // Spinning Wheel upgrade: double yarn output
+    if (item === 'yarn' && upgrades.spinningWheelUpgrade) {
+      finalAmount = amount * 2;
+    }
+    inventory[item] = (inventory[item] || 0) + finalAmount;
+  }
+  
+  return true;
+}
+
+function getRecipeInputsText(recipe) {
+  return Object.entries(recipe.inputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(' + ');
+}
+
+function getRecipeOutputsText(recipe) {
+  return Object.entries(recipe.outputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(', ');
+}
+
+
+
+
+let message = null;
+let messageExpiryTime = 0; // timestamp when current message should disappear
+
+// One starter sheep in the paddock (overworld)
+const sheep = {
+  map: 'overworld',
+  x: 8,
+  y: 10,
+  hasWool: true,
+  woolTimer: 0 // counts frames until wool grows back
+};
+
+// One goat in the paddock (overworld)
+const goat = {
+  map: 'overworld',
+  x: 12,
+  y: 11,
+  hasFur: true,
+  furTimer: 0
+};
+
+// Knitting spot inside the cottage (must be on a floor tile)
+const knittingSpot = {
+  map: 'cottage',
+  x: 3,
+  y: 4
+};
+
+const marketSpot = {
+  map: 'overworld',
+  x: 13,  // tweak later if you want it somewhere else
+  y: 9
+};
+
+const shopSpot = {
+  map: 'overworld',
+  x: 15,
+  y: 9
+};
+
+// ===== SHOP SYSTEM =====
+let shopOpen = false;
+let shopSelectedIndex = 0;
+
+// ===== NPC DIALOGUE STATE =====
+let dialogueOpen = false;
+let activeNPC = null;
+let dialogueText = '';
+
+// ===== GIFT MENU STATE =====
+let giftMenuOpen = false;
+let giftMenuNPC = null;
+let giftSelectedIndex = 0;
+
+// Upgrades the player has purchased
+let upgrades = {
+  goldenShears: false,      // Faster wool regrowth
+  spinningWheelUpgrade: false, // Bonus yarn when spinning
+  extraSheep: 0,            // Number of extra sheep purchased
+  extraGoat: 0              // Number of extra goats purchased
+};
+
+// Shop items available for purchase
+const shopItems = [
+  {
+    id: 'extraSheep',
+    name: 'Extra Sheep',
+    description: 'A fluffy new sheep for your paddock',
+    price: 50,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#f8f0d8' }
+  },
+  {
+    id: 'extraGoat',
+    name: 'Extra Goat',
+    description: 'A fuzzy goat for more fur',
+    price: 75,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#d6c8b8' }
+  },
+  {
+    id: 'goldenShears',
+    name: 'Golden Shears',
+    description: 'Wool & fur regrows twice as fast',
+    price: 100,
+    type: 'oneTime',
+    icon: { type: 'rect', color: '#f4c945' }
+  },
+  {
+    id: 'spinningWheelUpgrade',
+    name: 'Spinning Wheel+',
+    description: 'Get 2 yarn instead of 1 when spinning',
+    price: 75,
+    type: 'oneTime',
+    icon: { type: 'circle', color: '#f098c8' }
+  }
+];
+
+// ===== VILLAGER NPCs =====
+const villagers = [
+  {
+    id: 'granny',
+    name: 'Granny Willow',
+    map: 'overworld',
+    x: 3,
+    y: 6,
+    color: '#e8b8d8',  // pink-ish dress
+    hairColor: '#d0d0d0',
+    dialogue: [
+      "Oh hello, dear! The yarn you make is simply wonderful.",
+      "Back in my day, we knit everything by hand. No fancy wheels!",
+      "Have you tried making a nice warm blanket? Perfect for cold nights.",
+      "My joints ache when rain is coming. Mark my words!"
+    ],
+    friendlyDialogue: [
+      "You're such a dear friend! Here, take this - I insist.",
+      "My favourite crafter in all of Yarnvale! How lovely to see you.",
+      "You remind me of myself when I was young. So talented!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 180,
+    facing: 'down',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['blanket', 'socks'],
+    likedGifts: ['scarf', 'mittens', 'yarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'merchant',
+    name: 'Felix the Merchant',
+    map: 'overworld',
+    x: 14,
+    y: 10,
+    color: '#8b6914',  // brown coat
+    hairColor: '#4a3728',
+    dialogue: [
+      "Business is good today! Your scarves are selling well in town.",
+      "I hear there's demand for luxury goods. Goat fur fetches a premium!",
+      "The shop has some fine upgrades if you've got the gold.",
+      "Keep up the good work! Quality craftsmanship never goes out of style."
+    ],
+    friendlyDialogue: [
+      "Ah, my favourite business partner! Let me give you a little bonus.",
+      "Your crafts are the talk of the town! People love them.",
+      "I've set aside something special for you, friend."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 120,
+    facing: 'left',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['luxuryScarf', 'hat'],
+    likedGifts: ['scarf', 'luxuryYarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'shepherd',
+    name: 'Young Tom',
+    map: 'overworld',
+    x: 6,
+    y: 9,
+    color: '#7eb87e',  // green shirt
+    hairColor: '#c4a574',
+    dialogue: [
+      "Heya! I love watching the sheep. They're so fluffy!",
+      "Did you know goats are smarter than sheep? It's true!",
+      "I want to have my own farm someday, just like yours.",
+      "The animals seem happy here. You take good care of them!"
+    ],
+    friendlyDialogue: [
+      "You're the coolest! I found something for you while exploring!",
+      "Best friends forever! Here, I want you to have this.",
+      "When I grow up, I wanna be just like you!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 90,
+    facing: 'right',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['mittens', 'socks'],
+    likedGifts: ['scarf', 'yarn', 'wool'],
+    giftCooldown: 0
+  },
+  {
+    id: 'gardener',
+    name: 'Mira the Gardener',
+    map: 'village',
+    x: 5,
+    y: 4,
+    color: '#6db7d6',  // blue dress
+    hairColor: '#3a2c1a',
+    dialogue: [
+      "The flowers in Yarnvale bloom brightest after a gentle rain.",
+      "I can teach you about natural dyes if you bring me some berries!",
+      "Every plant has a story. What's your favourite flower?",
+      "If you ever need a bouquet, just ask!"
+    ],
+    friendlyDialogue: [
+      "Thank you for helping with the garden! Here, take these rare seeds.",
+      "You're always so thoughtful. The plants love you!",
+      "Let me show you a secret spot for wild herbs."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 150,
+    facing: 'down',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['flowers', 'berries'],
+    likedGifts: ['yarn', 'scarf'],
+    giftCooldown: 0
+  }
+];
+
+// Friendship levels and rewards
+const FRIENDSHIP_MAX = 100;
+const FRIENDSHIP_LEVELS = [
+  { points: 0, name: 'Stranger' },
+  { points: 20, name: 'Acquaintance' },
+  { points: 50, name: 'Friend' },
+  { points: 80, name: 'Good Friend' },
+  { points: 100, name: 'Best Friend' }
+];
+
+// Rewards given at friendship milestones
+const friendshipRewards = {
+  granny: [
+    { level: 20, reward: { gold: 25 }, message: "Here's a little something for being so kind." },
+    { level: 50, reward: { gold: 50, yarn: 3 }, message: "You've been such a good friend! Take these." },
+    { level: 100, reward: { gold: 100, luxuryYarn: 5 }, message: "My dearest friend! Please accept this gift." }
+  ],
+  merchant: [
+    { level: 20, reward: { gold: 30 }, message: "A bonus for my favourite customer!" },
+    { level: 50, reward: { gold: 75 }, message: "Business partners deserve rewards!" },
+    { level: 100, reward: { gold: 150 }, message: "You're like family now. Here's something special." }
+  ],
+  shepherd: [
+    { level: 20, reward: { wool: 3 }, message: "I collected extra wool for you!" },
+    { level: 50, reward: { wool: 5, goatFur: 3 }, message: "Found these while herding! They're yours!" },
+    { level: 100, reward: { gold: 50, wool: 10, goatFur: 5 }, message: "Best friends share everything!" }
+  ],
+  gardener: [
+    { level: 20, reward: { gold: 20 }, message: "For your kindness to the garden." },
+    { level: 50, reward: { seeds: 5 }, message: "These seeds are rare, plant them well!" },
+    { level: 100, reward: { gold: 100, flowers: 10 }, message: "A token of my deepest gratitude." }
+  ]
+};
+
+// Track which rewards have been claimed
+let claimedRewards = {
+  granny: [],
+  merchant: [],
+  shepherd: [],
+  gardener: []
+};
+
+// ===== NPC REQUEST SYSTEM =====
+// Possible requests NPCs can make
+const possibleRequests = {
+  granny: [
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "Could you make me a warm scarf, dear?" },
+    { item: 'socks', count: 2, gold: 25, friendship: 15, text: "My feet get so cold! Could you make me 2 pairs of socks?" },
+    { item: 'blanket', count: 1, gold: 40, friendship: 20, text: "I'd love a cosy blanket for my chair. Can you make one?" },
+    { item: 'mittens', count: 1, gold: 20, friendship: 12, text: "These old hands need warm mittens. Could you help?" }
+  ],
+  merchant: [
+    { item: 'scarf', count: 2, gold: 30, friendship: 10, text: "I need 2 scarves for a customer order. Can you help?" },
+    { item: 'luxuryScarf', count: 1, gold: 35, friendship: 15, text: "A noble wants a luxury scarf. Big opportunity!" },
+    { item: 'hat', count: 2, gold: 35, friendship: 12, text: "Hats are in fashion! Can you make me 2?" },
+    { item: 'luxuryMittens', count: 1, gold: 30, friendship: 15, text: "I have a buyer for luxury mittens. Interested?" }
+  ],
+  shepherd: [
+    { item: 'yarn', count: 3, gold: 12, friendship: 8, text: "I wanna learn to knit! Can you spare 3 yarn?" },
+    { item: 'socks', count: 1, gold: 12, friendship: 10, text: "My boots have holes... can you make me socks?" },
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "I want a cool scarf like yours! Can you make one?" },
+    { item: 'mittens', count: 1, gold: 18, friendship: 12, text: "Herding sheep in winter is cold! Need mittens please!" }
+  ],
+  gardener: [
+    { item: 'flowers', count: 3, gold: 10, friendship: 8, text: "Could you bring me some flowers? I have a plan for a new garden." },
+    { item: 'berries', count: 5, gold: 15, friendship: 10, text: "I need some fresh berries for dyeing. Can you help?" },
+    { item: 'yarn', count: 2, gold: 12, friendship: 8, text: "Yarn is great for plant ties. Can you spare some?" },
+    { item: 'scarf', count: 1, gold: 20, friendship: 12, text: "A warm scarf would be perfect for the chilly evenings." }
+  ]
+};
+
+// Active requests for each NPC (null = no active request)
+let npcRequests = {
+  granny: null,
+  merchant: null,
+  shepherd: null,
+  gardener: null
+};
+
+// Cooldown before new request appears (in frames, ~60fps)
+let requestCooldowns = {
+  granny: 0,
+  merchant: 0,
+  shepherd: 0,
+  gardener: 0
+};
+
+const REQUEST_COOLDOWN_TIME = 1800; // ~30 seconds between requests
+
+function generateNewRequest(npcId) {
+  const requests = possibleRequests[npcId];
+  if (!requests || requests.length === 0) return null;
+  
+  const request = requests[Math.floor(Math.random() * requests.length)];
+  return { ...request, npcId };
+}
+
+function checkAndGenerateRequests() {
+  for (const npcId of Object.keys(npcRequests)) {
+    // If no active request and cooldown is done, maybe generate one
+    if (!npcRequests[npcId] && requestCooldowns[npcId] <= 0) {
+      // 30% chance each check to generate a request
+      if (Math.random() < 0.3) {
+        npcRequests[npcId] = generateNewRequest(npcId);
+      }
+    }
+    
+    // Decrease cooldown
+    if (requestCooldowns[npcId] > 0) {
+      requestCooldowns[npcId]--;
+    }
+  }
+}
+
+function canFulfillRequest(request) {
+  if (!request) return false;
+  return (inventory[request.item] || 0) >= request.count;
+}
+
+function fulfillRequest(npcId) {
+  const request = npcRequests[npcId];
+  if (!request) return false;
+  
+  if (!canFulfillRequest(request)) {
+    showMessage(`You don't have enough ${getItemDisplayName(request.item)} yet.`);
+    return false;
+  }
+  
+  // Take the items
+  inventory[request.item] -= request.count;
+  
+  // Give rewards
+  inventory.gold += request.gold;
+  
+  // Add friendship
+  const npc = villagers.find(v => v.id === npcId);
+  if (npc) {
+    npc.friendship = Math.min(FRIENDSHIP_MAX, npc.friendship + request.friendship);
+  }
+  
+  // Clear request and start cooldown
+  npcRequests[npcId] = null;
+  requestCooldowns[npcId] = REQUEST_COOLDOWN_TIME;
+  
+  // Show success message
+  const npcName = npc ? npc.name.split(' ')[0] : 'They';
+  showMessage(`${npcName}: "Thank you so much!" (+${request.gold}g, +${request.friendship} friendship)`);
+  
+  if (sounds.sell) sounds.sell.play().catch(() => {});
+}
+
+// =========================
+// CONFIG & MAPS
+// =========================
+// #region CONFIG & MAPS
+    const TILE_SIZE = 32;
+
+    // Tile legend:
+    // 0 grass, 1 path, 2 tree (solid), 3 water (solid), 4 fence (solid),
+    // 5 cottage roof, 6 door, 7 interior wall (solid), 8 interior floor
+    // 9 stone/cobble path, 10 market stall (solid), 11 well (solid)
+    // 12 flower patch, 13 bush (solid), 14 bridge, 15 sign
+    const maps = {
+      overworld: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,6,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Walk right off the map on the path at row 10
+          { edge: 'right', col: 18, toMap: 'village', toX: 1, toY: 8, condition: (y) => y === 10 }
+        ]
+      },
+      cottage: {
+        cols: 9,
+        rows: 7,
+        data: [
+          [7,7,7,7,7,7,7,7,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,6,8,8,8,7],
+          [7,7,7,7,7,7,7,7,7]
+        ]
+      },
+      village: {
+        cols: 19,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,12,0,0,9,9,9,9,9,9,9,9,9,0,0,12,0,2],
+          [2,0,0,0,10,9,9,9,11,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,10,9,9,9,9,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,0,9,9,9,9,9,9,9,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,9,9,9,9,9,0,0,0,0,0,13,0,2],
+          [2,0,0,12,0,0,0,9,9,9,0,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,13,0,0,0,12,0,0,12,0,0,0,13,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on the main path (row 8)
+          { edge: 'left', col: 0, toMap: 'overworld', toX: 17, toY: 11, condition: (y) => y === 8 },
+          // Right: walk off the right edge on the main path (row 8)  
+          { edge: 'right', col: 18, toMap: 'forest', toX: 1, toY: 7, condition: (y) => y === 8 },
+          // Bottom: bridge path at col 8
+          { edge: 'bottom', row: 14, toMap: 'forest', toX: 9, toY: 1, condition: (x) => x === 8 }
+        ]
+      },
+      forest: {
+        cols: 21,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,2,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,2],
+          [2,0,12,0,0,2,0,0,0,1,0,0,12,0,0,0,2,0,12,0,2],
+          [2,2,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,12,0,0,0,0,0,1,0,0,2,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,2,0,0,0,1,0,0,0,0,0,0,0,2,0,0,2],
+          [2,0,12,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,2],
+          [2,0,2,0,0,12,0,0,0,0,0,0,12,0,0,0,0,0,12,0,2],
+          [2,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,2,0,0,0,2],
+          [2,0,0,0,12,0,0,0,0,0,12,0,0,0,0,0,0,0,0,0,2],
+          [2,0,2,0,0,0,0,0,0,2,0,0,0,2,0,0,0,0,2,0,2],
+          [2,0,0,0,0,0,12,0,0,0,0,0,0,0,0,12,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on main path (row 7)
+          { edge: 'left', col: 0, toMap: 'village', toX: 17, toY: 8, condition: (y) => y === 7 },
+          // Top: walk off the top at the path (col 9)
+          { edge: 'top', row: 0, toMap: 'village', toX: 8, toY: 13, condition: (x) => x === 9 }
+        ]
+      }
+    };
+
+const doorTilesByMap = {};
+for (const [name, map] of Object.entries(maps)) {
+  doorTilesByMap[name] = [];
+  for (let row = 0; row < map.rows; row++) {
+    for (let col = 0; col < map.cols; col++) {
+      if (map.data[row][col] === 6) {
+        doorTilesByMap[name].push({ x: col, y: row });
+      }
+    }
+  }
+}
+
+// Static tile layer cache per map to avoid redrawing terrain every frame
+const baseMapCanvases = {};
+
+function invalidateBaseMaps() {
+  Object.keys(baseMapCanvases).forEach(key => delete baseMapCanvases[key]);
+}
+
+function ensureBaseMapCanvas(mapName) {
+  if (baseMapCanvases[mapName]) return baseMapCanvases[mapName];
+  const map = maps[mapName];
+  if (!map) return null;
+
+  const offscreen = document.createElement('canvas');
+  offscreen.width = map.cols * TILE_SIZE;
+  offscreen.height = map.rows * TILE_SIZE;
+  const offCtx = offscreen.getContext('2d');
+  for (let y = 0; y < map.rows; y++) {
+    for (let x = 0; x < map.cols; x++) {
+      drawTile(map.data[y][x], x, y, offCtx);
+    }
+  }
+
+  baseMapCanvases[mapName] = offscreen;
+  return offscreen;
+}
+
+['grass1', 'grass2', 'grass3'].forEach(name => {
+  const asset = artAssets[name];
+  if (asset?.image) {
+    asset.image.addEventListener('load', invalidateBaseMaps);
+  }
+});
+
+// ===== INVENTORY =====
+let inventoryOpen = false;
+
+let inventory = {
+  wool: 0,
+  yarn: 0,
+  luxuryYarn: 0,
+  goatFur: 0,
+  scarf: 0,
+  luxuryScarf: 0,
+  mittens: 0,
+  luxuryMittens: 0,
+  socks: 0,
+  hat: 0,
+  blanket: 0,
+  gold: 0
+};
+
+// ===== CRAFTING MENU =====
+let craftingMenuOpen = false;
+let craftingMenuSelection = 0;
+
+const craftingRecipes = [
+  // --- Material Processing ---
+  {
+    id: 'luxuryYarn',
+    name: 'Luxury Yarn',
+    description: 'Soft blend of wool and goat fur',
+    inputs: { wool: 1, goatFur: 1 },
+    outputs: { luxuryYarn: 2 },
+    color: '#c8a0f0'
+  },
+  {
+    id: 'yarn',
+    name: 'Yarn',
+    description: 'Spin wool into yarn',
+    inputs: { wool: 2 },
+    outputs: { yarn: 1 },
+    color: '#f098c8'
+  },
+  // --- Basic Items ---
+  {
+    id: 'socks',
+    name: 'Socks',
+    description: 'Cosy knitted socks',
+    inputs: { yarn: 2 },
+    outputs: { socks: 1 },
+    sellPrice: 8,
+    color: '#a8d8a8'
+  },
+  {
+    id: 'mittens',
+    name: 'Mittens',
+    description: 'Warm fluffy mittens',
+    inputs: { goatFur: 2 },
+    outputs: { mittens: 1 },
+    sellPrice: 15,
+    color: '#e8d0c0'
+  },
+  {
+    id: 'scarf',
+    name: 'Scarf',
+    description: 'A cosy knitted scarf',
+    inputs: { yarn: 3 },
+    outputs: { scarf: 1 },
+    sellPrice: 10,
+    color: '#f2d27a'
+  },
+  {
+    id: 'hat',
+    name: 'Hat',
+    description: 'A warm woolly hat',
+    inputs: { yarn: 2, wool: 1 },
+    outputs: { hat: 1 },
+    sellPrice: 12,
+    color: '#7eb8e8'
+  },
+  // --- Premium Items ---
+  {
+    id: 'luxuryMittens',
+    name: 'Luxury Mittens',
+    description: 'Silky soft premium mittens',
+    inputs: { luxuryYarn: 2 },
+    outputs: { luxuryMittens: 1 },
+    sellPrice: 20,
+    color: '#e0b8f0'
+  },
+  {
+    id: 'luxuryScarf',
+    name: 'Luxury Scarf',
+    description: 'An exquisite shimmering scarf',
+    inputs: { luxuryYarn: 3 },
+    outputs: { luxuryScarf: 1 },
+    sellPrice: 25,
+    color: '#d8a0f8'
+  },
+  // --- Large Items ---
+  {
+    id: 'blanket',
+    name: 'Blanket',
+    description: 'A large cosy blanket',
+    inputs: { yarn: 4, wool: 2 },
+    outputs: { blanket: 1 },
+    sellPrice: 30,
+    color: '#f0c8a0'
+  }
+];
+
+function canAffordRecipe(recipe) {
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    if ((inventory[item] || 0) < amount) return false;
+  }
+  return true;
+}
+
+function craftRecipe(recipe) {
+  if (!canAffordRecipe(recipe)) return false;
+  
+  // Deduct inputs
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    inventory[item] -= amount;
+  }
+  
+  // Add outputs (with spinning wheel upgrade bonus for yarn)
+  for (const [item, amount] of Object.entries(recipe.outputs)) {
+    let finalAmount = amount;
+    // Spinning Wheel upgrade: double yarn output
+    if (item === 'yarn' && upgrades.spinningWheelUpgrade) {
+      finalAmount = amount * 2;
+    }
+    inventory[item] = (inventory[item] || 0) + finalAmount;
+  }
+  
+  return true;
+}
+
+function getRecipeInputsText(recipe) {
+  return Object.entries(recipe.inputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(' + ');
+}
+
+function getRecipeOutputsText(recipe) {
+  return Object.entries(recipe.outputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(', ');
+}
+
+
+
+
+let message = null;
+let messageExpiryTime = 0; // timestamp when current message should disappear
+
+// One starter sheep in the paddock (overworld)
+const sheep = {
+  map: 'overworld',
+  x: 8,
+  y: 10,
+  hasWool: true,
+  woolTimer: 0 // counts frames until wool grows back
+};
+
+// One goat in the paddock (overworld)
+const goat = {
+  map: 'overworld',
+  x: 12,
+  y: 11,
+  hasFur: true,
+  furTimer: 0
+};
+
+// Knitting spot inside the cottage (must be on a floor tile)
+const knittingSpot = {
+  map: 'cottage',
+  x: 3,
+  y: 4
+};
+
+const marketSpot = {
+  map: 'overworld',
+  x: 13,  // tweak later if you want it somewhere else
+  y: 9
+};
+
+const shopSpot = {
+  map: 'overworld',
+  x: 15,
+  y: 9
+};
+
+// ===== SHOP SYSTEM =====
+let shopOpen = false;
+let shopSelectedIndex = 0;
+
+// ===== NPC DIALOGUE STATE =====
+let dialogueOpen = false;
+let activeNPC = null;
+let dialogueText = '';
+
+// ===== GIFT MENU STATE =====
+let giftMenuOpen = false;
+let giftMenuNPC = null;
+let giftSelectedIndex = 0;
+
+// Upgrades the player has purchased
+let upgrades = {
+  goldenShears: false,      // Faster wool regrowth
+  spinningWheelUpgrade: false, // Bonus yarn when spinning
+  extraSheep: 0,            // Number of extra sheep purchased
+  extraGoat: 0              // Number of extra goats purchased
+};
+
+// Shop items available for purchase
+const shopItems = [
+  {
+    id: 'extraSheep',
+    name: 'Extra Sheep',
+    description: 'A fluffy new sheep for your paddock',
+    price: 50,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#f8f0d8' }
+  },
+  {
+    id: 'extraGoat',
+    name: 'Extra Goat',
+    description: 'A fuzzy goat for more fur',
+    price: 75,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#d6c8b8' }
+  },
+  {
+    id: 'goldenShears',
+    name: 'Golden Shears',
+    description: 'Wool & fur regrows twice as fast',
+    price: 100,
+    type: 'oneTime',
+    icon: { type: 'rect', color: '#f4c945' }
+  },
+  {
+    id: 'spinningWheelUpgrade',
+    name: 'Spinning Wheel+',
+    description: 'Get 2 yarn instead of 1 when spinning',
+    price: 75,
+    type: 'oneTime',
+    icon: { type: 'circle', color: '#f098c8' }
+  }
+];
+
+// ===== VILLAGER NPCs =====
+const villagers = [
+  {
+    id: 'granny',
+    name: 'Granny Willow',
+    map: 'overworld',
+    x: 3,
+    y: 6,
+    color: '#e8b8d8',  // pink-ish dress
+    hairColor: '#d0d0d0',
+    dialogue: [
+      "Oh hello, dear! The yarn you make is simply wonderful.",
+      "Back in my day, we knit everything by hand. No fancy wheels!",
+      "Have you tried making a nice warm blanket? Perfect for cold nights.",
+      "My joints ache when rain is coming. Mark my words!"
+    ],
+    friendlyDialogue: [
+      "You're such a dear friend! Here, take this - I insist.",
+      "My favourite crafter in all of Yarnvale! How lovely to see you.",
+      "You remind me of myself when I was young. So talented!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 180,
+    facing: 'down',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['blanket', 'socks'],
+    likedGifts: ['scarf', 'mittens', 'yarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'merchant',
+    name: 'Felix the Merchant',
+    map: 'overworld',
+    x: 14,
+    y: 10,
+    color: '#8b6914',  // brown coat
+    hairColor: '#4a3728',
+    dialogue: [
+      "Business is good today! Your scarves are selling well in town.",
+      "I hear there's demand for luxury goods. Goat fur fetches a premium!",
+      "The shop has some fine upgrades if you've got the gold.",
+      "Keep up the good work! Quality craftsmanship never goes out of style."
+    ],
+    friendlyDialogue: [
+      "Ah, my favourite business partner! Let me give you a little bonus.",
+      "Your crafts are the talk of the town! People love them.",
+      "I've set aside something special for you, friend."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 120,
+    facing: 'left',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['luxuryScarf', 'hat'],
+    likedGifts: ['scarf', 'luxuryYarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'shepherd',
+    name: 'Young Tom',
+    map: 'overworld',
+    x: 6,
+    y: 9,
+    color: '#7eb87e',  // green shirt
+    hairColor: '#c4a574',
+    dialogue: [
+      "Heya! I love watching the sheep. They're so fluffy!",
+      "Did you know goats are smarter than sheep? It's true!",
+      "I want to have my own farm someday, just like yours.",
+      "The animals seem happy here. You take good care of them!"
+    ],
+    friendlyDialogue: [
+      "You're the coolest! I found something for you while exploring!",
+      "Best friends forever! Here, I want you to have this.",
+      "When I grow up, I wanna be just like you!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 90,
+    facing: 'right',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['mittens', 'socks'],
+    likedGifts: ['scarf', 'yarn', 'wool'],
+    giftCooldown: 0
+  },
+  {
+    id: 'gardener',
+    name: 'Mira the Gardener',
+    map: 'village',
+    x: 5,
+    y: 4,
+    color: '#6db7d6',  // blue dress
+    hairColor: '#3a2c1a',
+    dialogue: [
+      "The flowers in Yarnvale bloom brightest after a gentle rain.",
+      "I can teach you about natural dyes if you bring me some berries!",
+      "Every plant has a story. What's your favourite flower?",
+      "If you ever need a bouquet, just ask!"
+    ],
+    friendlyDialogue: [
+      "Thank you for helping with the garden! Here, take these rare seeds.",
+      "You're always so thoughtful. The plants love you!",
+      "Let me show you a secret spot for wild herbs."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 150,
+    facing: 'down',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['flowers', 'berries'],
+    likedGifts: ['yarn', 'scarf'],
+    giftCooldown: 0
+  }
+];
+
+// Friendship levels and rewards
+const FRIENDSHIP_MAX = 100;
+const FRIENDSHIP_LEVELS = [
+  { points: 0, name: 'Stranger' },
+  { points: 20, name: 'Acquaintance' },
+  { points: 50, name: 'Friend' },
+  { points: 80, name: 'Good Friend' },
+  { points: 100, name: 'Best Friend' }
+];
+
+// Rewards given at friendship milestones
+const friendshipRewards = {
+  granny: [
+    { level: 20, reward: { gold: 25 }, message: "Here's a little something for being so kind." },
+    { level: 50, reward: { gold: 50, yarn: 3 }, message: "You've been such a good friend! Take these." },
+    { level: 100, reward: { gold: 100, luxuryYarn: 5 }, message: "My dearest friend! Please accept this gift." }
+  ],
+  merchant: [
+    { level: 20, reward: { gold: 30 }, message: "A bonus for my favourite customer!" },
+    { level: 50, reward: { gold: 75 }, message: "Business partners deserve rewards!" },
+    { level: 100, reward: { gold: 150 }, message: "You're like family now. Here's something special." }
+  ],
+  shepherd: [
+    { level: 20, reward: { wool: 3 }, message: "I collected extra wool for you!" },
+    { level: 50, reward: { wool: 5, goatFur: 3 }, message: "Found these while herding! They're yours!" },
+    { level: 100, reward: { gold: 50, wool: 10, goatFur: 5 }, message: "Best friends share everything!" }
+  ],
+  gardener: [
+    { level: 20, reward: { gold: 20 }, message: "For your kindness to the garden." },
+    { level: 50, reward: { seeds: 5 }, message: "These seeds are rare, plant them well!" },
+    { level: 100, reward: { gold: 100, flowers: 10 }, message: "A token of my deepest gratitude." }
+  ]
+};
+
+// Track which rewards have been claimed
+let claimedRewards = {
+  granny: [],
+  merchant: [],
+  shepherd: [],
+  gardener: []
+};
+
+// ===== NPC REQUEST SYSTEM =====
+// Possible requests NPCs can make
+const possibleRequests = {
+  granny: [
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "Could you make me a warm scarf, dear?" },
+    { item: 'socks', count: 2, gold: 25, friendship: 15, text: "My feet get so cold! Could you make me 2 pairs of socks?" },
+    { item: 'blanket', count: 1, gold: 40, friendship: 20, text: "I'd love a cosy blanket for my chair. Can you make one?" },
+    { item: 'mittens', count: 1, gold: 20, friendship: 12, text: "These old hands need warm mittens. Could you help?" }
+  ],
+  merchant: [
+    { item: 'scarf', count: 2, gold: 30, friendship: 10, text: "I need 2 scarves for a customer order. Can you help?" },
+    { item: 'luxuryScarf', count: 1, gold: 35, friendship: 15, text: "A noble wants a luxury scarf. Big opportunity!" },
+    { item: 'hat', count: 2, gold: 35, friendship: 12, text: "Hats are in fashion! Can you make me 2?" },
+    { item: 'luxuryMittens', count: 1, gold: 30, friendship: 15, text: "I have a buyer for luxury mittens. Interested?" }
+  ],
+  shepherd: [
+    { item: 'yarn', count: 3, gold: 12, friendship: 8, text: "I wanna learn to knit! Can you spare 3 yarn?" },
+    { item: 'socks', count: 1, gold: 12, friendship: 10, text: "My boots have holes... can you make me socks?" },
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "I want a cool scarf like yours! Can you make one?" },
+    { item: 'mittens', count: 1, gold: 18, friendship: 12, text: "Herding sheep in winter is cold! Need mittens please!" }
+  ],
+  gardener: [
+    { item: 'flowers', count: 3, gold: 10, friendship: 8, text: "Could you bring me some flowers? I have a plan for a new garden." },
+    { item: 'berries', count: 5, gold: 15, friendship: 10, text: "I need some fresh berries for dyeing. Can you help?" },
+    { item: 'yarn', count: 2, gold: 12, friendship: 8, text: "Yarn is great for plant ties. Can you spare some?" },
+    { item: 'scarf', count: 1, gold: 20, friendship: 12, text: "A warm scarf would be perfect for the chilly evenings." }
+  ]
+};
+
+// Active requests for each NPC (null = no active request)
+let npcRequests = {
+  granny: null,
+  merchant: null,
+  shepherd: null,
+  gardener: null
+};
+
+// Cooldown before new request appears (in frames, ~60fps)
+let requestCooldowns = {
+  granny: 0,
+  merchant: 0,
+  shepherd: 0,
+  gardener: 0
+};
+
+const REQUEST_COOLDOWN_TIME = 1800; // ~30 seconds between requests
+
+function generateNewRequest(npcId) {
+  const requests = possibleRequests[npcId];
+  if (!requests || requests.length === 0) return null;
+  
+  const request = requests[Math.floor(Math.random() * requests.length)];
+  return { ...request, npcId };
+}
+
+function checkAndGenerateRequests() {
+  for (const npcId of Object.keys(npcRequests)) {
+    // If no active request and cooldown is done, maybe generate one
+    if (!npcRequests[npcId] && requestCooldowns[npcId] <= 0) {
+      // 30% chance each check to generate a request
+      if (Math.random() < 0.3) {
+        npcRequests[npcId] = generateNewRequest(npcId);
+      }
+    }
+    
+    // Decrease cooldown
+    if (requestCooldowns[npcId] > 0) {
+      requestCooldowns[npcId]--;
+    }
+  }
+}
+
+function canFulfillRequest(request) {
+  if (!request) return false;
+  return (inventory[request.item] || 0) >= request.count;
+}
+
+function fulfillRequest(npcId) {
+  const request = npcRequests[npcId];
+  if (!request) return false;
+  
+  if (!canFulfillRequest(request)) {
+    showMessage(`You don't have enough ${getItemDisplayName(request.item)} yet.`);
+    return false;
+  }
+  
+  // Take the items
+  inventory[request.item] -= request.count;
+  
+  // Give rewards
+  inventory.gold += request.gold;
+  
+  // Add friendship
+  const npc = villagers.find(v => v.id === npcId);
+  if (npc) {
+    npc.friendship = Math.min(FRIENDSHIP_MAX, npc.friendship + request.friendship);
+  }
+  
+  // Clear request and start cooldown
+  npcRequests[npcId] = null;
+  requestCooldowns[npcId] = REQUEST_COOLDOWN_TIME;
+  
+  // Show success message
+  const npcName = npc ? npc.name.split(' ')[0] : 'They';
+  showMessage(`${npcName}: "Thank you so much!" (+${request.gold}g, +${request.friendship} friendship)`);
+  
+  if (sounds.sell) sounds.sell.play().catch(() => {});
+}
+
+// =========================
+// CONFIG & MAPS
+// =========================
+// #region CONFIG & MAPS
+    const TILE_SIZE = 32;
+
+    // Tile legend:
+    // 0 grass, 1 path, 2 tree (solid), 3 water (solid), 4 fence (solid),
+    // 5 cottage roof, 6 door, 7 interior wall (solid), 8 interior floor
+    // 9 stone/cobble path, 10 market stall (solid), 11 well (solid)
+    // 12 flower patch, 13 bush (solid), 14 bridge, 15 sign
+    const maps = {
+      overworld: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,6,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Walk right off the map on the path at row 10
+          { edge: 'right', col: 18, toMap: 'village', toX: 1, toY: 8, condition: (y) => y === 10 }
+        ]
+      },
+      cottage: {
+        cols: 9,
+        rows: 7,
+        data: [
+          [7,7,7,7,7,7,7,7,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,6,8,8,8,7],
+          [7,7,7,7,7,7,7,7,7]
+        ]
+      },
+      village: {
+        cols: 19,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,12,0,0,9,9,9,9,9,9,9,9,9,0,0,12,0,2],
+          [2,0,0,0,10,9,9,9,11,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,10,9,9,9,9,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,0,9,9,9,9,9,9,9,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,9,9,9,9,9,0,0,0,0,0,13,0,2],
+          [2,0,0,12,0,0,0,9,9,9,0,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,13,0,0,0,12,0,0,12,0,0,0,13,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on the main path (row 8)
+          { edge: 'left', col: 0, toMap: 'overworld', toX: 17, toY: 11, condition: (y) => y === 8 },
+          // Right: walk off the right edge on the main path (row 8)  
+          { edge: 'right', col: 18, toMap: 'forest', toX: 1, toY: 7, condition: (y) => y === 8 },
+          // Bottom: bridge path at col 8
+          { edge: 'bottom', row: 14, toMap: 'forest', toX: 9, toY: 1, condition: (x) => x === 8 }
+        ]
+      },
+      forest: {
+        cols: 21,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,2,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,2],
+          [2,0,12,0,0,2,0,0,0,1,0,0,12,0,0,0,2,0,12,0,2],
+          [2,2,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,12,0,0,0,0,0,1,0,0,2,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,2,0,0,0,1,0,0,0,0,0,0,0,2,0,0,2],
+          [2,0,12,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,2],
+          [2,0,2,0,0,12,0,0,0,0,0,0,12,0,0,0,0,0,12,0,2],
+          [2,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,2,0,0,0,2],
+          [2,0,0,0,12,0,0,0,0,0,12,0,0,0,0,0,0,0,0,0,2],
+          [2,0,2,0,0,0,0,0,0,2,0,0,0,2,0,0,0,0,2,0,2],
+          [2,0,0,0,0,0,12,0,0,0,0,0,0,0,0,12,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on main path (row 7)
+          { edge: 'left', col: 0, toMap: 'village', toX: 17, toY: 8, condition: (y) => y === 7 },
+          // Top: walk off the top at the path (col 9)
+          { edge: 'top', row: 0, toMap: 'village', toX: 8, toY: 13, condition: (x) => x === 9 }
+        ]
+      }
+    };
+
+const doorTilesByMap = {};
+for (const [name, map] of Object.entries(maps)) {
+  doorTilesByMap[name] = [];
+  for (let row = 0; row < map.rows; row++) {
+    for (let col = 0; col < map.cols; col++) {
+      if (map.data[row][col] === 6) {
+        doorTilesByMap[name].push({ x: col, y: row });
+      }
+    }
+  }
+}
+
+// Static tile layer cache per map to avoid redrawing terrain every frame
+const baseMapCanvases = {};
+
+function invalidateBaseMaps() {
+  Object.keys(baseMapCanvases).forEach(key => delete baseMapCanvases[key]);
+}
+
+function ensureBaseMapCanvas(mapName) {
+  if (baseMapCanvases[mapName]) return baseMapCanvases[mapName];
+  const map = maps[mapName];
+  if (!map) return null;
+
+  const offscreen = document.createElement('canvas');
+  offscreen.width = map.cols * TILE_SIZE;
+  offscreen.height = map.rows * TILE_SIZE;
+  const offCtx = offscreen.getContext('2d');
+  for (let y = 0; y < map.rows; y++) {
+    for (let x = 0; x < map.cols; x++) {
+      drawTile(map.data[y][x], x, y, offCtx);
+    }
+  }
+
+  baseMapCanvases[mapName] = offscreen;
+  return offscreen;
+}
+
+['grass1', 'grass2', 'grass3'].forEach(name => {
+  const asset = artAssets[name];
+  if (asset?.image) {
+    asset.image.addEventListener('load', invalidateBaseMaps);
+  }
+});
+
+// ===== INVENTORY =====
+let inventoryOpen = false;
+
+let inventory = {
+  wool: 0,
+  yarn: 0,
+  luxuryYarn: 0,
+  goatFur: 0,
+  scarf: 0,
+  luxuryScarf: 0,
+  mittens: 0,
+  luxuryMittens: 0,
+  socks: 0,
+  hat: 0,
+  blanket: 0,
+  gold: 0
+};
+
+// ===== CRAFTING MENU =====
+let craftingMenuOpen = false;
+let craftingMenuSelection = 0;
+
+const craftingRecipes = [
+  // --- Material Processing ---
+  {
+    id: 'luxuryYarn',
+    name: 'Luxury Yarn',
+    description: 'Soft blend of wool and goat fur',
+    inputs: { wool: 1, goatFur: 1 },
+    outputs: { luxuryYarn: 2 },
+    color: '#c8a0f0'
+  },
+  {
+    id: 'yarn',
+    name: 'Yarn',
+    description: 'Spin wool into yarn',
+    inputs: { wool: 2 },
+    outputs: { yarn: 1 },
+    color: '#f098c8'
+  },
+  // --- Basic Items ---
+  {
+    id: 'socks',
+    name: 'Socks',
+    description: 'Cosy knitted socks',
+    inputs: { yarn: 2 },
+    outputs: { socks: 1 },
+    sellPrice: 8,
+    color: '#a8d8a8'
+  },
+  {
+    id: 'mittens',
+    name: 'Mittens',
+    description: 'Warm fluffy mittens',
+    inputs: { goatFur: 2 },
+    outputs: { mittens: 1 },
+    sellPrice: 15,
+    color: '#e8d0c0'
+  },
+  {
+    id: 'scarf',
+    name: 'Scarf',
+    description: 'A cosy knitted scarf',
+    inputs: { yarn: 3 },
+    outputs: { scarf: 1 },
+    sellPrice: 10,
+    color: '#f2d27a'
+  },
+  {
+    id: 'hat',
+    name: 'Hat',
+    description: 'A warm woolly hat',
+    inputs: { yarn: 2, wool: 1 },
+    outputs: { hat: 1 },
+    sellPrice: 12,
+    color: '#7eb8e8'
+  },
+  // --- Premium Items ---
+  {
+    id: 'luxuryMittens',
+    name: 'Luxury Mittens',
+    description: 'Silky soft premium mittens',
+    inputs: { luxuryYarn: 2 },
+    outputs: { luxuryMittens: 1 },
+    sellPrice: 20,
+    color: '#e0b8f0'
+  },
+  {
+    id: 'luxuryScarf',
+    name: 'Luxury Scarf',
+    description: 'An exquisite shimmering scarf',
+    inputs: { luxuryYarn: 3 },
+    outputs: { luxuryScarf: 1 },
+    sellPrice: 25,
+    color: '#d8a0f8'
+  },
+  // --- Large Items ---
+  {
+    id: 'blanket',
+    name: 'Blanket',
+    description: 'A large cosy blanket',
+    inputs: { yarn: 4, wool: 2 },
+    outputs: { blanket: 1 },
+    sellPrice: 30,
+    color: '#f0c8a0'
+  }
+];
+
+function canAffordRecipe(recipe) {
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    if ((inventory[item] || 0) < amount) return false;
+  }
+  return true;
+}
+
+function craftRecipe(recipe) {
+  if (!canAffordRecipe(recipe)) return false;
+  
+  // Deduct inputs
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    inventory[item] -= amount;
+  }
+  
+  // Add outputs (with spinning wheel upgrade bonus for yarn)
+  for (const [item, amount] of Object.entries(recipe.outputs)) {
+    let finalAmount = amount;
+    // Spinning Wheel upgrade: double yarn output
+    if (item === 'yarn' && upgrades.spinningWheelUpgrade) {
+      finalAmount = amount * 2;
+    }
+    inventory[item] = (inventory[item] || 0) + finalAmount;
+  }
+  
+  return true;
+}
+
+function getRecipeInputsText(recipe) {
+  return Object.entries(recipe.inputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(' + ');
+}
+
+function getRecipeOutputsText(recipe) {
+  return Object.entries(recipe.outputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(', ');
+}
+
+
+
+
+let message = null;
+let messageExpiryTime = 0; // timestamp when current message should disappear
+
+// One starter sheep in the paddock (overworld)
+const sheep = {
+  map: 'overworld',
+  x: 8,
+  y: 10,
+  hasWool: true,
+  woolTimer: 0 // counts frames until wool grows back
+};
+
+// One goat in the paddock (overworld)
+const goat = {
+  map: 'overworld',
+  x: 12,
+  y: 11,
+  hasFur: true,
+  furTimer: 0
+};
+
+// Knitting spot inside the cottage (must be on a floor tile)
+const knittingSpot = {
+  map: 'cottage',
+  x: 3,
+  y: 4
+};
+
+const marketSpot = {
+  map: 'overworld',
+  x: 13,  // tweak later if you want it somewhere else
+  y: 9
+};
+
+const shopSpot = {
+  map: 'overworld',
+  x: 15,
+  y: 9
+};
+
+// ===== SHOP SYSTEM =====
+let shopOpen = false;
+let shopSelectedIndex = 0;
+
+// ===== NPC DIALOGUE STATE =====
+let dialogueOpen = false;
+let activeNPC = null;
+let dialogueText = '';
+
+// ===== GIFT MENU STATE =====
+let giftMenuOpen = false;
+let giftMenuNPC = null;
+let giftSelectedIndex = 0;
+
+// Upgrades the player has purchased
+let upgrades = {
+  goldenShears: false,      // Faster wool regrowth
+  spinningWheelUpgrade: false, // Bonus yarn when spinning
+  extraSheep: 0,            // Number of extra sheep purchased
+  extraGoat: 0              // Number of extra goats purchased
+};
+
+// Shop items available for purchase
+const shopItems = [
+  {
+    id: 'extraSheep',
+    name: 'Extra Sheep',
+    description: 'A fluffy new sheep for your paddock',
+    price: 50,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#f8f0d8' }
+  },
+  {
+    id: 'extraGoat',
+    name: 'Extra Goat',
+    description: 'A fuzzy goat for more fur',
+    price: 75,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#d6c8b8' }
+  },
+  {
+    id: 'goldenShears',
+    name: 'Golden Shears',
+    description: 'Wool & fur regrows twice as fast',
+    price: 100,
+    type: 'oneTime',
+    icon: { type: 'rect', color: '#f4c945' }
+  },
+  {
+    id: 'spinningWheelUpgrade',
+    name: 'Spinning Wheel+',
+    description: 'Get 2 yarn instead of 1 when spinning',
+    price: 75,
+    type: 'oneTime',
+    icon: { type: 'circle', color: '#f098c8' }
+  }
+];
+
+// ===== VILLAGER NPCs =====
+const villagers = [
+  {
+    id: 'granny',
+    name: 'Granny Willow',
+    map: 'overworld',
+    x: 3,
+    y: 6,
+    color: '#e8b8d8',  // pink-ish dress
+    hairColor: '#d0d0d0',
+    dialogue: [
+      "Oh hello, dear! The yarn you make is simply wonderful.",
+      "Back in my day, we knit everything by hand. No fancy wheels!",
+      "Have you tried making a nice warm blanket? Perfect for cold nights.",
+      "My joints ache when rain is coming. Mark my words!"
+    ],
+    friendlyDialogue: [
+      "You're such a dear friend! Here, take this - I insist.",
+      "My favourite crafter in all of Yarnvale! How lovely to see you.",
+      "You remind me of myself when I was young. So talented!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 180,
+    facing: 'down',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['blanket', 'socks'],
+    likedGifts: ['scarf', 'mittens', 'yarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'merchant',
+    name: 'Felix the Merchant',
+    map: 'overworld',
+    x: 14,
+    y: 10,
+    color: '#8b6914',  // brown coat
+    hairColor: '#4a3728',
+    dialogue: [
+      "Business is good today! Your scarves are selling well in town.",
+      "I hear there's demand for luxury goods. Goat fur fetches a premium!",
+      "The shop has some fine upgrades if you've got the gold.",
+      "Keep up the good work! Quality craftsmanship never goes out of style."
+    ],
+    friendlyDialogue: [
+      "Ah, my favourite business partner! Let me give you a little bonus.",
+      "Your crafts are the talk of the town! People love them.",
+      "I've set aside something special for you, friend."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 120,
+    facing: 'left',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['luxuryScarf', 'hat'],
+    likedGifts: ['scarf', 'luxuryYarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'shepherd',
+    name: 'Young Tom',
+    map: 'overworld',
+    x: 6,
+    y: 9,
+    color: '#7eb87e',  // green shirt
+    hairColor: '#c4a574',
+    dialogue: [
+      "Heya! I love watching the sheep. They're so fluffy!",
+      "Did you know goats are smarter than sheep? It's true!",
+      "I want to have my own farm someday, just like yours.",
+      "The animals seem happy here. You take good care of them!"
+    ],
+    friendlyDialogue: [
+      "You're the coolest! I found something for you while exploring!",
+      "Best friends forever! Here, I want you to have this.",
+      "When I grow up, I wanna be just like you!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 90,
+    facing: 'right',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['mittens', 'socks'],
+    likedGifts: ['scarf', 'yarn', 'wool'],
+    giftCooldown: 0
+  },
+  {
+    id: 'gardener',
+    name: 'Mira the Gardener',
+    map: 'village',
+    x: 5,
+    y: 4,
+    color: '#6db7d6',  // blue dress
+    hairColor: '#3a2c1a',
+    dialogue: [
+      "The flowers in Yarnvale bloom brightest after a gentle rain.",
+      "I can teach you about natural dyes if you bring me some berries!",
+      "Every plant has a story. What's your favourite flower?",
+      "If you ever need a bouquet, just ask!"
+    ],
+    friendlyDialogue: [
+      "Thank you for helping with the garden! Here, take these rare seeds.",
+      "You're always so thoughtful. The plants love you!",
+      "Let me show you a secret spot for wild herbs."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 150,
+    facing: 'down',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['flowers', 'berries'],
+    likedGifts: ['yarn', 'scarf'],
+    giftCooldown: 0
+  }
+];
+
+// Friendship levels and rewards
+const FRIENDSHIP_MAX = 100;
+const FRIENDSHIP_LEVELS = [
+  { points: 0, name: 'Stranger' },
+  { points: 20, name: 'Acquaintance' },
+  { points: 50, name: 'Friend' },
+  { points: 80, name: 'Good Friend' },
+  { points: 100, name: 'Best Friend' }
+];
+
+// Rewards given at friendship milestones
+const friendshipRewards = {
+  granny: [
+    { level: 20, reward: { gold: 25 }, message: "Here's a little something for being so kind." },
+    { level: 50, reward: { gold: 50, yarn: 3 }, message: "You've been such a good friend! Take these." },
+    { level: 100, reward: { gold: 100, luxuryYarn: 5 }, message: "My dearest friend! Please accept this gift." }
+  ],
+  merchant: [
+    { level: 20, reward: { gold: 30 }, message: "A bonus for my favourite customer!" },
+    { level: 50, reward: { gold: 75 }, message: "Business partners deserve rewards!" },
+    { level: 100, reward: { gold: 150 }, message: "You're like family now. Here's something special." }
+  ],
+  shepherd: [
+    { level: 20, reward: { wool: 3 }, message: "I collected extra wool for you!" },
+    { level: 50, reward: { wool: 5, goatFur: 3 }, message: "Found these while herding! They're yours!" },
+    { level: 100, reward: { gold: 50, wool: 10, goatFur: 5 }, message: "Best friends share everything!" }
+  ],
+  gardener: [
+    { level: 20, reward: { gold: 20 }, message: "For your kindness to the garden." },
+    { level: 50, reward: { seeds: 5 }, message: "These seeds are rare, plant them well!" },
+    { level: 100, reward: { gold: 100, flowers: 10 }, message: "A token of my deepest gratitude." }
+  ]
+};
+
+// Track which rewards have been claimed
+let claimedRewards = {
+  granny: [],
+  merchant: [],
+  shepherd: [],
+  gardener: []
+};
+
+// ===== NPC REQUEST SYSTEM =====
+// Possible requests NPCs can make
+const possibleRequests = {
+  granny: [
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "Could you make me a warm scarf, dear?" },
+    { item: 'socks', count: 2, gold: 25, friendship: 15, text: "My feet get so cold! Could you make me 2 pairs of socks?" },
+    { item: 'blanket', count: 1, gold: 40, friendship: 20, text: "I'd love a cosy blanket for my chair. Can you make one?" },
+    { item: 'mittens', count: 1, gold: 20, friendship: 12, text: "These old hands need warm mittens. Could you help?" }
+  ],
+  merchant: [
+    { item: 'scarf', count: 2, gold: 30, friendship: 10, text: "I need 2 scarves for a customer order. Can you help?" },
+    { item: 'luxuryScarf', count: 1, gold: 35, friendship: 15, text: "A noble wants a luxury scarf. Big opportunity!" },
+    { item: 'hat', count: 2, gold: 35, friendship: 12, text: "Hats are in fashion! Can you make me 2?" },
+    { item: 'luxuryMittens', count: 1, gold: 30, friendship: 15, text: "I have a buyer for luxury mittens. Interested?" }
+  ],
+  shepherd: [
+    { item: 'yarn', count: 3, gold: 12, friendship: 8, text: "I wanna learn to knit! Can you spare 3 yarn?" },
+    { item: 'socks', count: 1, gold: 12, friendship: 10, text: "My boots have holes... can you make me socks?" },
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "I want a cool scarf like yours! Can you make one?" },
+    { item: 'mittens', count: 1, gold: 18, friendship: 12, text: "Herding sheep in winter is cold! Need mittens please!" }
+  ],
+  gardener: [
+    { item: 'flowers', count: 3, gold: 10, friendship: 8, text: "Could you bring me some flowers? I have a plan for a new garden." },
+    { item: 'berries', count: 5, gold: 15, friendship: 10, text: "I need some fresh berries for dyeing. Can you help?" },
+    { item: 'yarn', count: 2, gold: 12, friendship: 8, text: "Yarn is great for plant ties. Can you spare some?" },
+    { item: 'scarf', count: 1, gold: 20, friendship: 12, text: "A warm scarf would be perfect for the chilly evenings." }
+  ]
+};
+
+// Active requests for each NPC (null = no active request)
+let npcRequests = {
+  granny: null,
+  merchant: null,
+  shepherd: null,
+  gardener: null
+};
+
+// Cooldown before new request appears (in frames, ~60fps)
+let requestCooldowns = {
+  granny: 0,
+  merchant: 0,
+  shepherd: 0,
+  gardener: 0
+};
+
+const REQUEST_COOLDOWN_TIME = 1800; // ~30 seconds between requests
+
+function generateNewRequest(npcId) {
+  const requests = possibleRequests[npcId];
+  if (!requests || requests.length === 0) return null;
+  
+  const request = requests[Math.floor(Math.random() * requests.length)];
+  return { ...request, npcId };
+}
+
+function checkAndGenerateRequests() {
+  for (const npcId of Object.keys(npcRequests)) {
+    // If no active request and cooldown is done, maybe generate one
+    if (!npcRequests[npcId] && requestCooldowns[npcId] <= 0) {
+      // 30% chance each check to generate a request
+      if (Math.random() < 0.3) {
+        npcRequests[npcId] = generateNewRequest(npcId);
+      }
+    }
+    
+    // Decrease cooldown
+    if (requestCooldowns[npcId] > 0) {
+      requestCooldowns[npcId]--;
+    }
+  }
+}
+
+function canFulfillRequest(request) {
+  if (!request) return false;
+  return (inventory[request.item] || 0) >= request.count;
+}
+
+function fulfillRequest(npcId) {
+  const request = npcRequests[npcId];
+  if (!request) return false;
+  
+  if (!canFulfillRequest(request)) {
+    showMessage(`You don't have enough ${getItemDisplayName(request.item)} yet.`);
+    return false;
+  }
+  
+  // Take the items
+  inventory[request.item] -= request.count;
+  
+  // Give rewards
+  inventory.gold += request.gold;
+  
+  // Add friendship
+  const npc = villagers.find(v => v.id === npcId);
+  if (npc) {
+    npc.friendship = Math.min(FRIENDSHIP_MAX, npc.friendship + request.friendship);
+  }
+  
+  // Clear request and start cooldown
+  npcRequests[npcId] = null;
+  requestCooldowns[npcId] = REQUEST_COOLDOWN_TIME;
+  
+  // Show success message
+  const npcName = npc ? npc.name.split(' ')[0] : 'They';
+  showMessage(`${npcName}: "Thank you so much!" (+${request.gold}g, +${request.friendship} friendship)`);
+  
+  if (sounds.sell) sounds.sell.play().catch(() => {});
+}
+
+// =========================
+// CONFIG & MAPS
+// =========================
+// #region CONFIG & MAPS
+    const TILE_SIZE = 32;
+
+    // Tile legend:
+    // 0 grass, 1 path, 2 tree (solid), 3 water (solid), 4 fence (solid),
+    // 5 cottage roof, 6 door, 7 interior wall (solid), 8 interior floor
+    // 9 stone/cobble path, 10 market stall (solid), 11 well (solid)
+    // 12 flower patch, 13 bush (solid), 14 bridge, 15 sign
+    const maps = {
+      overworld: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,6,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Walk right off the map on the path at row 10
+          { edge: 'right', col: 18, toMap: 'village', toX: 1, toY: 8, condition: (y) => y === 10 }
+        ]
+      },
+      cottage: {
+        cols: 9,
+        rows: 7,
+        data: [
+          [7,7,7,7,7,7,7,7,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,6,8,8,8,7],
+          [7,7,7,7,7,7,7,7,7]
+        ]
+      },
+      village: {
+        cols: 19,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,12,0,0,9,9,9,9,9,9,9,9,9,0,0,12,0,2],
+          [2,0,0,0,10,9,9,9,11,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,10,9,9,9,9,9,9,9,10,0,0,0,0,0,2],
+          [2,0,0,0,0,9,9,9,9,9,9,9,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,9,9,9,9,9,0,0,0,0,0,13,0,2],
+          [2,0,0,12,0,0,0,9,9,9,0,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,13,0,0,0,12,0,0,12,0,0,0,13,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,0,0,0,0,3,3,14,14,14,3,3,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on the main path (row 8)
+          { edge: 'left', col: 0, toMap: 'overworld', toX: 17, toY: 11, condition: (y) => y === 8 },
+          // Right: walk off the right edge on the main path (row 8)  
+          { edge: 'right', col: 18, toMap: 'forest', toX: 1, toY: 7, condition: (y) => y === 8 },
+          // Bottom: bridge path at col 8
+          { edge: 'bottom', row: 14, toMap: 'forest', toX: 9, toY: 1, condition: (x) => x === 8 }
+        ]
+      },
+      forest: {
+        cols: 21,
+        rows: 15,
+        data: [
+          [2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,2,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,2],
+          [2,0,12,0,0,2,0,0,0,1,0,0,12,0,0,0,2,0,12,0,2],
+          [2,2,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,12,0,0,0,0,0,1,0,0,2,0,0,12,0,0,0,0,2],
+          [2,0,0,0,0,2,0,0,0,1,0,0,0,0,0,0,0,2,0,0,2],
+          [2,0,12,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,2],
+          [2,0,2,0,0,12,0,0,0,0,0,0,12,0,0,0,0,0,12,0,2],
+          [2,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,2,0,0,0,2],
+          [2,0,0,0,12,0,0,0,0,0,12,0,0,0,0,0,0,0,0,0,2],
+          [2,0,2,0,0,0,0,0,0,2,0,0,0,2,0,0,0,0,2,0,2],
+          [2,0,0,0,0,0,12,0,0,0,0,0,0,0,0,12,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Left: walk off the left edge on main path (row 7)
+          { edge: 'left', col: 0, toMap: 'village', toX: 17, toY: 8, condition: (y) => y === 7 },
+          // Top: walk off the top at the path (col 9)
+          { edge: 'top', row: 0, toMap: 'village', toX: 8, toY: 13, condition: (x) => x === 9 }
+        ]
+      }
+    };
+
+const doorTilesByMap = {};
+for (const [name, map] of Object.entries(maps)) {
+  doorTilesByMap[name] = [];
+  for (let row = 0; row < map.rows; row++) {
+    for (let col = 0; col < map.cols; col++) {
+      if (map.data[row][col] === 6) {
+        doorTilesByMap[name].push({ x: col, y: row });
+      }
+    }
+  }
+}
+
+// Static tile layer cache per map to avoid redrawing terrain every frame
+const baseMapCanvases = {};
+
+function invalidateBaseMaps() {
+  Object.keys(baseMapCanvases).forEach(key => delete baseMapCanvases[key]);
+}
+
+function ensureBaseMapCanvas(mapName) {
+  if (baseMapCanvases[mapName]) return baseMapCanvases[mapName];
+  const map = maps[mapName];
+  if (!map) return null;
+
+  const offscreen = document.createElement('canvas');
+  offscreen.width = map.cols * TILE_SIZE;
+  offscreen.height = map.rows * TILE_SIZE;
+  const offCtx = offscreen.getContext('2d');
+  for (let y = 0; y < map.rows; y++) {
+    for (let x = 0; x < map.cols; x++) {
+      drawTile(map.data[y][x], x, y, offCtx);
+    }
+  }
+
+  baseMapCanvases[mapName] = offscreen;
+  return offscreen;
+}
+
+['grass1', 'grass2', 'grass3'].forEach(name => {
+  const asset = artAssets[name];
+  if (asset?.image) {
+    asset.image.addEventListener('load', invalidateBaseMaps);
+  }
+});
+
+// ===== INVENTORY =====
+let inventoryOpen = false;
+
+let inventory = {
+  wool: 0,
+  yarn: 0,
+  luxuryYarn: 0,
+  goatFur: 0,
+  scarf: 0,
+  luxuryScarf: 0,
+  mittens: 0,
+  luxuryMittens: 0,
+  socks: 0,
+  hat: 0,
+  blanket: 0,
+  gold: 0
+};
+
+// ===== CRAFTING MENU =====
+let craftingMenuOpen = false;
+let craftingMenuSelection = 0;
+
+const craftingRecipes = [
+  // --- Material Processing ---
+  {
+    id: 'luxuryYarn',
+    name: 'Luxury Yarn',
+    description: 'Soft blend of wool and goat fur',
+    inputs: { wool: 1, goatFur: 1 },
+    outputs: { luxuryYarn: 2 },
+    color: '#c8a0f0'
+  },
+  {
+    id: 'yarn',
+    name: 'Yarn',
+    description: 'Spin wool into yarn',
+    inputs: { wool: 2 },
+    outputs: { yarn: 1 },
+    color: '#f098c8'
+  },
+  // --- Basic Items ---
+  {
+    id: 'socks',
+    name: 'Socks',
+    description: 'Cosy knitted socks',
+    inputs: { yarn: 2 },
+    outputs: { socks: 1 },
+    sellPrice: 8,
+    color: '#a8d8a8'
+  },
+  {
+    id: 'mittens',
+    name: 'Mittens',
+    description: 'Warm fluffy mittens',
+    inputs: { goatFur: 2 },
+    outputs: { mittens: 1 },
+    sellPrice: 15,
+    color: '#e8d0c0'
+  },
+  {
+    id: 'scarf',
+    name: 'Scarf',
+    description: 'A cosy knitted scarf',
+    inputs: { yarn: 3 },
+    outputs: { scarf: 1 },
+    sellPrice: 10,
+    color: '#f2d27a'
+  },
+  {
+    id: 'hat',
+    name: 'Hat',
+    description: 'A warm woolly hat',
+    inputs: { yarn: 2, wool: 1 },
+    outputs: { hat: 1 },
+    sellPrice: 12,
+    color: '#7eb8e8'
+  },
+  // --- Premium Items ---
+  {
+    id: 'luxuryMittens',
+    name: 'Luxury Mittens',
+    description: 'Silky soft premium mittens',
+    inputs: { luxuryYarn: 2 },
+    outputs: { luxuryMittens: 1 },
+    sellPrice: 20,
+    color: '#e0b8f0'
+  },
+  {
+    id: 'luxuryScarf',
+    name: 'Luxury Scarf',
+    description: 'An exquisite shimmering scarf',
+    inputs: { luxuryYarn: 3 },
+    outputs: { luxuryScarf: 1 },
+    sellPrice: 25,
+    color: '#d8a0f8'
+  },
+  // --- Large Items ---
+  {
+    id: 'blanket',
+    name: 'Blanket',
+    description: 'A large cosy blanket',
+    inputs: { yarn: 4, wool: 2 },
+    outputs: { blanket: 1 },
+    sellPrice: 30,
+    color: '#f0c8a0'
+  }
+];
+
+function canAffordRecipe(recipe) {
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    if ((inventory[item] || 0) < amount) return false;
+  }
+  return true;
+}
+
+function craftRecipe(recipe) {
+  if (!canAffordRecipe(recipe)) return false;
+  
+  // Deduct inputs
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    inventory[item] -= amount;
+  }
+  
+  // Add outputs (with spinning wheel upgrade bonus for yarn)
+  for (const [item, amount] of Object.entries(recipe.outputs)) {
+    let finalAmount = amount;
+    // Spinning Wheel upgrade: double yarn output
+    if (item === 'yarn' && upgrades.spinningWheelUpgrade) {
+      finalAmount = amount * 2;
+    }
+    inventory[item] = (inventory[item] || 0) + finalAmount;
+  }
+  
+  return true;
+}
+
+function getRecipeInputsText(recipe) {
+  return Object.entries(recipe.inputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(' + ');
+}
+
+function getRecipeOutputsText(recipe) {
+  return Object.entries(recipe.outputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(', ');
+}
+
+
+
+
+let message = null;
+let messageExpiryTime = 0; // timestamp when current message should disappear
+
+// One starter sheep in the paddock (overworld)
+const sheep = {
+  map: 'overworld',
+  x: 8,
+  y: 10,
+  hasWool: true,
+  woolTimer: 0 // counts frames until wool grows back
+};
+
+// One goat in the paddock (overworld)
+const goat = {
+  map: 'overworld',
+  x: 12,
+  y: 11,
+  hasFur: true,
+  furTimer: 0
+};
+
+// Knitting spot inside the cottage (must be on a floor tile)
+const knittingSpot = {
+  map: 'cottage',
+  x: 3,
+  y: 4
+};
+
+const marketSpot = {
+  map: 'overworld',
+  x: 13,  // tweak later if you want it somewhere else
+  y: 9
+};
+
+const shopSpot = {
+  map: 'overworld',
+  x: 15,
+  y: 9
+};
+
+// ===== SHOP SYSTEM =====
+let shopOpen = false;
+let shopSelectedIndex = 0;
+
+// ===== NPC DIALOGUE STATE =====
+let dialogueOpen = false;
+let activeNPC = null;
+let dialogueText = '';
+
+// ===== GIFT MENU STATE =====
+let giftMenuOpen = false;
+let giftMenuNPC = null;
+let giftSelectedIndex = 0;
+
+// Upgrades the player has purchased
+let upgrades = {
+  goldenShears: false,      // Faster wool regrowth
+  spinningWheelUpgrade: false, // Bonus yarn when spinning
+  extraSheep: 0,            // Number of extra sheep purchased
+  extraGoat: 0              // Number of extra goats purchased
+};
+
+// Shop items available for purchase
+const shopItems = [
+  {
+    id: 'extraSheep',
+    name: 'Extra Sheep',
+    description: 'A fluffy new sheep for your paddock',
+    price: 50,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#f8f0d8' }
+  },
+  {
+    id: 'extraGoat',
+    name: 'Extra Goat',
+    description: 'A fuzzy goat for more fur',
+    price: 75,
+    type: 'repeatable',
+    icon: { type: 'circle', color: '#d6c8b8' }
+  },
+  {
+    id: 'goldenShears',
+    name: 'Golden Shears',
+    description: 'Wool & fur regrows twice as fast',
+    price: 100,
+    type: 'oneTime',
+    icon: { type: 'rect', color: '#f4c945' }
+  },
+  {
+    id: 'spinningWheelUpgrade',
+    name: 'Spinning Wheel+',
+    description: 'Get 2 yarn instead of 1 when spinning',
+    price: 75,
+    type: 'oneTime',
+    icon: { type: 'circle', color: '#f098c8' }
+  }
+];
+
+// ===== VILLAGER NPCs =====
+const villagers = [
+  {
+    id: 'granny',
+    name: 'Granny Willow',
+    map: 'overworld',
+    x: 3,
+    y: 6,
+    color: '#e8b8d8',  // pink-ish dress
+    hairColor: '#d0d0d0',
+    dialogue: [
+      "Oh hello, dear! The yarn you make is simply wonderful.",
+      "Back in my day, we knit everything by hand. No fancy wheels!",
+      "Have you tried making a nice warm blanket? Perfect for cold nights.",
+      "My joints ache when rain is coming. Mark my words!"
+    ],
+    friendlyDialogue: [
+      "You're such a dear friend! Here, take this - I insist.",
+      "My favourite crafter in all of Yarnvale! How lovely to see you.",
+      "You remind me of myself when I was young. So talented!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 180,
+    facing: 'down',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['blanket', 'socks'],
+    likedGifts: ['scarf', 'mittens', 'yarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'merchant',
+    name: 'Felix the Merchant',
+    map: 'overworld',
+    x: 14,
+    y: 10,
+    color: '#8b6914',  // brown coat
+    hairColor: '#4a3728',
+    dialogue: [
+      "Business is good today! Your scarves are selling well in town.",
+      "I hear there's demand for luxury goods. Goat fur fetches a premium!",
+      "The shop has some fine upgrades if you've got the gold.",
+      "Keep up the good work! Quality craftsmanship never goes out of style."
+    ],
+    friendlyDialogue: [
+      "Ah, my favourite business partner! Let me give you a little bonus.",
+      "Your crafts are the talk of the town! People love them.",
+      "I've set aside something special for you, friend."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 120,
+    facing: 'left',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['luxuryScarf', 'hat'],
+    likedGifts: ['scarf', 'luxuryYarn'],
+    giftCooldown: 0
+  },
+  {
+    id: 'shepherd',
+    name: 'Young Tom',
+    map: 'overworld',
+    x: 6,
+    y: 9,
+    color: '#7eb87e',  // green shirt
+    hairColor: '#c4a574',
+    dialogue: [
+      "Heya! I love watching the sheep. They're so fluffy!",
+      "Did you know goats are smarter than sheep? It's true!",
+      "I want to have my own farm someday, just like yours.",
+      "The animals seem happy here. You take good care of them!"
+    ],
+    friendlyDialogue: [
+      "You're the coolest! I found something for you while exploring!",
+      "Best friends forever! Here, I want you to have this.",
+      "When I grow up, I wanna be just like you!"
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 90,
+    facing: 'right',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['mittens', 'socks'],
+    likedGifts: ['scarf', 'yarn', 'wool'],
+    giftCooldown: 0
+  },
+  {
+    id: 'gardener',
+    name: 'Mira the Gardener',
+    map: 'village',
+    x: 5,
+    y: 4,
+    color: '#6db7d6',  // blue dress
+    hairColor: '#3a2c1a',
+    dialogue: [
+      "The flowers in Yarnvale bloom brightest after a gentle rain.",
+      "I can teach you about natural dyes if you bring me some berries!",
+      "Every plant has a story. What's your favourite flower?",
+      "If you ever need a bouquet, just ask!"
+    ],
+    friendlyDialogue: [
+      "Thank you for helping with the garden! Here, take these rare seeds.",
+      "You're always so thoughtful. The plants love you!",
+      "Let me show you a secret spot for wild herbs."
+    ],
+    dialogueIndex: 0,
+    moveTimer: 0,
+    moveInterval: 150,
+    facing: 'down',
+    // Friendship system
+    friendship: 0,
+    lovedGifts: ['flowers', 'berries'],
+    likedGifts: ['yarn', 'scarf'],
+    giftCooldown: 0
+  }
+];
+
+// Friendship levels and rewards
+const FRIENDSHIP_MAX = 100;
+const FRIENDSHIP_LEVELS = [
+  { points: 0, name: 'Stranger' },
+  { points: 20, name: 'Acquaintance' },
+  { points: 50, name: 'Friend' },
+  { points: 80, name: 'Good Friend' },
+  { points: 100, name: 'Best Friend' }
+];
+
+// Rewards given at friendship milestones
+const friendshipRewards = {
+  granny: [
+    { level: 20, reward: { gold: 25 }, message: "Here's a little something for being so kind." },
+    { level: 50, reward: { gold: 50, yarn: 3 }, message: "You've been such a good friend! Take these." },
+    { level: 100, reward: { gold: 100, luxuryYarn: 5 }, message: "My dearest friend! Please accept this gift." }
+  ],
+  merchant: [
+    { level: 20, reward: { gold: 30 }, message: "A bonus for my favourite customer!" },
+    { level: 50, reward: { gold: 75 }, message: "Business partners deserve rewards!" },
+    { level: 100, reward: { gold: 150 }, message: "You're like family now. Here's something special." }
+  ],
+  shepherd: [
+    { level: 20, reward: { wool: 3 }, message: "I collected extra wool for you!" },
+    { level: 50, reward: { wool: 5, goatFur: 3 }, message: "Found these while herding! They're yours!" },
+    { level: 100, reward: { gold: 50, wool: 10, goatFur: 5 }, message: "Best friends share everything!" }
+  ],
+  gardener: [
+    { level: 20, reward: { gold: 20 }, message: "For your kindness to the garden." },
+    { level: 50, reward: { seeds: 5 }, message: "These seeds are rare, plant them well!" },
+    { level: 100, reward: { gold: 100, flowers: 10 }, message: "A token of my deepest gratitude." }
+  ]
+};
+
+// Track which rewards have been claimed
+let claimedRewards = {
+  granny: [],
+  merchant: [],
+  shepherd: [],
+  gardener: []
+};
+
+// ===== NPC REQUEST SYSTEM =====
+// Possible requests NPCs can make
+const possibleRequests = {
+  granny: [
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "Could you make me a warm scarf, dear?" },
+    { item: 'socks', count: 2, gold: 25, friendship: 15, text: "My feet get so cold! Could you make me 2 pairs of socks?" },
+    { item: 'blanket', count: 1, gold: 40, friendship: 20, text: "I'd love a cosy blanket for my chair. Can you make one?" },
+    { item: 'mittens', count: 1, gold: 20, friendship: 12, text: "These old hands need warm mittens. Could you help?" }
+  ],
+  merchant: [
+    { item: 'scarf', count: 2, gold: 30, friendship: 10, text: "I need 2 scarves for a customer order. Can you help?" },
+    { item: 'luxuryScarf', count: 1, gold: 35, friendship: 15, text: "A noble wants a luxury scarf. Big opportunity!" },
+    { item: 'hat', count: 2, gold: 35, friendship: 12, text: "Hats are in fashion! Can you make me 2?" },
+    { item: 'luxuryMittens', count: 1, gold: 30, friendship: 15, text: "I have a buyer for luxury mittens. Interested?" }
+  ],
+  shepherd: [
+    { item: 'yarn', count: 3, gold: 12, friendship: 8, text: "I wanna learn to knit! Can you spare 3 yarn?" },
+    { item: 'socks', count: 1, gold: 12, friendship: 10, text: "My boots have holes... can you make me socks?" },
+    { item: 'scarf', count: 1, gold: 15, friendship: 10, text: "I want a cool scarf like yours! Can you make one?" },
+    { item: 'mittens', count: 1, gold: 18, friendship: 12, text: "Herding sheep in winter is cold! Need mittens please!" }
+  ],
+  gardener: [
+    { item: 'flowers', count: 3, gold: 10, friendship: 8, text: "Could you bring me some flowers? I have a plan for a new garden." },
+    { item: 'berries', count: 5, gold: 15, friendship: 10, text: "I need some fresh berries for dyeing. Can you help?" },
+    { item: 'yarn', count: 2, gold: 12, friendship: 8, text: "Yarn is great for plant ties. Can you spare some?" },
+    { item: 'scarf', count: 1, gold: 20, friendship: 12, text: "A warm scarf would be perfect for the chilly evenings." }
+  ]
+};
+
+// Active requests for each NPC (null = no active request)
+let npcRequests = {
+  granny: null,
+  merchant: null,
+  shepherd: null,
+  gardener: null
+};
+
+// Cooldown before new request appears (in frames, ~60fps)
+let requestCooldowns = {
+  granny: 0,
+  merchant: 0,
+  shepherd: 0,
+  gardener: 0
+};
+
+const REQUEST_COOLDOWN_TIME = 1800; // ~30 seconds between requests
+
+function generateNewRequest(npcId) {
+  const requests = possibleRequests[npcId];
+  if (!requests || requests.length === 0) return null;
+  
+  const request = requests[Math.floor(Math.random() * requests.length)];
+  return { ...request, npcId };
+}
+
+function checkAndGenerateRequests() {
+  for (const npcId of Object.keys(npcRequests)) {
+    // If no active request and cooldown is done, maybe generate one
+    if (!npcRequests[npcId] && requestCooldowns[npcId] <= 0) {
+      // 30% chance each check to generate a request
+      if (Math.random() < 0.3) {
+        npcRequests[npcId] = generateNewRequest(npcId);
+      }
+    }
+    
+    // Decrease cooldown
+    if (requestCooldowns[npcId] > 0) {
+      requestCooldowns[npcId]--;
+    }
+  }
+}
+
+function canFulfillRequest(request) {
+  if (!request) return false;
+  return (inventory[request.item] || 0) >= request.count;
+}
+
+function fulfillRequest(npcId) {
+  const request = npcRequests[npcId];
+  if (!request) return false;
+  
+  if (!canFulfillRequest(request)) {
+    showMessage(`You don't have enough ${getItemDisplayName(request.item)} yet.`);
+    return false;
+  }
+  
+  // Take the items
+  inventory[request.item] -= request.count;
+  
+  // Give rewards
+  inventory.gold += request.gold;
+  
+  // Add friendship
+  const npc = villagers.find(v => v.id === npcId);
+  if (npc) {
+    npc.friendship = Math.min(FRIENDSHIP_MAX, npc.friendship + request.friendship);
+  }
+  
+  // Clear request and start cooldown
+  npcRequests[npcId] = null;
+  requestCooldowns[npcId] = REQUEST_COOLDOWN_TIME;
+  
+  // Show success message
+  const npcName = npc ? npc.name.split(' ')[0] : 'They';
+  showMessage(`${npcName}: "Thank you so much!" (+${request.gold}g, +${request.friendship} friendship)`);
+  
+  if (sounds.sell) sounds.sell.play().catch(() => {});
+}
+
+// =========================
+// CONFIG & MAPS
+// =========================
+// #region CONFIG & MAPS
+    const TILE_SIZE = 32;
+
+    // Tile legend:
+    // 0 grass, 1 path, 2 tree (solid), 3 water (solid), 4 fence (solid),
+    // 5 cottage roof, 6 door, 7 interior wall (solid), 8 interior floor
+    // 9 stone/cobble path, 10 market stall (solid), 11 well (solid)
+    // 12 flower patch, 13 bush (solid), 14 bridge, 15 sign
+    const maps = {
+      overworld: {
+        cols: 19,
+        rows: 13,
+        data: [
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,6,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,1,1,1,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,5,5,5,0,0,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+          [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1],
+          [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+          [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        ],
+        transitions: [
+          // Walk right off the map on the path at row 10
+          { edge: 'right', col: 18, toMap: 'village', toX: 1, toY: 8, condition: (y) => y === 10 }
+        ]
+      },
+      cottage: {
+        cols: 9,
+        rows: 7,
+        data: [
+          [7,7,7,7,7,7,7,7,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,8,8,8,8,7],
+          [7,8,8,8,6,8,8,8,7],
+          [7,7,7,7,7,7,7,7,7]

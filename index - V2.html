@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Yarnvale – Top-Down Prototype</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* =========================
+       BASIC LAYOUT
+    ========================== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #050810;
+      color: #f5f7ff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .frame {
+      background:#04060f;
+      border-radius:16px;
+      padding:8px;
+      box-shadow:0 18px 40px rgba(0,0,0,0.8);
+    }
+
+    canvas {
+      image-rendering: pixelated;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.15);
+      background:#000;
+      display:block;
+    }
+
+    .hud {
+      margin-top:6px;
+      font-size:12px;
+      text-align:center;
+      color:#a9b3cd;
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <canvas id="game" width="608" height="416"></canvas>
+    <div class="hud">
+      Yarnvale prototype · Move with <strong>WASD / Arrow keys</strong> · You can’t walk through trees or water.
+    </div>
+  </div>
+
+  <script>
+// =========================
+// CONFIG
+// =========================
+const TILE_SIZE = 32;
+const MAP_COLS = 19;
+const MAP_ROWS = 13;
+
+// 0 grass, 1 path, 2 tree (solid), 3 water (solid), 4 fence (solid), 5 cottage floor, 6 cottage door
+const mapData = [
+  [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+  [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+  [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+  [2,0,0,0,0,5,5,5,1,6,1,0,0,0,0,0,0,0,2],
+  [2,0,0,0,0,5,5,5,1,1,1,0,0,0,0,0,0,0,2],
+  [2,0,0,0,0,5,5,5,0,0,0,0,0,0,0,0,0,0,2],
+  [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+  [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+  [2,0,0,0,0,0,4,0,0,0,4,0,0,0,3,3,0,0,2],
+  [2,0,0,0,0,0,4,4,4,4,4,0,0,0,0,0,0,0,2],
+  [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+  [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+  [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+];
+
+
+
+
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    // =========================
+    // PLAYER STATE
+    // =========================
+    const player = {
+      x: 9,          // tile coords
+      y: 10,
+      speed: 4,      // pixels per frame when moving
+      px: 9 * TILE_SIZE, // actual pixel position
+      py: 10 * TILE_SIZE,
+      moving: false,
+      targetPx: null,
+      targetPy: null,
+      dir: 'down'
+    };
+
+    const keys = {
+      ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false,
+      w:false, a:false, s:false, d:false
+    };
+
+    // =========================
+    // INPUT HANDLING
+    // =========================
+    window.addEventListener('keydown', (e) => {
+      if (e.key in keys) {
+        keys[e.key] = true;
+        e.preventDefault();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key in keys) {
+        keys[e.key] = false;
+        e.preventDefault();
+      }
+    });
+
+    // =========================
+    // HELPERS
+    // =========================
+    function isSolidTile(tx, ty) {
+      if (tx < 0 || ty < 0 || tx >= MAP_COLS || ty >= MAP_ROWS) return true;
+      const t = mapData[ty][tx];
+      return t === 2 || t === 3; // trees & water are solid
+    }
+
+    function tryStartMove(dx, dy) {
+      if (player.moving) return;
+
+      const targetX = player.x + dx;
+      const targetY = player.y + dy;
+      if (isSolidTile(targetX, targetY)) return;
+
+      player.x = targetX;
+      player.y = targetY;
+      player.targetPx = player.x * TILE_SIZE;
+      player.targetPy = player.y * TILE_SIZE;
+      player.moving = true;
+
+      if (dx === 1) player.dir = 'right';
+      if (dx === -1) player.dir = 'left';
+      if (dy === 1) player.dir = 'down';
+      if (dy === -1) player.dir = 'up';
+    }
+
+    // =========================
+    // UPDATE
+    // =========================
+    function update() {
+      // Decide movement direction (grid-based)
+      if (!player.moving) {
+        const up    = keys.ArrowUp || keys.w;
+        const down  = keys.ArrowDown || keys.s;
+        const left  = keys.ArrowLeft || keys.a;
+        const right = keys.ArrowRight || keys.d;
+
+        if (up)    tryStartMove(0,-1);
+        else if (down)  tryStartMove(0,1);
+        else if (left)  tryStartMove(-1,0);
+        else if (right) tryStartMove(1,0);
+      }
+
+      // Smooth move towards target pixel position
+      if (player.moving) {
+        const dx = player.targetPx - player.px;
+        const dy = player.targetPy - player.py;
+
+        const dist = Math.abs(dx) + Math.abs(dy);
+        if (dist <= player.speed) {
+          player.px = player.targetPx;
+          player.py = player.targetPy;
+          player.moving = false;
+        } else {
+          if (dx !== 0) player.px += player.speed * Math.sign(dx);
+          if (dy !== 0) player.py += player.speed * Math.sign(dy);
+        }
+      }
+    }
+
+    // =========================
+    // RENDER
+    // =========================
+    function drawTile(t, x, y) {
+      const px = x * TILE_SIZE;
+      const py = y * TILE_SIZE;
+
+      // Sky-ish gradient in background will show through gaps
+      if (t === 0) {
+        // grass
+        const g = ctx.createLinearGradient(px, py, px, py + TILE_SIZE);
+        g.addColorStop(0, '#4f7b4f');
+        g.addColorStop(1, '#355837');
+        ctx.fillStyle = g;
+        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+        // little sparkly blades
+        ctx.fillStyle = '#89c98a';
+        ctx.fillRect(px+10, py+8, 2, 4);
+        ctx.fillRect(px+18, py+14, 2, 4);
+      } else if (t === 1) {
+        // path
+        const g = ctx.createLinearGradient(px, py, px, py + TILE_SIZE);
+        g.addColorStop(0, '#b69165');
+        g.addColorStop(1, '#8a5a30');
+        ctx.fillStyle = g;
+        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+      } else if (t === 2) {
+        // tree
+        ctx.fillStyle = '#3e5b30';
+        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+        ctx.fillStyle = '#284020';
+        ctx.fillRect(px+6, py+6, TILE_SIZE-12, TILE_SIZE-8);
+      } else if (t === 3) {
+        // water
+        const g = ctx.createLinearGradient(px, py, px+TILE_SIZE, py+TILE_SIZE);
+        g.addColorStop(0, '#3fa7ff');
+        g.addColorStop(1, '#1450a8');
+        ctx.fillStyle = g;
+        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.beginPath();
+        ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 6, 0, Math.PI*2);
+        ctx.stroke();
+      }
+    }
+
+    function drawPlayer() {
+      const px = player.px;
+      const py = player.py;
+
+      // simple little person made of rectangles (placeholder for sprite)
+      // body
+      ctx.fillStyle = '#ffe3c0';
+      ctx.fillRect(px + 10, py + 8, 12, 16);
+      // head
+      ctx.beginPath();
+      ctx.arc(px + 16, py + 6, 6, 0, Math.PI*2);
+      ctx.fillStyle = '#ffcf9e';
+      ctx.fill();
+      // hair / hat
+      ctx.beginPath();
+      ctx.arc(px + 16, py + 4, 7, Math.PI, 0);
+      ctx.fillStyle = '#7a4bb8';
+      ctx.fill();
+      // scarf to nod to knitting theme
+      ctx.fillStyle = '#f4b3ff';
+      ctx.fillRect(px + 10, py + 14, 12, 4);
+      ctx.fillRect(px + 20, py + 14, 3, 7);
+    }
+
+    function render() {
+      // Big soft sky gradient background
+      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, '#182c4e');
+      sky.addColorStop(0.6, '#07131f');
+      sky.addColorStop(1, '#020509');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, canvas.width = 608, canvas.height = 416);
+
+      // Draw tiles
+      for (let y = 0; y < MAP_ROWS; y++) {
+        for (let x = 0; x < MAP_COLS; x++) {
+          drawTile(mapData[y][x], x, y);
+        }
+      }
+
+      // Draw player on top
+      drawPlayer();
+    }
+
+    // =========================
+    // MAIN LOOP
+    // =========================
+    function loop() {
+      update();
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+  </script>
+</body>
+</html>

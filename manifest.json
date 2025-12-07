@@ -1,0 +1,24 @@
+{
+  "name": "Yarnvale",
+  "short_name": "Yarnvale",
+  "description": "A cozy top-down farming and crafting adventure",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#182c4e",
+  "theme_color": "#182c4e",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
