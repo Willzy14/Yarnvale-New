@@ -1964,8 +1964,8 @@ function drawTaskBoardUI() {
   if (taskBoardMinimized || !taskBoardOpen) {
     const btnX = 8;
     const btnY = 54;
-    const btnW = isMobile ? 28 : 32;
-    const btnH = isMobile ? 28 : 32;
+    const btnW = isMobile ? 36 : 32;
+    const btnH = isMobile ? 36 : 32;
     
     ctx.fillStyle = 'rgba(5, 8, 16, 0.75)';
     ctx.beginPath();
@@ -1980,7 +1980,7 @@ function drawTaskBoardUI() {
     
     // Task icon (clipboard)
     ctx.fillStyle = '#a9b3cd';
-    ctx.font = isMobile ? '14px system-ui' : '16px system-ui';
+    ctx.font = isMobile ? '16px system-ui' : '16px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('📋', btnX + btnW/2, btnY + btnH/2 + 5);
     ctx.textAlign = 'left';
@@ -2001,12 +2001,14 @@ function drawTaskBoardUI() {
     return;
   }
   
-  // Full task board panel
+  // Full task board panel - smaller on mobile
   const panelX = 8;
   const panelY = 54;
-  const panelW = isMobile ? 180 : 220;
+  const panelW = isMobile ? 160 : 220;
   const tasks = getActiveTasks();
-  const panelH = Math.min(50 + tasks.length * 36, 260);
+  const maxTasksShown = isMobile ? 3 : 5;
+  const tasksToShow = tasks.slice(0, maxTasksShown);
+  const panelH = isMobile ? Math.min(44 + tasksToShow.length * 28, 140) : Math.min(50 + tasks.length * 36, 260);
   
   // Panel background
   ctx.fillStyle = 'rgba(6, 12, 26, 0.92)';
@@ -2024,50 +2026,65 @@ function drawTaskBoardUI() {
   // Header
   ctx.fillStyle = 'rgba(40, 60, 100, 0.6)';
   ctx.beginPath();
-  ctx.roundRect(panelX, panelY, panelW, 28, [10, 10, 0, 0]);
+  ctx.roundRect(panelX, panelY, panelW, isMobile ? 24 : 28, [10, 10, 0, 0]);
   ctx.fill();
   
   ctx.fillStyle = '#f5f7ff';
-  ctx.font = 'bold 11px system-ui';
-  ctx.fillText('📋 Tasks', panelX + 10, panelY + 18);
+  ctx.font = isMobile ? 'bold 10px system-ui' : 'bold 11px system-ui';
+  ctx.fillText('📋 Tasks', panelX + 8, panelY + (isMobile ? 16 : 18));
   
-  // Minimize button
-  ctx.fillStyle = '#7a8ba8';
-  ctx.font = '14px system-ui';
-  ctx.textAlign = 'right';
-  ctx.fillText('−', panelX + panelW - 10, panelY + 18);
+  // Close button (X) - bigger touch target on mobile
+  const closeBtnSize = isMobile ? 24 : 20;
+  const closeBtnX = panelX + panelW - closeBtnSize - 4;
+  const closeBtnY = panelY + 2;
+  
+  // Close button background
+  ctx.fillStyle = 'rgba(255, 100, 100, 0.3)';
+  ctx.beginPath();
+  ctx.roundRect(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize, 4);
+  ctx.fill();
+  
+  // X icon
+  ctx.fillStyle = '#fff';
+  ctx.font = isMobile ? 'bold 14px system-ui' : 'bold 12px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('✕', closeBtnX + closeBtnSize/2, closeBtnY + closeBtnSize/2 + (isMobile ? 5 : 4));
   ctx.textAlign = 'left';
   
-  // Crystal Loom progress indicator
-  const shardsFound = (storyProgress.shards.beach ? 1 : 0) + 
-                      (storyProgress.shards.mountain ? 1 : 0) + 
-                      (storyProgress.shards.cave ? 1 : 0);
-  ctx.fillStyle = '#7a8ba8';
-  ctx.font = '9px system-ui';
-  ctx.fillText(`💎 ${shardsFound}/3 Shards`, panelX + panelW - 70, panelY + 18);
+  // Crystal Loom progress indicator (hide on mobile to save space)
+  if (!isMobile) {
+    const shardsFound = (storyProgress.shards.beach ? 1 : 0) + 
+                        (storyProgress.shards.mountain ? 1 : 0) + 
+                        (storyProgress.shards.cave ? 1 : 0);
+    ctx.fillStyle = '#7a8ba8';
+    ctx.font = '9px system-ui';
+    ctx.fillText(`💎 ${shardsFound}/3`, panelX + panelW - 95, panelY + 18);
+  }
   
   // Task list
-  let taskY = panelY + 38;
-  tasks.forEach((task, i) => {
+  let taskY = panelY + (isMobile ? 30 : 38);
+  const displayTasks = isMobile ? tasksToShow : tasks;
+  displayTasks.forEach((task, i) => {
     const isComplete = task.status === 'complete';
     
     // Checkbox
+    const checkSize = isMobile ? 12 : 14;
     ctx.strokeStyle = isComplete ? '#4ade80' : '#7a8ba8';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(panelX + 10, taskY, 14, 14, 2);
+    ctx.roundRect(panelX + 8, taskY, checkSize, checkSize, 2);
     ctx.stroke();
     
     if (isComplete) {
       ctx.fillStyle = '#4ade80';
-      ctx.font = 'bold 11px system-ui';
-      ctx.fillText('✓', panelX + 12, taskY + 12);
+      ctx.font = isMobile ? 'bold 9px system-ui' : 'bold 11px system-ui';
+      ctx.fillText('✓', panelX + (isMobile ? 10 : 12), taskY + (isMobile ? 10 : 12));
     }
     
     // Task name
     ctx.fillStyle = isComplete ? '#6b7280' : '#f5f7ff';
-    ctx.font = isComplete ? '10px system-ui' : 'bold 10px system-ui';
-    const maxTextW = panelW - 40;
+    ctx.font = isComplete ? (isMobile ? '9px system-ui' : '10px system-ui') : (isMobile ? 'bold 9px system-ui' : 'bold 10px system-ui');
+    const maxTextW = panelW - 35;
     let taskName = task.name;
     if (ctx.measureText(taskName).width > maxTextW) {
       while (ctx.measureText(taskName + '…').width > maxTextW && taskName.length > 0) {
@@ -2075,10 +2092,10 @@ function drawTaskBoardUI() {
       }
       taskName += '…';
     }
-    ctx.fillText(taskName, panelX + 30, taskY + 11);
+    ctx.fillText(taskName, panelX + (isMobile ? 24 : 30), taskY + (isMobile ? 9 : 11));
     
-    // Description (if not complete)
-    if (!isComplete && task.description) {
+    // Description (if not complete and not mobile)
+    if (!isComplete && task.description && !isMobile) {
       ctx.fillStyle = '#7a8ba8';
       ctx.font = '8px system-ui';
       let desc = task.description;
@@ -2091,15 +2108,24 @@ function drawTaskBoardUI() {
       ctx.fillText(desc, panelX + 30, taskY + 22);
     }
     
-    taskY += isComplete ? 24 : 36;
+    taskY += isMobile ? (isComplete ? 20 : 26) : (isComplete ? 24 : 36);
   });
   
-  // Hint at bottom
-  ctx.fillStyle = '#555';
-  ctx.font = '8px system-ui';
-  ctx.textAlign = 'center';
-  ctx.fillText('Press T to toggle', panelX + panelW/2, panelY + panelH - 6);
-  ctx.textAlign = 'left';
+  // Show "more tasks" indicator on mobile if truncated
+  if (isMobile && tasks.length > maxTasksShown) {
+    ctx.fillStyle = '#7a8ba8';
+    ctx.font = '8px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(`+${tasks.length - maxTasksShown} more`, panelX + panelW/2, panelY + panelH - 4);
+    ctx.textAlign = 'left';
+  } else if (!isMobile) {
+    // Hint at bottom (desktop only)
+    ctx.fillStyle = '#555';
+    ctx.font = '8px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Press T to toggle', panelX + panelW/2, panelY + panelH - 6);
+    ctx.textAlign = 'left';
+  }
 }
 
 // #endregion TASK_BOARD
@@ -4184,8 +4210,8 @@ const GOAT_DRAW_OFFSET_Y = 10; // push goat sprite down a bit to clear trees
       const isMobile = isCoarsePointer || showOverlayMode;
       const btnX = 8;
       const btnY = 54;
-      const btnW = isMobile ? 28 : 32;
-      const btnH = isMobile ? 28 : 32;
+      const btnW = isMobile ? 36 : 32;
+      const btnH = isMobile ? 36 : 32;
       
       // Check if clicked on task board button (when minimized or closed)
       if (taskBoardMinimized || !taskBoardOpen) {
@@ -4196,15 +4222,14 @@ const GOAT_DRAW_OFFSET_Y = 10; // push goat sprite down a bit to clear trees
         }
       }
       
-      // Check if clicked on minimize button (when open)
+      // Check if clicked on close button (when open)
       if (taskBoardOpen && !taskBoardMinimized) {
-        const panelW = isMobile ? 180 : 220;
-        const minBtnX = btnX + panelW - 24;
-        const minBtnY = btnY + 2;
-        const minBtnW = 20;
-        const minBtnH = 24;
-        if (clickX >= minBtnX && clickX <= minBtnX + minBtnW && 
-            clickY >= minBtnY && clickY <= minBtnY + minBtnH) {
+        const panelW = isMobile ? 160 : 220;
+        const closeBtnSize = isMobile ? 24 : 20;
+        const closeBtnX = btnX + panelW - closeBtnSize - 4;
+        const closeBtnY = btnY + 2;
+        if (clickX >= closeBtnX && clickX <= closeBtnX + closeBtnSize && 
+            clickY >= closeBtnY && clickY <= closeBtnY + closeBtnSize) {
           taskBoardOpen = false;
           return;
         }
