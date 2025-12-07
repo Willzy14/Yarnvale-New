@@ -2335,13 +2335,16 @@ let inventory = {
   yarn: 0,
   luxuryYarn: 0,
   goatFur: 0,
+  feather: 0,
   scarf: 0,
   luxuryScarf: 0,
   mittens: 0,
   luxuryMittens: 0,
   socks: 0,
   hat: 0,
+  fancyHat: 0,
   blanket: 0,
+  featherFan: 0,
   gold: 0,
   // Forest forageables
   mushroom: 0,
@@ -2587,6 +2590,25 @@ const craftingRecipes = [
     outputs: { berryJam: 1 },
     sellPrice: 12,
     color: '#8b3a62'
+  },
+  // --- Feather Crafts ---
+  {
+    id: 'fancyHat',
+    name: 'Fancy Hat',
+    description: 'A decorative hat with peacock feathers',
+    inputs: { hat: 1, feather: 2 },
+    outputs: { fancyHat: 1 },
+    sellPrice: 35,
+    color: '#1a7f9a'
+  },
+  {
+    id: 'featherFan',
+    name: 'Feather Fan',
+    description: 'An elegant decorative fan',
+    inputs: { feather: 4 },
+    outputs: { featherFan: 1 },
+    sellPrice: 40,
+    color: '#2d8b6e'
   }
 ];
 
@@ -2676,6 +2698,29 @@ const goat = {
   py: 8 * 32,
   moveProgress: 0,
   facing: 'down'
+};
+
+// Peacock for decorative feathers (overworld)
+const peacock = {
+  map: 'overworld',
+  x: 12,
+  y: 5,
+  hasFeathers: true,
+  featherTimer: 0,
+  // Wandering properties
+  homeX: 12,
+  homeY: 5,
+  wanderRadius: 4,
+  moveTimer: 0,
+  moveDelay: 120, // peacocks are more active
+  isMoving: false,
+  targetX: 12,
+  targetY: 5,
+  px: 12 * 32,
+  py: 5 * 32,
+  moveProgress: 0,
+  facing: 'down',
+  displayTimer: 0 // for tail fanning animation
 };
 
 // =========================
@@ -3686,7 +3731,7 @@ const SAVE_KEY = 'yarnvale_save';
 
 function saveGame() {
   const saveData = {
-    version: 3,
+    version: 4,
     timestamp: Date.now(),
     player: {
       x: player.x,
@@ -3706,6 +3751,12 @@ function saveGame() {
       y: goat.y,
       hasFur: goat.hasFur,
       furTimer: goat.furTimer
+    },
+    peacock: {
+      x: peacock.x,
+      y: peacock.y,
+      hasFeathers: peacock.hasFeathers,
+      featherTimer: peacock.featherTimer
     },
     storyProgress: { ...storyProgress },
     taskProgress: { ...taskProgress },
@@ -3767,6 +3818,19 @@ function loadGame() {
       goat.isMoving = false;
     }
     
+    // Restore peacock (version 4+)
+    if (saveData.version >= 4 && saveData.peacock) {
+      peacock.x = saveData.peacock.x ?? peacock.homeX;
+      peacock.y = saveData.peacock.y ?? peacock.homeY;
+      peacock.px = peacock.x * TILE_SIZE;
+      peacock.py = peacock.y * TILE_SIZE;
+      peacock.targetX = peacock.x;
+      peacock.targetY = peacock.y;
+      peacock.isMoving = false;
+      peacock.hasFeathers = saveData.peacock.hasFeathers ?? true;
+      peacock.featherTimer = saveData.peacock.featherTimer ?? 0;
+    }
+    
     // Restore story progress (if version 2+)
     if (saveData.storyProgress) {
       Object.assign(storyProgress, saveData.storyProgress);
@@ -3808,8 +3872,8 @@ function hasSaveData() {
 }
 
 function getGiftableItems() {
-  const giftable = ['wool', 'yarn', 'luxuryYarn', 'goatFur', 'scarf', 'luxuryScarf', 
-                    'mittens', 'luxuryMittens', 'socks', 'hat', 'blanket'];
+  const giftable = ['wool', 'yarn', 'luxuryYarn', 'goatFur', 'feather', 'scarf', 'luxuryScarf', 
+                    'mittens', 'luxuryMittens', 'socks', 'hat', 'fancyHat', 'blanket', 'featherFan'];
   return giftable.filter(item => (inventory[item] || 0) > 0);
 }
 
@@ -4974,6 +5038,26 @@ function handleMarket() {
       }
     }
   }
+
+  // Peacock interaction – only in overworld
+  if (currentMap === 'overworld' && peacock.map === 'overworld') {
+    const dx = Math.abs(player.x - peacock.x);
+    const dy = Math.abs(player.y - peacock.y);
+    if (dx + dy === 1) {
+      if (peacock.hasFeathers) {
+        peacock.hasFeathers = false;
+        peacock.featherTimer = 0;
+        inventory.feather += 2; // Peacocks give 2 feathers
+        showMessage('You collect beautiful iridescent feathers from the peacock!');
+        if (sounds.shear) {
+          sounds.shear.currentTime = 0;
+          sounds.shear.play().catch(() => {});
+        }
+      } else {
+        showMessage("The peacock's tail feathers need time to regrow.");
+      }
+    }
+  }
 }
 
 
@@ -5055,6 +5139,7 @@ function update() {
   // --- Animal wandering update ---
   updateAnimalWandering(sheep);
   updateAnimalWandering(goat);
+  updateAnimalWandering(peacock);
   
   // --- Sheep wool regrowth ---
   if (!sheep.hasWool) {
@@ -5079,6 +5164,18 @@ function update() {
       goat.furTimer = 0;
       if (currentMap === 'overworld') {
         showMessage("The goat's fur has grown back.");
+      }
+    }
+  }
+
+  // Peacock feather regrowth
+  if (!peacock.hasFeathers) {
+    peacock.featherTimer++;
+    if (peacock.featherTimer > 900) { // 15 seconds - feathers take longer
+      peacock.hasFeathers = true;
+      peacock.featherTimer = 0;
+      if (currentMap === 'overworld') {
+        showMessage("The peacock's feathers have grown back!");
       }
     }
   }
@@ -6150,6 +6247,128 @@ function drawSheep() {
   ctx.fillRect(px + 17 + headOffsetX, py + 14 + headOffsetY, 1, 2);
 }
 
+function drawPeacock() {
+  if (currentMap !== peacock.map) return;
+
+  const px = Math.round(peacock.px);
+  const py = Math.round(peacock.py);
+  
+  // Update display timer for tail animation
+  peacock.displayTimer = (peacock.displayTimer + 1) % 360;
+  const fanAmount = peacock.hasFeathers ? 0.8 + Math.sin(peacock.displayTimer * 0.02) * 0.2 : 0.3;
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(px + 16, py + 26, 12, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Draw tail feathers (behind body) if has feathers
+  if (peacock.hasFeathers) {
+    const tailColors = ['#1a5f7a', '#2d8b6e', '#1e7b5e', '#156a8a', '#0d5070'];
+    const eyeColor = '#d4af37';
+    const numFeathers = 7;
+    
+    for (let i = 0; i < numFeathers; i++) {
+      const angle = ((i - 3) / 3) * fanAmount * 0.8;
+      const featherLen = 18 + Math.sin(i * 1.5) * 3;
+      
+      // Feather stem
+      ctx.strokeStyle = tailColors[i % tailColors.length];
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px + 16, py + 18);
+      const endX = px + 16 + Math.sin(angle) * featherLen;
+      const endY = py + 18 - Math.cos(angle) * featherLen;
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+      
+      // Eye spot at end of feather
+      ctx.fillStyle = '#0a3a4a';
+      ctx.beginPath();
+      ctx.arc(endX, endY, 4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.fillStyle = eyeColor;
+      ctx.beginPath();
+      ctx.arc(endX, endY, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.fillStyle = '#1a5f7a';
+      ctx.beginPath();
+      ctx.arc(endX, endY, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else {
+    // Bare tail - just small stumps
+    ctx.fillStyle = '#2a6a7a';
+    ctx.beginPath();
+    ctx.ellipse(px + 16, py + 10, 4, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Body
+  ctx.fillStyle = '#1a5f7a';
+  ctx.beginPath();
+  ctx.ellipse(px + 16, py + 20, 8, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Neck position based on facing
+  let neckOffsetX = 0;
+  let neckOffsetY = -6;
+  if (peacock.facing === 'left') neckOffsetX = -4;
+  else if (peacock.facing === 'right') neckOffsetX = 4;
+  else if (peacock.facing === 'up') neckOffsetY = -8;
+  else if (peacock.facing === 'down') neckOffsetY = -4;
+
+  // Neck
+  ctx.fillStyle = '#1a5f7a';
+  ctx.beginPath();
+  ctx.ellipse(px + 16 + neckOffsetX, py + 16 + neckOffsetY, 4, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Head
+  ctx.fillStyle = '#1a5f7a';
+  ctx.beginPath();
+  ctx.arc(px + 16 + neckOffsetX, py + 10 + neckOffsetY, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Crown feathers
+  ctx.fillStyle = '#d4af37';
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(px + 16 + neckOffsetX + i * 2, py + 10 + neckOffsetY);
+    ctx.lineTo(px + 16 + neckOffsetX + i * 3, py + 4 + neckOffsetY);
+    ctx.lineTo(px + 17 + neckOffsetX + i * 2, py + 10 + neckOffsetY);
+    ctx.fill();
+  }
+
+  // Beak
+  ctx.fillStyle = '#8b7355';
+  ctx.beginPath();
+  const beakDir = peacock.facing === 'left' ? -1 : peacock.facing === 'right' ? 1 : 0;
+  ctx.moveTo(px + 16 + neckOffsetX + beakDir * 5, py + 11 + neckOffsetY);
+  ctx.lineTo(px + 16 + neckOffsetX + beakDir * 8, py + 12 + neckOffsetY);
+  ctx.lineTo(px + 16 + neckOffsetX + beakDir * 5, py + 13 + neckOffsetY);
+  ctx.fill();
+
+  // Eye
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath();
+  ctx.arc(px + 15 + neckOffsetX + (peacock.facing === 'right' ? 2 : 0), py + 9 + neckOffsetY, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Legs
+  ctx.strokeStyle = '#8b7355';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px + 13, py + 24);
+  ctx.lineTo(px + 12, py + 30);
+  ctx.moveTo(px + 19, py + 24);
+  ctx.lineTo(px + 20, py + 30);
+  ctx.stroke();
+}
+
 function drawFurniture() {
   if (currentMap === fireplaceSpot.map) {
     const px = fireplaceSpot.x * TILE_SIZE;
@@ -6380,6 +6599,7 @@ function render() {
 
   drawGoat();
   drawSheep();
+  drawPeacock();
   drawVillagers();
   drawTravelingMerchant();
 
