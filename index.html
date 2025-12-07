@@ -2752,6 +2752,7 @@ function isValidAnimalTile(animal, tx, ty) {
   // Check collision with other animals
   if (animal !== sheep && tx === sheep.x && ty === sheep.y && sheep.map === animal.map) return false;
   if (animal !== goat && tx === goat.x && ty === goat.y && goat.map === animal.map) return false;
+  if (animal !== peacock && tx === peacock.x && ty === peacock.y && peacock.map === animal.map) return false;
   
   return true;
 }
@@ -4823,6 +4824,9 @@ function showMessage(text, durationMs = 3500) {
       
       // Check for goat collision
       if (currentMap === goat.map && tx === goat.x && ty === goat.y) return true;
+      
+      // Check for peacock collision
+      if (currentMap === peacock.map && tx === peacock.x && ty === peacock.y) return true;
       
       // Check for villager collisions
       for (const npc of villagers) {
