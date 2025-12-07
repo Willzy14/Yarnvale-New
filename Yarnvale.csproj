@@ -6,34 +6,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
     <IsPackable>false</IsPackable>
+    <RollForward>LatestMajor</RollForward>
   </PropertyGroup>
-
-  <ItemGroup>
-    <!-- Main game files -->
-    <Content Include="index.html" />
-    <Content Include="manifest.json" />
-    <Content Include="sw.js" />
-    
-    <!-- Documentation -->
-    <Content Include="README.md" />
-    <Content Include="FUTURE_PLANS.md" />
-    
-    <!-- Version history files -->
-    <Content Include="index - V*.html" />
-    <Content Include="index V*.html" />
-    <Content Include="index-BROKEN-BACKUP.html" />
-    
-    <!-- Scripts -->
-    <Content Include="*.py" />
-    <Content Include="*.ps1" />
-    
-    <!-- Assets folder -->
-    <Content Include="Yarnvale Assets\**\*" />
-  </ItemGroup>
 
   <ItemGroup>
     <!-- Exclude temporary files from project -->
     <Content Remove="temp_*.py" />
   </ItemGroup>
+
+  <!-- Note: .NET SDK automatically includes all files in the project directory as Content.
+       No need to explicitly list files unless you want to exclude or configure them. -->
 
 </Project>
