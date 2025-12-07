@@ -1,34 +1,39 @@
 # Yarnvale Future Plans
 
 ---
-## 🤖 AGENT HANDOFF NOTES (Dec 7, 2025)
+## 🤖 AGENT HANDOFF NOTES (Dec 7, 2025 - Evening Session)
 
-### What Was Just Completed:
-1. **Task Board UI** - Press T to toggle. Shows active objectives, tracks progress, minimizable.
-2. **Animal Wandering System** - Sheep/goat now wander within radius with smooth pixel movement.
-3. **Forest Foraging System** - Mushrooms, berries, wildflowers, resin in forest; shells on beach. Respawn over time.
-4. **South Village Vendors**:
-   - **Iris the Dyer** (x:3, y:9 in village) - Trade foraged items for dyes
-   - **Master Theo the Tailor** (x:15, y:9 in village) - Sell crafted items for gold
-5. **New Inventory Items**: mushroom, berries, wildFlower, resin, shell, amberDye, tealDye, brownDye, pearlThread, mushroomBasket, berryJam
-6. **New Crafting Recipes**: amberDye, tealDye, mushroomBasket, berryJam
+### What Was Completed Today:
+1. **Intro/Welcome System** - New players see a welcome screen with "Begin Your Journey" button, followed by Elder Mara NPC dialogue explaining the game basics. Stored in localStorage so it only shows once.
+2. **Overworld Map Cleanup** - Removed messy half-paddock, centered cottage at top, moved pond to bottom-left, cleaner path layout.
+3. **Mobile Task Board Improvements** - Smaller panel on mobile, visible red X close button, bigger touch targets, max 3 tasks shown with "+X more" indicator.
+4. **Peacock Animal** - New animal that gives decorative feathers! Wanders the overworld, has colorful animated tail, gives 2 feathers when interacted with, feathers regrow in 15 seconds.
+5. **Feather Crafting Recipes**:
+   - Fancy Hat (hat + 2 feathers) - sells for 35 gold
+   - Feather Fan (4 feathers) - sells for 40 gold
+6. **New Inventory Items**: feather, fancyHat, featherFan
 
 ### Key Code Locations in index.html:
-- Task Board: ~lines 1700-1900 (`gameTasks`, `taskProgress`, `drawTaskBoardUI()`)
-- Animal Wandering: ~lines 2300-2420 (`updateAnimalWandering()`)
-- Forageables: ~lines 2150-2250 (`forageableSpots`, `collectForageable()`)
-- Village Vendors: ~lines 2620-2800 (`dyeShopTrades`, `tailorBuyPrices`, shop functions)
-- Villagers array: ~line 2870 (includes new vendors with `isVendor: true`)
-
-### Next Priority Tasks (from checklist below):
-1. **Pen building system** - Place pen plots on farm, buildable fences
-2. **New animals** - Llamas (fine wool), Peacocks (feathers)
-3. **More crafting recipes** - Capes, ponchos, plushies using new materials
-4. **Fast-travel signposts** - After area discovery
+- Intro System: ~lines 1720-1865 (`introState`, `drawWelcomeScreen()`, `drawIntroDialogue()`)
+- Task Board: ~lines 1958-2140 (`drawTaskBoardUI()` - mobile improvements)
+- Peacock: ~lines 2704-2724 (`const peacock`), ~lines 6250-6360 (`drawPeacock()`)
+- Peacock Interaction: ~lines 5020-5040 (feather collection)
+- Feather Recipes: ~lines 2585-2600 (`fancyHat`, `featherFan`)
+- Collision Detection: ~lines 4822-4828 (includes peacock)
 
 ### Save System:
-- Version 3 schema, saves to localStorage
-- Includes: inventory, animal positions, taskProgress, storyProgress, friendship
+- Now **Version 4** schema
+- Includes: peacock state (position, hasFeathers, featherTimer)
+
+### Next Priority Tasks:
+1. **Llamas** - Another new animal for fine wool (luxury yarn boost)
+2. **Pen building system** - Place pen plots, buildable fences
+3. **More feather/fine wool recipes** - Capes, ponchos, plushies
+4. **Fast-travel signposts** - After area discovery
+
+### Known Issues / Polish Needed:
+- None reported currently
+- Mobile tested and working
 
 ---
 
@@ -56,7 +61,7 @@
 
 ### Animals
 - [ ] Llamas: slower shear, yield fine wool (boost luxury yarn).
-- [ ] Peacocks: drop decor feathers periodically; sell or use in fashion/decor.
+- [x] Peacocks: drop decor feathers periodically; sell or use in fashion/decor.
 - [ ] (Optional) Rabbits: fast-regrowing soft fur, lower value quick loop.
 - [x] Wandering AI within radius; penned animals stay in bounds; simple obstacle avoidance.
 - [ ] Treat/feeding buff (no starvation): next yield quality/quantity boost.
@@ -64,7 +69,8 @@
 
 ### Crafting & Economy
 - [x] New materials: fine wool, feathers, soft fur, forest dyes (amber/teal), resin/varnish, cloth bolts.
-- [ ] New recipes: capes (yarn + feathers), ponchos (fine wool), plushies (soft fur + dye), banners (cloth + dye), pillows, festival lanterns (resin + dye).
+- [x] New recipes: Fancy Hat (hat + feathers), Feather Fan (feathers only)
+- [ ] More recipes: capes (yarn + feathers), ponchos (fine wool), plushies (soft fur + dye), banners (cloth + dye), pillows, festival lanterns (resin + dye).
 - [ ] Luxury set: Royal scarf/hat/cloak using fine wool + rare dye for high sell value.
 - [ ] Seasonal/weekly orders board: timed deliveries for gold + reputation.
 
@@ -81,7 +87,7 @@
 ### Systems / UX
 - [x] Task board UI for quests/orders with rewards listed.
 - [ ] Inventory filters (materials / crafted / quest items).
-- [ ] Mobile UI: larger touch targets for shops/crafting; persistent close button.
+- [x] Mobile UI: larger touch targets for shops/crafting; persistent close button on task board.
 - [ ] Autosave on map transitions (keep manual save/load).
 
 ### Performance / Tech
