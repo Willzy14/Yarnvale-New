@@ -1722,16 +1722,13 @@ function collectCrystalShard(location) {
 let introState = 'welcome'; // 'welcome' | 'dialogue' | 'complete'
 let introDone = false;
 
-console.log('INTRO SYSTEM INITIALIZED - introDone:', introDone);
-
 // Check if player has seen intro before
 function loadIntroState() {
-  // DEBUG: Force intro to show for testing
-  console.log('loadIntroState called - forcing intro display');
-  introDone = false;
-  introState = 'welcome';
-  localStorage.removeItem('introComplete');
-  console.log('After loadIntroState - introDone:', introDone, 'introState:', introState);
+  const saved = localStorage.getItem('introComplete');
+  if (saved === 'true') {
+    introDone = true;
+    introState = 'complete';
+  }
 }
 
 function completeIntro() {
@@ -1822,11 +1819,11 @@ function drawWelcomeScreen() {
 
 function drawIntroDialogue() {
   const centerX = canvas.width / 2;
-  const dialogueY = canvas.height - 120;
+  const dialogueY = canvas.height - 130;
   
-  // Dialogue box
-  const boxW = Math.min(320, canvas.width - 20);
-  const boxH = 100;
+  // Dialogue box - wider and taller
+  const boxW = Math.min(340, canvas.width - 30);
+  const boxH = 110;
   const boxX = centerX - boxW / 2;
   
   ctx.fillStyle = 'rgba(20, 30, 60, 0.95)';
@@ -1843,21 +1840,25 @@ function drawIntroDialogue() {
   // NPC name
   ctx.fillStyle = '#64c896';
   ctx.font = 'bold 12px system-ui';
-  ctx.fillText('Elder Mara 🌾', boxX + 15, dialogueY + 20);
+  ctx.fillText('Elder Mara 🌾', boxX + 12, dialogueY + 22);
   
-  // Dialogue text
+  // Dialogue text - shorter lines that fit
   ctx.fillStyle = '#e0e0e0';
-  ctx.font = '12px system-ui';
-  const text = 'Welcome to Yarnvale! Your cottage and sheep are ready.';
-  const text2 = 'Start by shearing the sheep, then spin yarn at your wheel.';
+  ctx.font = '11px system-ui';
+  const text1 = 'Welcome to Yarnvale!';
+  const text2 = 'Your cottage and sheep are ready.';
+  const text3 = 'Start by shearing the sheep, then spin yarn.';
   
-  ctx.fillText(text, boxX + 15, dialogueY + 42);
-  ctx.fillText(text2, boxX + 15, dialogueY + 60);
+  ctx.fillText(text1, boxX + 12, dialogueY + 44);
+  ctx.fillText(text2, boxX + 12, dialogueY + 60);
+  ctx.fillText(text3, boxX + 12, dialogueY + 76);
   
   // Continue hint
   ctx.fillStyle = '#888';
   ctx.font = '10px system-ui';
-  ctx.fillText('Click to continue...', boxX + boxW - 110, dialogueY + boxH - 8);
+  ctx.textAlign = 'right';
+  ctx.fillText('Click to continue...', boxX + boxW - 12, dialogueY + boxH - 10);
+  ctx.textAlign = 'left';
   
   // Store dialogue box rect for click detection
   window.dialogueBtnRect = { x: boxX, y: dialogueY, w: boxW, h: boxH };
@@ -6782,11 +6783,6 @@ function render() {
   // Intro screen (drawn on top of everything)
   if (!introDone) {
     drawIntroScreen();
-  } else {
-    // Only log once per second to avoid spam
-    if (Math.floor(performance.now() / 1000) % 10 === 0) {
-      console.log('Intro already done, not drawing');
-    }
   }
 
   drawDebugInfoPanel();
