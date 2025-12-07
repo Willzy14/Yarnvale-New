@@ -2034,22 +2034,33 @@ function drawTaskBoardUI() {
   ctx.fillText('📋 Tasks', panelX + 8, panelY + (isMobile ? 16 : 18));
   
   // Close button (X) - bigger touch target on mobile
-  const closeBtnSize = isMobile ? 24 : 20;
-  const closeBtnX = panelX + panelW - closeBtnSize - 4;
-  const closeBtnY = panelY + 2;
+  const closeBtnSize = isMobile ? 22 : 20;
+  const closeBtnX = panelX + panelW - closeBtnSize - 2;
+  const closeBtnY = panelY + (isMobile ? 1 : 4);
   
-  // Close button background
-  ctx.fillStyle = 'rgba(255, 100, 100, 0.3)';
+  // Close button background - more visible red
+  ctx.fillStyle = 'rgba(220, 70, 70, 0.9)';
   ctx.beginPath();
   ctx.roundRect(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize, 4);
   ctx.fill();
   
-  // X icon
-  ctx.fillStyle = '#fff';
-  ctx.font = isMobile ? 'bold 14px system-ui' : 'bold 12px system-ui';
-  ctx.textAlign = 'center';
-  ctx.fillText('✕', closeBtnX + closeBtnSize/2, closeBtnY + closeBtnSize/2 + (isMobile ? 5 : 4));
-  ctx.textAlign = 'left';
+  // Border for visibility
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize, 4);
+  ctx.stroke();
+  
+  // X icon - draw as lines for clarity
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const xPad = 6;
+  ctx.moveTo(closeBtnX + xPad, closeBtnY + xPad);
+  ctx.lineTo(closeBtnX + closeBtnSize - xPad, closeBtnY + closeBtnSize - xPad);
+  ctx.moveTo(closeBtnX + closeBtnSize - xPad, closeBtnY + xPad);
+  ctx.lineTo(closeBtnX + xPad, closeBtnY + closeBtnSize - xPad);
+  ctx.stroke();
   
   // Crystal Loom progress indicator (hide on mobile to save space)
   if (!isMobile) {
@@ -4225,9 +4236,9 @@ const GOAT_DRAW_OFFSET_Y = 10; // push goat sprite down a bit to clear trees
       // Check if clicked on close button (when open)
       if (taskBoardOpen && !taskBoardMinimized) {
         const panelW = isMobile ? 160 : 220;
-        const closeBtnSize = isMobile ? 24 : 20;
-        const closeBtnX = btnX + panelW - closeBtnSize - 4;
-        const closeBtnY = btnY + 2;
+        const closeBtnSize = isMobile ? 22 : 20;
+        const closeBtnX = btnX + panelW - closeBtnSize - 2;
+        const closeBtnY = btnY + (isMobile ? 1 : 4);
         if (clickX >= closeBtnX && clickX <= closeBtnX + closeBtnSize && 
             clickY >= closeBtnY && clickY <= closeBtnY + closeBtnSize) {
           taskBoardOpen = false;
