@@ -1722,6 +1722,8 @@ function collectCrystalShard(location) {
 let introState = 'welcome'; // 'welcome' | 'dialogue' | 'complete'
 let introDone = false;
 
+console.log('INTRO SYSTEM INITIALIZED - introDone:', introDone);
+
 // Check if player has seen intro before
 function loadIntroState() {
   // DEBUG: Force intro to show for testing
@@ -1729,6 +1731,7 @@ function loadIntroState() {
   introDone = false;
   introState = 'welcome';
   localStorage.removeItem('introComplete');
+  console.log('After loadIntroState - introDone:', introDone, 'introState:', introState);
 }
 
 function completeIntro() {
@@ -6778,8 +6781,12 @@ function render() {
   
   // Intro screen (drawn on top of everything)
   if (!introDone) {
-    console.log('Drawing intro screen, introState:', introState);
     drawIntroScreen();
+  } else {
+    // Only log once per second to avoid spam
+    if (Math.floor(performance.now() / 1000) % 10 === 0) {
+      console.log('Intro already done, not drawing');
+    }
   }
 
   drawDebugInfoPanel();
