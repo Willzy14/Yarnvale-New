@@ -1387,6 +1387,14 @@ bindPointerButton(touchActionButton, () => {
     purchaseFromMerchant();
     return;
   }
+  if (dyeShopOpen) {
+    tradeAtDyeShop();
+    return;
+  }
+  if (tailorShopOpen) {
+    sellToTailor();
+    return;
+  }
   if (dialogueOpen) {
     advanceDialogue();
     return;
@@ -1426,6 +1434,14 @@ bindPointerButton(touchBackButton, () => {
   }
   if (merchantShopOpen) {
     closeMerchantShop();
+    return;
+  }
+  if (dyeShopOpen) {
+    closeDyeShop();
+    return;
+  }
+  if (tailorShopOpen) {
+    closeTailorShop();
     return;
   }
   if (dialogueOpen) {
@@ -1698,6 +1714,244 @@ function collectCrystalShard(location) {
   return true;
 }
 
+// =========================
+// TASK BOARD SYSTEM
+// =========================
+// #region TASK_BOARD
+
+let taskBoardOpen = true;  // Open by default for new players
+let taskBoardMinimized = false;
+
+// Task definitions - ordered by progression
+const gameTasks = [
+  // Tutorial tasks
+  { id: 'shearSheep', name: 'Shear a sheep', description: 'Find the sheep and press E to shear', category: 'tutorial', check: () => inventory.wool > 0 || storyProgress.itemsCrafted > 0 },
+  { id: 'craftYarn', name: 'Spin wool into yarn', description: 'Use the spinning wheel in the cottage', category: 'tutorial', check: () => inventory.yarn > 0 || inventory.scarf > 0 || inventory.socks > 0 },
+  { id: 'craftItem', name: 'Craft your first item', description: 'Make socks, scarf, or mittens', category: 'tutorial', check: () => storyProgress.itemsCrafted >= 1 },
+  { id: 'sellItem', name: 'Sell at the market', description: 'Find the market stall and sell crafted goods', category: 'tutorial', check: () => inventory.gold > 0 },
+  
+  // Early game tasks
+  { id: 'helpVillager', name: 'Help a villager', description: 'Talk to NPCs and complete their requests', category: 'early', check: () => storyProgress.villagersHelped >= 1 },
+  { id: 'visitVillage', name: 'Visit the village', description: 'Walk east from your farm', category: 'early', check: () => storyProgress.villagersHelped >= 1 || taskProgress.visitedVillage },
+  { id: 'meetMerchant', name: 'Meet the traveling merchant', description: 'Wandering Willa appears occasionally', category: 'early', check: () => taskProgress.metMerchant },
+  
+  // Crystal Loom quest line
+  { id: 'hearLegend', name: 'Hear the Crystal Loom legend', description: 'Help villagers to learn the story', category: 'loom', check: () => storyProgress.storyFlags.heardLegend },
+  { id: 'unlockBeach', name: 'Unlock the beach', description: 'Help 2 villagers to open the path', category: 'loom', check: () => storyProgress.beachUnlocked },
+  { id: 'findBeachShard', name: 'Find the Beach Crystal Shard', description: 'Search the sandy shores', category: 'loom', check: () => storyProgress.shards.beach },
+  { id: 'unlockMountain', name: 'Unlock the mountain path', description: 'Craft 5 items to reveal the way', category: 'loom', check: () => storyProgress.mountainUnlocked },
+  { id: 'findMountainShard', name: 'Find the Mountain Crystal Shard', description: 'Explore the snowy peaks', category: 'loom', check: () => storyProgress.shards.mountain },
+  { id: 'unlockCave', name: 'Discover the crystal cave', description: 'The beach shard reveals the entrance', category: 'loom', check: () => storyProgress.caveUnlocked },
+  { id: 'findCaveShard', name: 'Find the Cave Crystal Shard', description: 'Deep in the glowing cave', category: 'loom', check: () => storyProgress.shards.cave },
+  { id: 'restoreLoom', name: 'Restore the Crystal Loom', description: 'Gather all three shards', category: 'loom', check: () => storyProgress.loomRestored },
+  
+  // Exploration tasks
+  { id: 'exploreForest', name: 'Explore the forest', description: 'Find forageable items', category: 'explore', check: () => taskProgress.foragedFirst },
+  { id: 'craftDye', name: 'Craft a dye', description: 'Use foraged items to make dyes', category: 'explore', check: () => inventory.amberDye > 0 || inventory.tealDye > 0 },
+  
+  // Vendor tasks
+  { id: 'visitDyeShop', name: 'Visit the Dye Shop', description: 'Find Iris in south village', category: 'explore', check: () => taskProgress.visitedDyeShop },
+  { id: 'tradeAtDyeShop', name: 'Trade at the Dye Shop', description: 'Exchange foraged items for dyes', category: 'explore', check: () => taskProgress.tradedAtDyeShop },
+  { id: 'visitTailor', name: 'Visit the Tailor', description: 'Find Master Theo in south village', category: 'explore', check: () => taskProgress.visitedTailor },
+  { id: 'sellToTailor', name: 'Sell to the Tailor', description: 'Earn gold from crafted items', category: 'explore', check: () => taskProgress.soldToTailor }
+];
+
+// Track additional progress not covered by storyProgress
+const taskProgress = {
+  visitedVillage: false,
+  metMerchant: false,
+  foragedFirst: false,
+  visitedDyeShop: false,
+  tradedAtDyeShop: false,
+  visitedTailor: false,
+  soldToTailor: false
+};
+
+function getTaskStatus(task) {
+  return task.check() ? 'complete' : 'incomplete';
+}
+
+function getActiveTasks() {
+  // Return tasks that are either in progress or recently completed
+  const completed = [];
+  const active = [];
+  
+  for (const task of gameTasks) {
+    const status = getTaskStatus(task);
+    if (status === 'complete') {
+      completed.push({ ...task, status });
+    } else {
+      // Only show next incomplete tasks (up to 3)
+      if (active.length < 3) {
+        active.push({ ...task, status });
+      }
+    }
+  }
+  
+  // Show last 2 completed + active tasks
+  const recentCompleted = completed.slice(-2);
+  return [...recentCompleted, ...active];
+}
+
+function toggleTaskBoard() {
+  if (taskBoardMinimized) {
+    taskBoardMinimized = false;
+  } else {
+    taskBoardOpen = !taskBoardOpen;
+  }
+}
+
+function minimizeTaskBoard() {
+  taskBoardMinimized = true;
+}
+
+function drawTaskBoardUI() {
+  const isMobile = isCoarsePointer || showOverlayMode;
+  
+  // Draw minimized button if minimized
+  if (taskBoardMinimized || !taskBoardOpen) {
+    const btnX = 8;
+    const btnY = 54;
+    const btnW = isMobile ? 28 : 32;
+    const btnH = isMobile ? 28 : 32;
+    
+    ctx.fillStyle = 'rgba(5, 8, 16, 0.75)';
+    ctx.beginPath();
+    ctx.roundRect(btnX, btnY, btnW, btnH, 6);
+    ctx.fill();
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(btnX, btnY, btnW, btnH, 6);
+    ctx.stroke();
+    
+    // Task icon (clipboard)
+    ctx.fillStyle = '#a9b3cd';
+    ctx.font = isMobile ? '14px system-ui' : '16px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('📋', btnX + btnW/2, btnY + btnH/2 + 5);
+    ctx.textAlign = 'left';
+    
+    // Show notification dot if there are active tasks
+    const activeTasks = getActiveTasks().filter(t => t.status === 'incomplete');
+    if (activeTasks.length > 0) {
+      ctx.fillStyle = '#ff6b6b';
+      ctx.beginPath();
+      ctx.arc(btnX + btnW - 4, btnY + 6, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = '8px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(activeTasks.length, btnX + btnW - 4, btnY + 9);
+      ctx.textAlign = 'left';
+    }
+    return;
+  }
+  
+  // Full task board panel
+  const panelX = 8;
+  const panelY = 54;
+  const panelW = isMobile ? 180 : 220;
+  const tasks = getActiveTasks();
+  const panelH = Math.min(50 + tasks.length * 36, 260);
+  
+  // Panel background
+  ctx.fillStyle = 'rgba(6, 12, 26, 0.92)';
+  ctx.beginPath();
+  ctx.roundRect(panelX, panelY, panelW, panelH, 10);
+  ctx.fill();
+  
+  // Border
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(panelX, panelY, panelW, panelH, 10);
+  ctx.stroke();
+  
+  // Header
+  ctx.fillStyle = 'rgba(40, 60, 100, 0.6)';
+  ctx.beginPath();
+  ctx.roundRect(panelX, panelY, panelW, 28, [10, 10, 0, 0]);
+  ctx.fill();
+  
+  ctx.fillStyle = '#f5f7ff';
+  ctx.font = 'bold 11px system-ui';
+  ctx.fillText('📋 Tasks', panelX + 10, panelY + 18);
+  
+  // Minimize button
+  ctx.fillStyle = '#7a8ba8';
+  ctx.font = '14px system-ui';
+  ctx.textAlign = 'right';
+  ctx.fillText('−', panelX + panelW - 10, panelY + 18);
+  ctx.textAlign = 'left';
+  
+  // Crystal Loom progress indicator
+  const shardsFound = (storyProgress.shards.beach ? 1 : 0) + 
+                      (storyProgress.shards.mountain ? 1 : 0) + 
+                      (storyProgress.shards.cave ? 1 : 0);
+  ctx.fillStyle = '#7a8ba8';
+  ctx.font = '9px system-ui';
+  ctx.fillText(`💎 ${shardsFound}/3 Shards`, panelX + panelW - 70, panelY + 18);
+  
+  // Task list
+  let taskY = panelY + 38;
+  tasks.forEach((task, i) => {
+    const isComplete = task.status === 'complete';
+    
+    // Checkbox
+    ctx.strokeStyle = isComplete ? '#4ade80' : '#7a8ba8';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(panelX + 10, taskY, 14, 14, 2);
+    ctx.stroke();
+    
+    if (isComplete) {
+      ctx.fillStyle = '#4ade80';
+      ctx.font = 'bold 11px system-ui';
+      ctx.fillText('✓', panelX + 12, taskY + 12);
+    }
+    
+    // Task name
+    ctx.fillStyle = isComplete ? '#6b7280' : '#f5f7ff';
+    ctx.font = isComplete ? '10px system-ui' : 'bold 10px system-ui';
+    const maxTextW = panelW - 40;
+    let taskName = task.name;
+    if (ctx.measureText(taskName).width > maxTextW) {
+      while (ctx.measureText(taskName + '…').width > maxTextW && taskName.length > 0) {
+        taskName = taskName.slice(0, -1);
+      }
+      taskName += '…';
+    }
+    ctx.fillText(taskName, panelX + 30, taskY + 11);
+    
+    // Description (if not complete)
+    if (!isComplete && task.description) {
+      ctx.fillStyle = '#7a8ba8';
+      ctx.font = '8px system-ui';
+      let desc = task.description;
+      if (ctx.measureText(desc).width > maxTextW) {
+        while (ctx.measureText(desc + '…').width > maxTextW && desc.length > 0) {
+          desc = desc.slice(0, -1);
+        }
+        desc += '…';
+      }
+      ctx.fillText(desc, panelX + 30, taskY + 22);
+    }
+    
+    taskY += isComplete ? 24 : 36;
+  });
+  
+  // Hint at bottom
+  ctx.fillStyle = '#555';
+  ctx.font = '8px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('Press T to toggle', panelX + panelW/2, panelY + panelH - 6);
+  ctx.textAlign = 'left';
+}
+
+// #endregion TASK_BOARD
+
     // Tile legend:
     // 0 grass, 1 path, 2 tree (solid), 3 water (solid), 4 fence (solid),
     // 5 cottage roof, 6 door, 7 interior wall (solid), 8 interior floor
@@ -1899,8 +2153,124 @@ let inventory = {
   socks: 0,
   hat: 0,
   blanket: 0,
-  gold: 0
+  gold: 0,
+  // Forest forageables
+  mushroom: 0,
+  berries: 0,
+  wildFlower: 0,
+  resin: 0,
+  shell: 0,
+  // Dyes (crafted from forageables)
+  amberDye: 0,
+  tealDye: 0,
+  brownDye: 0,
+  // Special threads from dye shop
+  pearlThread: 0,
+  // Forest trade items
+  mushroomBasket: 0,
+  berryJam: 0
 };
+
+// =========================
+// FORAGEABLE SYSTEM
+// =========================
+// #region FORAGEABLES
+
+const forageableSpots = [
+  // Forest mushrooms (regenerate)
+  { id: 'mushroom1', map: 'forest', x: 4, y: 5, type: 'mushroom', respawnTime: 1800, available: true, timer: 0 },
+  { id: 'mushroom2', map: 'forest', x: 11, y: 8, type: 'mushroom', respawnTime: 1800, available: true, timer: 0 },
+  { id: 'mushroom3', map: 'forest', x: 16, y: 4, type: 'mushroom', respawnTime: 1800, available: true, timer: 0 },
+  // Forest berries
+  { id: 'berries1', map: 'forest', x: 3, y: 7, type: 'berries', respawnTime: 2400, available: true, timer: 0 },
+  { id: 'berries2', map: 'forest', x: 14, y: 6, type: 'berries', respawnTime: 2400, available: true, timer: 0 },
+  // Wild flowers (for dyes)
+  { id: 'flower1', map: 'forest', x: 6, y: 10, type: 'wildFlower', respawnTime: 3000, available: true, timer: 0 },
+  { id: 'flower2', map: 'forest', x: 15, y: 9, type: 'wildFlower', respawnTime: 3000, available: true, timer: 0 },
+  // Resin from trees (rare, slower respawn)
+  { id: 'resin1', map: 'forest', x: 5, y: 2, type: 'resin', respawnTime: 4800, available: true, timer: 0 },
+  // Beach shells (decorative/trade)
+  { id: 'shell1', map: 'beach', x: 3, y: 3, type: 'shell', respawnTime: 1200, available: true, timer: 0 },
+  { id: 'shell2', map: 'beach', x: 11, y: 3, type: 'shell', respawnTime: 1200, available: true, timer: 0 },
+  { id: 'shell3', map: 'beach', x: 16, y: 4, type: 'shell', respawnTime: 1200, available: true, timer: 0 }
+];
+
+const forageableInfo = {
+  mushroom: { name: 'Mushroom', color: '#c49a6c', icon: '🍄', message: 'You found a mushroom!' },
+  berries: { name: 'Wild Berries', color: '#8b3a62', icon: '🫐', message: 'You picked some wild berries!' },
+  wildFlower: { name: 'Wild Flower', color: '#d4a5e8', icon: '🌸', message: 'You picked a beautiful wild flower!' },
+  resin: { name: 'Tree Resin', color: '#d4a020', icon: '💧', message: 'You collected some sticky tree resin!' },
+  shell: { name: 'Seashell', color: '#f5e6d3', icon: '🐚', message: 'You found a pretty seashell!' }
+};
+
+// Add shell to inventory if not present (legacy check)
+// if (inventory.shell === undefined) inventory.shell = 0;
+
+function updateForageables() {
+  forageableSpots.forEach(spot => {
+    if (!spot.available) {
+      spot.timer++;
+      if (spot.timer >= spot.respawnTime) {
+        spot.available = true;
+        spot.timer = 0;
+      }
+    }
+  });
+}
+
+function getForageableAt(map, x, y) {
+  return forageableSpots.find(spot => 
+    spot.map === map && spot.x === x && spot.y === y && spot.available
+  );
+}
+
+function collectForageable(spot) {
+  if (!spot || !spot.available) return false;
+  
+  const info = forageableInfo[spot.type];
+  if (!info) return false;
+  
+  spot.available = false;
+  spot.timer = 0;
+  inventory[spot.type] = (inventory[spot.type] || 0) + 1;
+  showMessage(info.message);
+  
+  // Track first forage for task board
+  if (!taskProgress.foragedFirst) {
+    taskProgress.foragedFirst = true;
+  }
+  
+  return true;
+}
+
+function drawForageables() {
+  forageableSpots.forEach(spot => {
+    if (spot.map !== currentMap || !spot.available) return;
+    
+    const info = forageableInfo[spot.type];
+    if (!info) return;
+    
+    const px = spot.x * TILE_SIZE;
+    const py = spot.y * TILE_SIZE;
+    
+    // Gentle bobbing animation
+    const bob = Math.sin(animationTime * 2 + spot.x * 0.5) * 2;
+    
+    // Draw glow/highlight
+    ctx.fillStyle = `rgba(255, 255, 200, ${0.2 + Math.sin(animationTime * 3) * 0.1})`;
+    ctx.beginPath();
+    ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 12, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw icon
+    ctx.font = '18px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(info.icon, px + TILE_SIZE/2, py + TILE_SIZE/2 + 6 + bob);
+    ctx.textAlign = 'left';
+  });
+}
+
+// #endregion FORAGEABLES
 
 // ===== CRAFTING MENU =====
 let craftingMenuOpen = false;
@@ -1989,6 +2359,42 @@ const craftingRecipes = [
     outputs: { blanket: 1 },
     sellPrice: 30,
     color: '#f0c8a0'
+  },
+  // --- Dyes (from forageables) ---
+  {
+    id: 'amberDye',
+    name: 'Amber Dye',
+    description: 'Warm golden dye from resin and flowers',
+    inputs: { resin: 1, wildFlower: 2 },
+    outputs: { amberDye: 1 },
+    color: '#d4a020'
+  },
+  {
+    id: 'tealDye',
+    name: 'Teal Dye',
+    description: 'Cool blue-green dye from berries',
+    inputs: { berries: 3, wildFlower: 1 },
+    outputs: { tealDye: 1 },
+    color: '#20a0a0'
+  },
+  // --- Forest Trade Items ---
+  {
+    id: 'mushroomBasket',
+    name: 'Mushroom Basket',
+    description: 'A basket of foraged mushrooms',
+    inputs: { mushroom: 5 },
+    outputs: { mushroomBasket: 1 },
+    sellPrice: 15,
+    color: '#c49a6c'
+  },
+  {
+    id: 'berryJam',
+    name: 'Berry Jam',
+    description: 'Sweet jam from wild berries',
+    inputs: { berries: 4 },
+    outputs: { berryJam: 1 },
+    sellPrice: 12,
+    color: '#8b3a62'
   }
 ];
 
@@ -2042,7 +2448,20 @@ const sheep = {
   x: 8,
   y: 10,
   hasWool: true,
-  woolTimer: 0 // counts frames until wool grows back
+  woolTimer: 0, // counts frames until wool grows back
+  // Wandering properties
+  homeX: 8,
+  homeY: 10,
+  wanderRadius: 2,
+  moveTimer: 0,
+  moveDelay: 180, // frames between move attempts (~3 seconds at 60fps)
+  isMoving: false,
+  targetX: 8,
+  targetY: 10,
+  px: 8 * 32, // pixel position for smooth movement
+  py: 10 * 32,
+  moveProgress: 0,
+  facing: 'down'
 };
 
 // One goat in the paddock (overworld)
@@ -2051,8 +2470,135 @@ const goat = {
   x: 12,
   y: 11,
   hasFur: true,
-  furTimer: 0
+  furTimer: 0,
+  // Wandering properties
+  homeX: 12,
+  homeY: 11,
+  wanderRadius: 2,
+  moveTimer: 0,
+  moveDelay: 150,
+  isMoving: false,
+  targetX: 12,
+  targetY: 11,
+  px: 12 * 32,
+  py: 11 * 32,
+  moveProgress: 0,
+  facing: 'down'
 };
+
+// =========================
+// ANIMAL WANDERING SYSTEM
+// =========================
+// #region ANIMAL_WANDERING
+
+const ANIMAL_MOVE_SPEED = 2; // pixels per frame (slower than player)
+const ANIMAL_MOVE_FRAMES = TILE_SIZE / ANIMAL_MOVE_SPEED;
+
+function isValidAnimalTile(animal, tx, ty) {
+  // Check bounds
+  if (tx < 0 || ty < 0 || tx >= maps[animal.map].cols || ty >= maps[animal.map].rows) return false;
+  
+  // Check distance from home
+  const dx = Math.abs(tx - animal.homeX);
+  const dy = Math.abs(ty - animal.homeY);
+  if (dx > animal.wanderRadius || dy > animal.wanderRadius) return false;
+  
+  // Check if tile is walkable (grass, path, interior floor)
+  const mapData = maps[animal.map].data;
+  const tile = mapData[ty][tx];
+  // Allow: grass(0), path(1), interior floor(8), flower patch(12)
+  if (tile !== 0 && tile !== 1 && tile !== 8 && tile !== 12) return false;
+  
+  // Check collision with player (only if on same map)
+  if (animal.map === currentMap && tx === player.x && ty === player.y) return false;
+  
+  // Check collision with other animals
+  if (animal !== sheep && tx === sheep.x && ty === sheep.y && sheep.map === animal.map) return false;
+  if (animal !== goat && tx === goat.x && ty === goat.y && goat.map === animal.map) return false;
+  
+  return true;
+}
+
+function updateAnimalWandering(animal) {
+  // Only update if on same map as player (optimization) or nearby
+  // For now, always update animals on overworld
+  
+  // Handle ongoing movement
+  if (animal.isMoving) {
+    animal.moveProgress++;
+    const t = animal.moveProgress / ANIMAL_MOVE_FRAMES;
+    
+    // Lerp pixel position
+    const startX = animal.x * TILE_SIZE;
+    const startY = animal.y * TILE_SIZE;
+    const endX = animal.targetX * TILE_SIZE;
+    const endY = animal.targetY * TILE_SIZE;
+    
+    animal.px = startX + (endX - startX) * t;
+    animal.py = startY + (endY - startY) * t;
+    
+    // Complete movement
+    if (animal.moveProgress >= ANIMAL_MOVE_FRAMES) {
+      animal.x = animal.targetX;
+      animal.y = animal.targetY;
+      animal.px = animal.x * TILE_SIZE;
+      animal.py = animal.y * TILE_SIZE;
+      animal.isMoving = false;
+      animal.moveProgress = 0;
+      // Random delay before next move
+      animal.moveDelay = 120 + Math.floor(Math.random() * 180); // 2-5 seconds
+      animal.moveTimer = 0;
+    }
+    return;
+  }
+  
+  // Increment move timer
+  animal.moveTimer++;
+  
+  // Check if it's time to try moving
+  if (animal.moveTimer < animal.moveDelay) return;
+  
+  // 40% chance to stay still, 60% chance to try moving
+  if (Math.random() < 0.4) {
+    animal.moveTimer = 0;
+    animal.moveDelay = 60 + Math.floor(Math.random() * 120); // shorter delay when staying still
+    return;
+  }
+  
+  // Pick a random direction
+  const directions = [
+    { dx: 0, dy: -1, facing: 'up' },
+    { dx: 0, dy: 1, facing: 'down' },
+    { dx: -1, dy: 0, facing: 'left' },
+    { dx: 1, dy: 0, facing: 'right' }
+  ];
+  
+  // Shuffle directions for randomness
+  for (let i = directions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [directions[i], directions[j]] = [directions[j], directions[i]];
+  }
+  
+  // Try each direction
+  for (const dir of directions) {
+    const newX = animal.x + dir.dx;
+    const newY = animal.y + dir.dy;
+    
+    if (isValidAnimalTile(animal, newX, newY)) {
+      animal.targetX = newX;
+      animal.targetY = newY;
+      animal.facing = dir.facing;
+      animal.isMoving = true;
+      animal.moveProgress = 0;
+      break;
+    }
+  }
+  
+  // Reset timer whether move succeeded or not
+  animal.moveTimer = 0;
+}
+
+// #endregion ANIMAL_WANDERING
 
 // Knitting spot inside the cottage (must be on a floor tile)
 const knittingSpot = {
@@ -2100,6 +2646,257 @@ const merchantStock = [
   { id: 'silkRibbon', name: 'Silk Ribbon', price: 35, description: 'Luxurious silk ribbon' },
   { id: 'mysteryPattern', name: 'Mystery Pattern', price: 75, description: 'A secret knitting pattern' }
 ];
+
+// ===== VILLAGE VENDOR SHOPS =====
+
+// Dye Shop State
+let dyeShopOpen = false;
+let dyeShopSelection = 0;
+
+// Dye shop trades - trade foraged items for dyes
+const dyeShopTrades = [
+  { give: 'berries', giveAmount: 3, receive: 'tealDye', receiveName: 'Teal Dye', description: 'Trade 3 berries for teal dye' },
+  { give: 'wildFlower', giveAmount: 3, receive: 'amberDye', receiveName: 'Amber Dye', description: 'Trade 3 flowers for amber dye' },
+  { give: 'resin', giveAmount: 2, receive: 'goldenThread', receiveName: 'Golden Thread', description: 'Trade 2 resin for golden thread' },
+  { give: 'mushroom', giveAmount: 5, receive: 'brownDye', receiveName: 'Brown Dye', description: 'Trade 5 mushrooms for brown dye' },
+  { give: 'shell', giveAmount: 4, receive: 'pearlThread', receiveName: 'Pearl Thread', description: 'Trade 4 shells for pearl thread' }
+];
+
+// Tailor Shop State
+let tailorShopOpen = false;
+let tailorShopSelection = 0;
+
+// Tailor buys crafted items for gold
+const tailorBuyPrices = [
+  { id: 'scarf', name: 'Scarf', price: 25 },
+  { id: 'socks', name: 'Socks', price: 20 },
+  { id: 'mittens', name: 'Mittens', price: 30 },
+  { id: 'hat', name: 'Hat', price: 28 },
+  { id: 'blanket', name: 'Blanket', price: 55 },
+  { id: 'luxuryScarf', name: 'Luxury Scarf', price: 60 },
+  { id: 'luxuryMittens', name: 'Luxury Mittens', price: 70 },
+  { id: 'luxurySocks', name: 'Luxury Socks', price: 65 },
+  { id: 'mushroomBasket', name: 'Mushroom Basket', price: 40 },
+  { id: 'berryJam', name: 'Berry Jam', price: 35 }
+];
+
+// Open/Close Dye Shop
+function openDyeShop() {
+  dyeShopOpen = true;
+  dyeShopSelection = 0;
+  taskProgress.visitedDyeShop = true;
+  if (touchBackButton) touchBackButton.classList.add('visible');
+}
+
+function closeDyeShop() {
+  dyeShopOpen = false;
+  dyeShopSelection = 0;
+  if (touchBackButton) touchBackButton.classList.remove('visible');
+  showMessage("Iris: \"Come back with more foraged goods!\"");
+}
+
+// Trade at dye shop
+function tradeAtDyeShop() {
+  if (!dyeShopOpen) return;
+  
+  const trade = dyeShopTrades[dyeShopSelection];
+  if (!trade) return;
+  
+  const haveAmount = inventory[trade.give] || 0;
+  if (haveAmount < trade.giveAmount) {
+    showMessage(`Need ${trade.giveAmount} ${trade.give}! You have ${haveAmount}.`);
+    return;
+  }
+  
+  inventory[trade.give] -= trade.giveAmount;
+  inventory[trade.receive] = (inventory[trade.receive] || 0) + 1;
+  showMessage(`Iris: "Wonderful! Here's your ${trade.receiveName}!"`);
+  
+  // Track for task board
+  if (!taskProgress.tradedAtDyeShop) {
+    taskProgress.tradedAtDyeShop = true;
+  }
+}
+
+// Draw Dye Shop UI
+function drawDyeShopUI() {
+  if (!dyeShopOpen) return;
+  
+  const panelW = 320;
+  const panelH = 260;
+  const panelX = (canvas.width - panelW) / 2;
+  const panelY = (canvas.height - panelH) / 2;
+  
+  // Dim background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Panel background
+  ctx.fillStyle = 'rgba(148, 103, 189, 0.95)';
+  ctx.fillRect(panelX, panelY, panelW, panelH);
+  
+  // Border
+  ctx.strokeStyle = '#e0b0ff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(panelX + 1, panelY + 1, panelW - 2, panelH - 2);
+  
+  // Title
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 14px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText("🎨 Iris's Dye Shop 🎨", panelX + panelW/2, panelY + 20);
+  
+  // Subtitle
+  ctx.fillStyle = '#e0b0ff';
+  ctx.font = '10px system-ui';
+  ctx.fillText('Trade foraged items for dyes!', panelX + panelW/2, panelY + 36);
+  ctx.textAlign = 'left';
+  
+  // Trade list
+  const startY = panelY + 55;
+  dyeShopTrades.forEach((trade, i) => {
+    const y = startY + i * 32;
+    const isSelected = i === dyeShopSelection;
+    const haveAmount = inventory[trade.give] || 0;
+    const canTrade = haveAmount >= trade.giveAmount;
+    
+    // Selection highlight
+    if (isSelected) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.fillRect(panelX + 8, y - 10, panelW - 16, 28);
+    }
+    
+    // Trade info
+    ctx.fillStyle = canTrade ? '#ffffff' : '#888888';
+    ctx.font = '11px system-ui';
+    ctx.fillText(`${trade.giveAmount}x ${trade.give} → ${trade.receiveName}`, panelX + 16, y + 4);
+    
+    // Show current stock
+    ctx.fillStyle = canTrade ? '#90EE90' : '#ff8888';
+    ctx.font = '10px system-ui';
+    ctx.fillText(`(Have: ${haveAmount})`, panelX + panelW - 80, y + 4);
+  });
+  
+  // Instructions
+  ctx.fillStyle = '#e0b0ff';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('↑↓ Select | Enter/Tap to Trade | ESC to close', panelX + panelW/2, panelY + panelH - 12);
+  ctx.textAlign = 'left';
+}
+
+// Open/Close Tailor Shop
+function openTailorShop() {
+  tailorShopOpen = true;
+  tailorShopSelection = 0;
+  taskProgress.visitedTailor = true;
+  if (touchBackButton) touchBackButton.classList.add('visible');
+}
+
+function closeTailorShop() {
+  tailorShopOpen = false;
+  tailorShopSelection = 0;
+  if (touchBackButton) touchBackButton.classList.remove('visible');
+  showMessage("Theo: \"Quality work deserves quality pay. Return anytime!\"");
+}
+
+// Sell to tailor
+function sellToTailor() {
+  if (!tailorShopOpen) return;
+  
+  const item = tailorBuyPrices[tailorShopSelection];
+  if (!item) return;
+  
+  const haveAmount = inventory[item.id] || 0;
+  if (haveAmount < 1) {
+    showMessage(`You don't have any ${item.name} to sell!`);
+    return;
+  }
+  
+  inventory[item.id]--;
+  inventory.gold = (inventory.gold || 0) + item.price;
+  showMessage(`Sold ${item.name} for ${item.price}g! Theo: "Excellent craftsmanship!"`);
+  
+  // Track for task board
+  if (!taskProgress.soldToTailor) {
+    taskProgress.soldToTailor = true;
+  }
+}
+
+// Draw Tailor Shop UI
+function drawTailorShopUI() {
+  if (!tailorShopOpen) return;
+  
+  const panelW = 320;
+  const panelH = 300;
+  const panelX = (canvas.width - panelW) / 2;
+  const panelY = (canvas.height - panelH) / 2;
+  
+  // Dim background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Panel background
+  ctx.fillStyle = 'rgba(92, 64, 51, 0.95)';
+  ctx.fillRect(panelX, panelY, panelW, panelH);
+  
+  // Border
+  ctx.strokeStyle = '#d4a574';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(panelX + 1, panelY + 1, panelW - 2, panelH - 2);
+  
+  // Title
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 14px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText("✂️ Master Theo's Tailoring ✂️", panelX + panelW/2, panelY + 20);
+  
+  // Gold display
+  ctx.fillStyle = '#ffd700';
+  ctx.font = '12px system-ui';
+  ctx.fillText(`Your Gold: ${inventory.gold || 0}g`, panelX + panelW/2, panelY + 38);
+  
+  // Subtitle
+  ctx.fillStyle = '#d4a574';
+  ctx.font = '10px system-ui';
+  ctx.fillText('Sell your crafted goods!', panelX + panelW/2, panelY + 52);
+  ctx.textAlign = 'left';
+  
+  // Items list
+  const startY = panelY + 68;
+  tailorBuyPrices.forEach((item, i) => {
+    const y = startY + i * 22;
+    const isSelected = i === tailorShopSelection;
+    const haveAmount = inventory[item.id] || 0;
+    const canSell = haveAmount >= 1;
+    
+    // Selection highlight
+    if (isSelected) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.fillRect(panelX + 8, y - 8, panelW - 16, 20);
+    }
+    
+    // Item info
+    ctx.fillStyle = canSell ? '#ffffff' : '#888888';
+    ctx.font = '11px system-ui';
+    ctx.fillText(`${item.name}`, panelX + 16, y + 4);
+    
+    // Price
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText(`${item.price}g`, panelX + 160, y + 4);
+    
+    // Stock
+    ctx.fillStyle = canSell ? '#90EE90' : '#666666';
+    ctx.fillText(`(Have: ${haveAmount})`, panelX + 220, y + 4);
+  });
+  
+  // Instructions
+  ctx.fillStyle = '#d4a574';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('↑↓ Select | Enter/Tap to Sell | ESC to close', panelX + panelW/2, panelY + panelH - 12);
+  ctx.textAlign = 'left';
+}
 
 // Update traveling merchant spawn/despawn
 function updateTravelingMerchant() {
@@ -2219,6 +3016,7 @@ function drawTravelingMerchant() {
 function openMerchantShop() {
   merchantShopOpen = true;
   merchantShopSelection = 0;
+  taskProgress.metMerchant = true; // Track for task board
   if (touchBackButton) touchBackButton.classList.add('visible');
 }
 
@@ -2445,11 +3243,75 @@ const villagers = [
     request: null,
     requestItem: null,
     requestReward: 0
+  },
+  // === SOUTH VILLAGE VENDORS ===
+  {
+    id: 'dyer',
+    name: 'Iris the Dyer',
+    map: 'village',
+    x: 3,
+    y: 9,
+    homeX: 3,
+    homeY: 9,
+    wanderRadius: 1,
+    moveTimer: 0,
+    moveDelay: 200,
+    color: '#c9a0dc',
+    isVendor: true,
+    vendorType: 'dyeShop',
+    dialogue: [
+      "Welcome to my dye shop! I specialize in natural colors.",
+      "Forest berries and flowers make the best dyes!",
+      "Bring me foraged items and I'll trade you dyes.",
+      "Each color tells a story from nature."
+    ],
+    lovedGifts: ['berries', 'wildFlower', 'resin'],
+    likedGifts: ['mushroom', 'yarn'],
+    request: null,
+    requestItem: null,
+    requestReward: 0
+  },
+  {
+    id: 'tailor',
+    name: 'Master Theo',
+    map: 'village',
+    x: 15,
+    y: 9,
+    homeX: 15,
+    homeY: 9,
+    wanderRadius: 1,
+    moveTimer: 0,
+    moveDelay: 180,
+    color: '#8b4513',
+    isVendor: true,
+    vendorType: 'tailorShop',
+    dialogue: [
+      "Ah, a fellow craftsperson! I am Theo, master tailor.",
+      "I buy premium cloth and luxury items at fair prices.",
+      "Your work is impeccable! Keep crafting quality goods.",
+      "The Crystal Loom... I've heard legends of its power."
+    ],
+    lovedGifts: ['luxuryScarf', 'luxuryMittens', 'luxurySocks'],
+    likedGifts: ['scarf', 'hat', 'blanket'],
+    request: null,
+    requestItem: null,
+    requestReward: 0
   }
 ];
 
 // NPC Functions
 function openDialogue(npc) {
+  // Check if this is a vendor NPC - open their shop instead of dialogue
+  if (npc.isVendor) {
+    if (npc.vendorType === 'dyeShop') {
+      openDyeShop();
+      return;
+    } else if (npc.vendorType === 'tailorShop') {
+      openTailorShop();
+      return;
+    }
+  }
+  
   dialogueOpen = true;
   currentNPC = npc;
   dialogueIndex = 0;
@@ -2632,7 +3494,7 @@ const SAVE_KEY = 'yarnvale_save';
 
 function saveGame() {
   const saveData = {
-    version: 2,
+    version: 3,
     timestamp: Date.now(),
     player: {
       x: player.x,
@@ -2642,14 +3504,20 @@ function saveGame() {
     inventory: { ...inventory },
     friendship: { ...friendship },
     sheep: {
+      x: sheep.x,
+      y: sheep.y,
       hasWool: sheep.hasWool,
       woolTimer: sheep.woolTimer
     },
     goat: {
+      x: goat.x,
+      y: goat.y,
       hasFur: goat.hasFur,
       furTimer: goat.furTimer
     },
-    storyProgress: { ...storyProgress }
+    storyProgress: { ...storyProgress },
+    taskProgress: { ...taskProgress },
+    taskBoardOpen: taskBoardOpen
   };
   
   try {
@@ -2688,6 +3556,25 @@ function loadGame() {
     goat.hasFur = saveData.goat.hasFur;
     goat.furTimer = saveData.goat.furTimer;
     
+    // Restore animal positions (version 3+)
+    if (saveData.version >= 3) {
+      sheep.x = saveData.sheep.x ?? sheep.homeX;
+      sheep.y = saveData.sheep.y ?? sheep.homeY;
+      sheep.px = sheep.x * TILE_SIZE;
+      sheep.py = sheep.y * TILE_SIZE;
+      sheep.targetX = sheep.x;
+      sheep.targetY = sheep.y;
+      sheep.isMoving = false;
+      
+      goat.x = saveData.goat.x ?? goat.homeX;
+      goat.y = saveData.goat.y ?? goat.homeY;
+      goat.px = goat.x * TILE_SIZE;
+      goat.py = goat.y * TILE_SIZE;
+      goat.targetX = goat.x;
+      goat.targetY = goat.y;
+      goat.isMoving = false;
+    }
+    
     // Restore story progress (if version 2+)
     if (saveData.storyProgress) {
       Object.assign(storyProgress, saveData.storyProgress);
@@ -2698,6 +3585,14 @@ function loadGame() {
       if (saveData.storyProgress.storyFlags) {
         Object.assign(storyProgress.storyFlags, saveData.storyProgress.storyFlags);
       }
+    }
+    
+    // Restore task progress (version 3+)
+    if (saveData.taskProgress) {
+      Object.assign(taskProgress, saveData.taskProgress);
+    }
+    if (saveData.taskBoardOpen !== undefined) {
+      taskBoardOpen = saveData.taskBoardOpen;
     }
     
     // Update map data reference
@@ -3107,6 +4002,42 @@ const GOAT_DRAW_OFFSET_Y = 10; // push goat sprite down a bit to clear trees
 
     canvas.addEventListener('pointerdown', ensureMobileAudioUnlock);
     canvas.addEventListener('touchstart', ensureMobileAudioUnlock);
+    
+    // Handle clicks on task board button/panel
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const clickX = (e.clientX - rect.left) * scaleX;
+      const clickY = (e.clientY - rect.top) * scaleY;
+      
+      const isMobile = isCoarsePointer || showOverlayMode;
+      const btnX = 8;
+      const btnY = 54;
+      const btnW = isMobile ? 28 : 32;
+      const btnH = isMobile ? 28 : 32;
+      
+      // Check if clicked on task board button (when minimized or closed)
+      if (taskBoardMinimized || !taskBoardOpen) {
+        if (clickX >= btnX && clickX <= btnX + btnW && 
+            clickY >= btnY && clickY <= btnY + btnH) {
+          toggleTaskBoard();
+          return;
+        }
+      }
+      
+      // Check if clicked on minimize button (when open)
+      if (taskBoardOpen && !taskBoardMinimized) {
+        const panelW = isMobile ? 180 : 220;
+        const minBtnX = btnX + panelW - 20;
+        const minBtnY = btnY;
+        if (clickX >= minBtnX && clickX <= minBtnX + 20 && 
+            clickY >= minBtnY && clickY <= minBtnY + 28) {
+          minimizeTaskBoard();
+          return;
+        }
+      }
+    });
 
  // #endregion CONFIG & MAPS   <-- move it to HERE
 
@@ -3179,6 +4110,11 @@ let questStage = 0;
           showMessage('You return to your farm.');
           return;
         }
+      }
+      
+      // Track village visit for task board
+      if (currentMap === 'village' && !taskProgress.visitedVillage) {
+        taskProgress.visitedVillage = true;
       }
       
       // Village right edge (col 18) -> Forest left
@@ -3405,6 +4341,58 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
+  // Handle dye shop
+  if (dyeShopOpen) {
+    if (e.key === 'ArrowUp' || key === 'w') {
+      dyeShopSelection = Math.max(0, dyeShopSelection - 1);
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'ArrowDown' || key === 's') {
+      dyeShopSelection = Math.min(dyeShopTrades.length - 1, dyeShopSelection + 1);
+      e.preventDefault();
+      return;
+    }
+    if (key === 'e' || e.code === 'Space' || e.key === 'Enter') {
+      tradeAtDyeShop();
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Escape') {
+      closeDyeShop();
+      e.preventDefault();
+      return;
+    }
+    e.preventDefault();
+    return;
+  }
+
+  // Handle tailor shop
+  if (tailorShopOpen) {
+    if (e.key === 'ArrowUp' || key === 'w') {
+      tailorShopSelection = Math.max(0, tailorShopSelection - 1);
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'ArrowDown' || key === 's') {
+      tailorShopSelection = Math.min(tailorBuyPrices.length - 1, tailorShopSelection + 1);
+      e.preventDefault();
+      return;
+    }
+    if (key === 'e' || e.code === 'Space' || e.key === 'Enter') {
+      sellToTailor();
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Escape') {
+      closeTailorShop();
+      e.preventDefault();
+      return;
+    }
+    e.preventDefault();
+    return;
+  }
+
   // Handle dialogue
   if (dialogueOpen) {
     if (e.key === 'Escape') {
@@ -3476,6 +4464,12 @@ window.addEventListener('keydown', (e) => {
   // toggle inventory with I or Esc
   if (key === 'i') {
     inventoryOpen = !inventoryOpen;
+    e.preventDefault();
+  }
+  
+  // toggle task board with T
+  if (key === 't' && !inventoryOpen && !craftingMenuOpen && !dialogueOpen) {
+    toggleTaskBoard();
     e.preventDefault();
   }
   
@@ -3644,6 +4638,13 @@ function handleMarket() {
   if (player.moving) return; // ignore actions while sliding between tiles
   const tile = mapData[player.y][player.x];
 
+  // Check for forageable items at player position
+  const forageable = getForageableAt(currentMap, player.x, player.y);
+  if (forageable) {
+    collectForageable(forageable);
+    return;
+  }
+
   // Crystal shard collection (tile 27)
   if (tile === 27) {
     let shardLocation = null;
@@ -3786,6 +4787,9 @@ function update() {
   // Update traveling merchant spawn/despawn
   updateTravelingMerchant();
   
+  // Update forageable respawn timers
+  updateForageables();
+  
   // --- Smooth tile movement ---
   if (player.moving) {
     const remX = player.targetPx - player.px;
@@ -3815,8 +4819,9 @@ function update() {
     let dx = 0;
     let dy = 0;
 
-    // don't allow movement while inventory or options menu is open
-    if (!inventoryOpen && !optionsMenuOpen) {
+    // don't allow movement while menus are open
+    const anyMenuOpen = inventoryOpen || optionsMenuOpen || merchantShopOpen || dyeShopOpen || tailorShopOpen || dialogueOpen || giftMenuOpen;
+    if (!anyMenuOpen) {
       if (keys.ArrowUp || keys.w || touchDirections.up) {
         dy = -1;
         player.dir = 'up';
@@ -3838,6 +4843,11 @@ function update() {
   }
 
   updatePlayerAnimationState(player.moving);
+  
+  // --- Animal wandering update ---
+  updateAnimalWandering(sheep);
+  updateAnimalWandering(goat);
+  
   // --- Sheep wool regrowth ---
   if (!sheep.hasWool) {
     sheep.woolTimer++;
@@ -4851,15 +5861,18 @@ function drawPlayerFromSprites() {
 function drawGoat() {
   if (currentMap !== goat.map) return;
 
-  const px = goat.x * TILE_SIZE;
-  const py = goat.y * TILE_SIZE;
+  // Use pixel position for smooth movement
+  const px = Math.round(goat.px);
+  const py = Math.round(goat.py);
 
   const asset = artAssets.goat;
   if (asset && asset.loaded && !asset.error) {
     const cols = asset.columns || 3;
     const fw = asset.frameWidth || (asset.image.width / cols);
     const fh = asset.frameHeight || asset.image.height;
-    const frame = cols ? Math.floor(goatAnimTick / 12) % cols : 0;
+    // Animate faster when moving
+    const animSpeed = goat.isMoving ? 8 : 12;
+    const frame = cols ? Math.floor(goatAnimTick / animSpeed) % cols : 0;
     const sx = frame * fw;
     const sy = 0;
     // Scale full frame into the tile, with a small upward offset for padding
@@ -4882,8 +5895,9 @@ function drawGoat() {
 function drawSheep() {
   if (currentMap !== sheep.map) return;
 
-  const px = sheep.x * TILE_SIZE;
-  const py = sheep.y * TILE_SIZE;
+  // Use pixel position for smooth movement
+  const px = Math.round(sheep.px);
+  const py = Math.round(sheep.py);
 
   // shadow
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
@@ -4906,20 +5920,26 @@ function drawSheep() {
     ctx.fill();
   }
 
-  // head
+  // head - position based on facing direction
+  let headOffsetX = -6;
+  let headOffsetY = -4;
+  if (sheep.facing === 'right') headOffsetX = 6;
+  else if (sheep.facing === 'up') { headOffsetX = 0; headOffsetY = -8; }
+  else if (sheep.facing === 'down') { headOffsetX = 0; headOffsetY = 0; }
+  
   ctx.fillStyle = '#d3c0aa';
   ctx.beginPath();
-  ctx.ellipse(px + 10, py + 14, 6, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(px + 16 + headOffsetX, py + 14 + headOffsetY, 6, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // little ears
-  ctx.fillRect(px + 5, py + 10, 3, 3);
-  ctx.fillRect(px + 11, py + 10, 3, 3);
+  ctx.fillRect(px + 11 + headOffsetX, py + 10 + headOffsetY, 3, 3);
+  ctx.fillRect(px + 17 + headOffsetX, py + 10 + headOffsetY, 3, 3);
 
   // face details
   ctx.fillStyle = '#3a2a24';
-  ctx.fillRect(px + 8, py + 14, 1, 2);
-  ctx.fillRect(px + 11, py + 14, 1, 2);
+  ctx.fillRect(px + 14 + headOffsetX, py + 14 + headOffsetY, 1, 2);
+  ctx.fillRect(px + 17 + headOffsetX, py + 14 + headOffsetY, 1, 2);
 }
 
 function drawFurniture() {
@@ -5146,6 +6166,9 @@ function render() {
   drawFurniture();
 
   drawInteractableGlows(interactables);
+  
+  // Draw forageable items
+  drawForageables();
 
   drawGoat();
   drawSheep();
@@ -5270,10 +6293,11 @@ function render() {
     const rowHeight = 22;
     let currentY = panelY + 52;
 
-    // --- MATERIALS SECTION ---
+    // --- MATERIALS SECTION (Two columns) ---
     ctx.fillStyle = '#7a8ba8';
     ctx.font = '10px system-ui';
     ctx.fillText('MATERIALS', panelX + 16, currentY);
+    ctx.fillText('FORAGED', panelX + panelW/2 + 8, currentY);
     currentY += 18;
 
     const materials = [
@@ -5282,19 +6306,45 @@ function render() {
       { name: 'Yarn', key: 'yarn', color: '#f098c8' },
       { name: 'Luxury Yarn', key: 'luxuryYarn', color: '#c8a0f0' }
     ];
+    
+    const forageables = [
+      { name: 'Mushroom', key: 'mushroom', color: '#c49a6c' },
+      { name: 'Berries', key: 'berries', color: '#8b3a62' },
+      { name: 'Wild Flower', key: 'wildFlower', color: '#d4a5e8' },
+      { name: 'Resin', key: 'resin', color: '#d4a020' },
+      { name: 'Shell', key: 'shell', color: '#f5e6d3' }
+    ];
 
-    materials.forEach(mat => {
-      ctx.fillStyle = mat.color;
-      ctx.beginPath();
-      ctx.arc(panelX + 28, currentY - 3, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#a9b3cd';
-      ctx.font = '12px system-ui';
-      ctx.fillText(mat.name, panelX + 44, currentY);
-      ctx.fillStyle = '#f5f7ff';
-      ctx.fillText(`${inventory[mat.key]}`, panelX + panelW - 40, currentY);
+    const maxRows = Math.max(materials.length, forageables.length);
+    for (let i = 0; i < maxRows; i++) {
+      // Left column - materials
+      if (i < materials.length) {
+        const mat = materials[i];
+        ctx.fillStyle = mat.color;
+        ctx.beginPath();
+        ctx.arc(panelX + 28, currentY - 3, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#a9b3cd';
+        ctx.font = '11px system-ui';
+        ctx.fillText(mat.name, panelX + 40, currentY);
+        ctx.fillStyle = '#f5f7ff';
+        ctx.fillText(`${inventory[mat.key]}`, panelX + panelW/2 - 30, currentY);
+      }
+      // Right column - forageables
+      if (i < forageables.length) {
+        const mat = forageables[i];
+        ctx.fillStyle = mat.color;
+        ctx.beginPath();
+        ctx.arc(panelX + panelW/2 + 20, currentY - 3, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#a9b3cd';
+        ctx.font = '11px system-ui';
+        ctx.fillText(mat.name, panelX + panelW/2 + 32, currentY);
+        ctx.fillStyle = '#f5f7ff';
+        ctx.fillText(`${inventory[mat.key]}`, panelX + panelW - 30, currentY);
+      }
       currentY += rowHeight;
-    });
+    }
 
     // --- CRAFTED ITEMS SECTION ---
     currentY += 8;
@@ -5310,8 +6360,19 @@ function render() {
       { name: 'Mittens', key: 'mittens', color: '#e8d0c0', price: 15 },
       { name: 'Lux. Mittens', key: 'luxuryMittens', color: '#e0b8f0', price: 20 },
       { name: 'Lux. Scarf', key: 'luxuryScarf', color: '#d8a0f8', price: 25 },
-      { name: 'Blanket', key: 'blanket', color: '#f0c8a0', price: 30 }
+      { name: 'Blanket', key: 'blanket', color: '#f0c8a0', price: 30 },
+      { name: 'Mush. Basket', key: 'mushroomBasket', color: '#c49a6c', price: 15 },
+      { name: 'Berry Jam', key: 'berryJam', color: '#8b3a62', price: 12 }
     ];
+    
+    // Also show dyes if any
+    const dyes = [
+      { name: 'Amber Dye', key: 'amberDye', color: '#d4a020' },
+      { name: 'Teal Dye', key: 'tealDye', color: '#20a0a0' },
+      { name: 'Brown Dye', key: 'brownDye', color: '#8b6914' },
+      { name: 'Pearl Thread', key: 'pearlThread', color: '#f0e8dc' }
+    ];
+    const ownedDyes = dyes.filter(d => inventory[d.key] > 0);
 
     craftedItems.forEach(item => {
       ctx.fillStyle = item.color;
@@ -5329,6 +6390,27 @@ function render() {
       ctx.fillText(`${inventory[item.key]}`, panelX + panelW - 40, currentY);
       currentY += rowHeight;
     });
+    
+    // Show dyes if owned
+    if (ownedDyes.length > 0) {
+      currentY += 4;
+      ctx.fillStyle = '#7a8ba8';
+      ctx.font = '10px system-ui';
+      ctx.fillText('DYES', panelX + 16, currentY);
+      currentY += 14;
+      ownedDyes.forEach(dye => {
+        ctx.fillStyle = dye.color;
+        ctx.beginPath();
+        ctx.arc(panelX + 28, currentY - 3, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#a9b3cd';
+        ctx.font = '12px system-ui';
+        ctx.fillText(dye.name, panelX + 44, currentY);
+        ctx.fillStyle = '#f5f7ff';
+        ctx.fillText(`${inventory[dye.key]}`, panelX + panelW - 40, currentY);
+        currentY += rowHeight;
+      });
+    }
 
     // --- CURRENCY SECTION ---
     currentY += 8;
@@ -5518,6 +6600,13 @@ function render() {
   
   // Traveling Merchant Shop UI
   drawMerchantShopUI();
+  
+  // Village Vendor Shops UI
+  drawDyeShopUI();
+  drawTailorShopUI();
+  
+  // Task Board UI (drawn last so it's on top, but before debug)
+  drawTaskBoardUI();
 
   drawDebugInfoPanel();
 
