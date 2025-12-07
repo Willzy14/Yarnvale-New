@@ -1724,15 +1724,11 @@ let introDone = false;
 
 // Check if player has seen intro before
 function loadIntroState() {
-  const saved = localStorage.getItem('introComplete');
-  if (saved === 'true') {
-    introDone = true;
-    introState = 'complete';
-  }
-  // DEBUG: Temporarily reset intro to test
-  localStorage.removeItem('introComplete');
+  // DEBUG: Force intro to show for testing
+  console.log('loadIntroState called - forcing intro display');
   introDone = false;
   introState = 'welcome';
+  localStorage.removeItem('introComplete');
 }
 
 function completeIntro() {
@@ -1955,6 +1951,9 @@ function minimizeTaskBoard() {
 }
 
 function drawTaskBoardUI() {
+  // Don't show task board during intro
+  if (!introDone) return;
+  
   const isMobile = isCoarsePointer || showOverlayMode;
   
   // Draw minimized button if minimized
@@ -6779,6 +6778,7 @@ function render() {
   
   // Intro screen (drawn on top of everything)
   if (!introDone) {
+    console.log('Drawing intro screen, introState:', introState);
     drawIntroScreen();
   }
 
