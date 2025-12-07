@@ -2119,14 +2119,14 @@ function drawTaskBoardUI() {
         data: [
           [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
           [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
-          [2,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
-          [2,0,0,0,0,5,5,5,1,6,1,0,0,0,0,0,0,0,2],
-          [2,0,0,0,0,5,5,5,1,1,1,0,0,0,0,0,0,0,2],
-          [2,0,0,0,0,5,5,5,0,1,0,0,0,0,0,0,0,0,2],
-          [2,0,0,0,0,0,4,4,4,1,4,0,0,0,0,0,0,0,2],
-          [2,0,0,0,0,0,4,0,0,1,4,0,0,0,3,3,0,0,2],
-          [2,0,0,0,0,0,4,0,0,1,4,0,0,0,3,3,0,0,2],
-          [2,0,0,0,0,0,4,4,4,1,4,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,1,5,5,5,1,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,1,5,5,5,1,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,1,5,6,5,1,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,2],
+          [2,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,2],
+          [2,0,3,3,0,0,0,0,0,1,0,0,0,0,0,0,0,0,2],
+          [2,0,3,3,0,0,0,0,0,1,0,0,0,0,0,0,0,0,2],
           [2,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,2],
           [2,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,2],
           [2,2,2,2,2,2,2,2,1,1,1,2,2,2,2,2,2,2,2],
@@ -2600,21 +2600,21 @@ let messageExpiryTime = 0; // timestamp when current message should disappear
 // One starter sheep in the paddock (overworld)
 const sheep = {
   map: 'overworld',
-  x: 8,
-  y: 10,
+  x: 5,
+  y: 7,
   hasWool: true,
   woolTimer: 0, // counts frames until wool grows back
   // Wandering properties
-  homeX: 8,
-  homeY: 10,
-  wanderRadius: 2,
+  homeX: 5,
+  homeY: 7,
+  wanderRadius: 3,
   moveTimer: 0,
   moveDelay: 180, // frames between move attempts (~3 seconds at 60fps)
   isMoving: false,
-  targetX: 8,
-  targetY: 10,
-  px: 8 * 32, // pixel position for smooth movement
-  py: 10 * 32,
+  targetX: 5,
+  targetY: 7,
+  px: 5 * 32, // pixel position for smooth movement
+  py: 7 * 32,
   moveProgress: 0,
   facing: 'down'
 };
@@ -2622,21 +2622,21 @@ const sheep = {
 // One goat in the paddock (overworld)
 const goat = {
   map: 'overworld',
-  x: 12,
-  y: 11,
+  x: 14,
+  y: 8,
   hasFur: true,
   furTimer: 0,
   // Wandering properties
-  homeX: 12,
-  homeY: 11,
-  wanderRadius: 2,
+  homeX: 14,
+  homeY: 8,
+  wanderRadius: 3,
   moveTimer: 0,
   moveDelay: 150,
   isMoving: false,
-  targetX: 12,
-  targetY: 11,
-  px: 12 * 32,
-  py: 11 * 32,
+  targetX: 14,
+  targetY: 8,
+  px: 14 * 32,
+  py: 8 * 32,
   moveProgress: 0,
   facing: 'down'
 };
