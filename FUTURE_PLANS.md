@@ -15,6 +15,43 @@ This roadmap focuses on richer story, events, and replayable loops to ship a “
 - **Phase 3 (Dec 19–22):** Biome polish (wetlands/snowy highlands), economy tuning, accessibility/settings.
 - **Phase 4 (Dec 23–25):** QA polish, bug sweep, perf tidy, cache bump, build locks.
 
+---
+## 🔥 NEXT SESSION PRIORITY: Farm Shop & Pen Building
+
+### Feature: Barnaby's Farm Shop
+A new vendor NPC on the overworld (near the paddock area) who sells:
+- **Fencing** (10g each) - place to build pen walls
+- **Gate** (25g) - place as pen entrance, player can walk through
+- **Animals** - purchasable once you have a pen:
+  - Extra Sheep (50g)
+  - Llama (100g) - yields fine wool
+  - Rabbit (40g) - fast soft fur loop
+  - Extra Goat (75g)
+
+### Implementation Plan
+1. **Add Barnaby NPC** to overworld (e.g., x:16, y:5) with shop dialogue
+2. **New shop UI** (`farmShopOpen`) similar to dye/tailor shops
+3. **Inventory items**: `fencing`, `gate` (buildable), gold cost
+4. **Build Mode**:
+   - Press B or tap "Build" button to enter build mode
+   - Select fencing/gate from build menu
+   - Place on grass tiles; fence = solid tile (4), gate = walkable
+   - Deduct item from inventory on placement
+5. **Pen detection** (optional/later): check if fences form enclosed loop
+6. **Animal purchase**: spawns new animal at pen location if pen exists, else near existing animals
+
+### Code Locations to Modify
+- `villagers[]` array: add Barnaby NPC
+- New `farmShopOpen` state + `farmShopItems[]` array
+- `handleCanvasInteraction()`: farm shop touch support
+- `drawFarmShopUI()`: render shop menu
+- `inventory{}`: add fencing, gate counts
+- New `buildMode` state + `drawBuildModeUI()`
+- `handleAction()`: place fence/gate when in build mode
+- `isSolidTile()`: placed fences become solid
+
+### Estimated Time: 45-60 minutes
+
 ## Core Additions
 1) **Narrative & Events**
    - Festival of Threads (3 steps): gather dyes/feathers/luxury cloth → decorate square → evening lighting + reward (fast travel voucher/discount).
