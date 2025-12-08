@@ -1,6 +1,38 @@
 # Yarnvale Future Plans (Delivery: Dec 25, 2025)
 
-This roadmap focuses on richer story, events, and replayable loops to ship a “cozy, content-rich” build by Dec 25. Asset improvements (sprites/UI/icons) are tracked separately in `ASSET_WISHLIST.md` and can arrive in parallel.
+---
+## 📋 CONTINUATION NOTES (Last Updated: Session ending V31)
+
+### Current Version: V31 (Fishing Tuned)
+### Save Version: 6
+
+### Completed This Session:
+- ✅ V28: New Crafting Recipes (~20 recipes including friendship-locked)
+- ✅ V29: Fishing Mini-Game (Beach, 3-phase: waiting→biting→reeling, 11 catch types)
+- ✅ V30: Wetlands Biome (6 new tiles, forageables, indigo/violet dyes, Forest↔Mountain transitions)
+- ✅ V31: Fishing difficulty tuning (shorter bite window, smaller zone, stronger fish pull)
+
+### Key Code Locations:
+- **Fishing System**: Lines ~4980-5260 (canStartFishing, startFishing, updateFishing, handleFishingInput, drawFishingUI)
+- **Wetlands Map**: Lines ~2420-2460 (mapData.wetlands, tiles 30-35)
+- **Wetlands Tile Rendering**: Lines ~8850-9060 (animated reeds, lily pads, glowing plants)
+- **Wetlands Forageables**: Lines ~2560-2598 (indigoFlower, violetFlower)
+- **New Dye Recipes**: Lines ~2780-2820 (indigoDye, violetDye)
+
+### Notes for Next Session:
+- Fishing "might need a bit of finessing" per user - can adjust difficulty later
+- Fishing only works on beach map at ocean tiles (17) - player must be at row 2 facing up toward water
+
+### Suggested Next Features (Priority Order):
+1. **Barnaby's Farm Shop** - Fencing, gates, animal purchases (see detailed plan below)
+2. **Loom Attune Mini-Game** - Timed taps for crafting bonus
+3. **Knitting Sprint Mini-Game** - Timing loop for +1 item value
+4. **Festival of Threads Arc** - 3-step event with rewards
+5. **Village Heart Quests** - Short arcs for Granny/Felix/Theo/Iris
+
+---
+
+This roadmap focuses on richer story, events, and replayable loops to ship a "cozy, content-rich" build by Dec 25. Asset improvements (sprites/UI/icons) are tracked separately in `ASSET_WISHLIST.md` and can arrive in parallel.
 
 ---
 ## High-Level Goals
@@ -90,8 +122,9 @@ A new vendor NPC on the overworld (near the paddock area) who sells:
 ## Updated Checklist
 
 ### World / Maps
-- [ ] Fast-travel signposts after discovery (Farm ↔ Village ↔ Forest ↔ Beach ↔ Mountain).
-- [ ] Wetlands connector map with reeds + dye plant; snowy ridge landmark near Mountain.
+- [x] Fast-travel signposts after discovery (Farm ↔ Village ↔ Forest ↔ Beach ↔ Mountain ↔ Wetlands). ✅ V26
+- [x] Wetlands connector map with reeds + dye plant (indigo/violet); connects Forest ↔ Mountain. ✅ V30
+- [ ] Snowy ridge landmark near Mountain top.
 - [ ] Props pass: benches, lanterns, bridges, signposts, festival bunting in Village.
 
 ### Animals
@@ -103,25 +136,33 @@ A new vendor NPC on the overworld (near the paddock area) who sells:
 
 ### Crafting & Economy
 - [x] Dyes (amber/teal); shell crafts; dyed items; luxury socks.
-- [ ] New recipes: capes, ponchos, plushies, banners, lanterns, shell jewelry set, fishing trinkets.
-- [ ] Luxury “royal” set (fine wool + rare dye).
-- [ ] Daily/weekly orders board with timers and rewards.
+- [x] New recipes: ~20 recipes including capes, ponchos, plushies, banners, lanterns, shell jewelry, friendship-locked recipes. ✅ V28
+- [ ] Luxury "royal" set (fine wool + rare dye).
+- [x] Daily/weekly orders board with timers and rewards. ✅ V27
 
 ### Quests & Story
 - [ ] Festival of Threads 3-step arc with evening payoff + voucher/discount.
-- [ ] Hermit’s loom whisper arc; cave riddle; shard hinting.
+- [ ] Hermit's loom whisper arc; cave riddle; shard hinting.
 - [ ] Beach Shell Song mini-arc (shell collection → lullaby reward).
 - [ ] Village Heart mini-quests (Granny/Felix/Theo/Iris) granting perks/recipes.
+- [x] Friendship Perks system: thresholds unlock shop discounts and recipes. ✅ V27
 
 ### Building & Progression
 - [ ] Pen construction/upgrades with decor slot buffs.
 - [ ] Cottage upgrade hooks: loom corner buff, storage chest, display rack passive.
+- [ ] Barnaby's Farm Shop: fencing, gates, animal purchases.
 
 ### Systems / UX
 - [x] Task board UI.
 - [ ] Inventory filters; large-text toggle; colorblind-safe accent palette.
 - [ ] Autosave on map transitions; keep manual save/load.
-- [ ] Fast travel menu; controller/touch prompt clarity.
+- [x] Fast travel menu with signpost discovery. ✅ V26
+- [ ] Controller/touch prompt clarity.
+
+### Mini-Games
+- [x] Fishing Mini-Game (Beach): timing bar for shells/fish/treasure, difficulty tuned. ✅ V29/V31
+- [ ] Loom Attune: timed taps to align threads (reward: +1 crafted output for next 3 crafts).
+- [ ] Knitting Sprint: short timing loop to "perfect" an item for +1 value.
 
 ### Performance / Tech
 - [ ] Sprite/audio audit; lazy-load ambience.

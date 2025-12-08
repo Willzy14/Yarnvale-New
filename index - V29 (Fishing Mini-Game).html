@@ -562,8 +562,7 @@ const ZONE_DISPLAY_NAMES = {
   forest: "Whispering Woods",
   beach: "Sandy Shore",
   mountain: "Frostpeak Mountain",
-  cave: "Crystal Cave",
-  wetlands: "Misty Marshes"
+  cave: "Crystal Cave"
 };
 
 function getZoneDisplayName(mapName) {
@@ -2418,26 +2417,6 @@ function drawTaskBoardUI() {
           [23,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,23],
           [23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23]
         ]
-      },
-      wetlands: {
-        cols: 19,
-        rows: 13,
-        data: [
-          // 30 = wetland grass, 31 = swamp water, 32 = reeds, 33 = lily pads, 34 = dye plant (indigo), 35 = dye plant (violet)
-          [2,2,2,2,2,2,0,1,1,1,0,2,2,2,2,2,2,2,2],
-          [2,30,30,30,32,30,30,1,31,1,30,30,32,30,30,30,30,2,2],
-          [30,30,31,33,31,30,30,30,31,30,30,31,31,33,31,30,30,30,30],
-          [30,32,31,31,31,33,30,30,31,30,34,31,31,31,31,32,30,30,30],
-          [30,30,30,31,31,31,30,30,30,30,30,33,31,31,30,30,30,19,30],
-          [30,30,35,30,33,31,31,30,30,30,30,31,31,33,30,30,30,30,30],
-          [1,1,30,30,30,31,31,33,30,29,30,30,31,31,30,30,35,30,30],
-          [30,30,30,32,30,30,31,31,30,30,30,33,31,30,30,32,30,30,30],
-          [30,30,30,30,30,33,31,31,30,30,30,31,31,30,30,30,30,19,30],
-          [30,32,30,30,30,31,33,30,30,30,34,30,33,30,30,32,30,30,30],
-          [30,30,30,35,30,30,30,30,30,30,30,30,30,30,35,30,30,30,30],
-          [2,30,30,30,30,32,30,30,30,30,30,30,32,30,30,30,30,2,2],
-          [2,2,2,2,2,2,30,1,1,1,30,2,2,2,2,2,2,2,2]
-        ]
       }
     };
 
@@ -2534,14 +2513,7 @@ let inventory = {
   berryJam: 0,
   // Building materials (from Farm Shop)
   fencing: 0,
-  gate: 0,
-  // Wetlands forageables
-  indigoFlower: 0,
-  violetFlower: 0,
-  reedBundle: 0,
-  // Wetland crafted dyes
-  indigoDye: 0,
-  violetDye: 0
+  gate: 0
 };
 
 // Load intro state from localStorage
@@ -2568,15 +2540,7 @@ const forageableSpots = [
   // Beach shells (decorative/trade)
   { id: 'shell1', map: 'beach', x: 3, y: 3, type: 'shell', respawnTime: 1200, available: true, timer: 0 },
   { id: 'shell2', map: 'beach', x: 11, y: 3, type: 'shell', respawnTime: 1200, available: true, timer: 0 },
-  { id: 'shell3', map: 'beach', x: 16, y: 4, type: 'shell', respawnTime: 1200, available: true, timer: 0 },
-  // Wetlands - Indigo dye plants (at tile 34 locations)
-  { id: 'indigo1', map: 'wetlands', x: 10, y: 3, type: 'indigoFlower', respawnTime: 3600, available: true, timer: 0 },
-  { id: 'indigo2', map: 'wetlands', x: 10, y: 9, type: 'indigoFlower', respawnTime: 3600, available: true, timer: 0 },
-  // Wetlands - Violet dye plants (at tile 35 locations)
-  { id: 'violet1', map: 'wetlands', x: 2, y: 5, type: 'violetFlower', respawnTime: 3600, available: true, timer: 0 },
-  { id: 'violet2', map: 'wetlands', x: 16, y: 6, type: 'violetFlower', respawnTime: 3600, available: true, timer: 0 },
-  { id: 'violet3', map: 'wetlands', x: 3, y: 10, type: 'violetFlower', respawnTime: 3600, available: true, timer: 0 },
-  { id: 'violet4', map: 'wetlands', x: 14, y: 10, type: 'violetFlower', respawnTime: 3600, available: true, timer: 0 }
+  { id: 'shell3', map: 'beach', x: 16, y: 4, type: 'shell', respawnTime: 1200, available: true, timer: 0 }
 ];
 
 // =========================
@@ -2592,8 +2556,8 @@ function isValidCollectibleTile(mapName, x, y) {
   
   // Solid/blocked tiles that collectibles should NOT spawn on:
   // 2=tree, 3=water, 4=fence, 7=wall, 10=market stall, 11=well,
-  // 17=ocean, 19=rock, 21=palm tree, 22=tide pool, 23=cliff, 31=swamp water
-  const blockedTiles = [2, 3, 4, 7, 10, 11, 17, 19, 21, 22, 23, 31];
+  // 17=ocean, 19=rock, 21=palm tree, 22=tide pool, 23=cliff
+  const blockedTiles = [2, 3, 4, 7, 10, 11, 17, 19, 21, 22, 23];
   return !blockedTiles.includes(tile);
 }
 
@@ -2614,9 +2578,7 @@ const forageableInfo = {
   berries: { name: 'Wild Berries', color: '#8b3a62', icon: '🫐', message: 'You picked some wild berries!' },
   wildFlower: { name: 'Wild Flower', color: '#d4a5e8', icon: '🌸', message: 'You picked a beautiful wild flower!' },
   resin: { name: 'Tree Resin', color: '#d4a020', icon: '💧', message: 'You collected some sticky tree resin!' },
-  shell: { name: 'Seashell', color: '#f5e6d3', icon: '🐚', message: 'You found a pretty seashell!' },
-  indigoFlower: { name: 'Indigo Flower', color: '#4060c0', icon: '💙', message: 'You picked a rare indigo flower!' },
-  violetFlower: { name: 'Violet Flower', color: '#9060c0', icon: '💜', message: 'You picked a beautiful violet flower!' }
+  shell: { name: 'Seashell', color: '#f5e6d3', icon: '🐚', message: 'You found a pretty seashell!' }
 };
 
 // Add shell to inventory if not present (legacy check)
@@ -2792,22 +2754,6 @@ const craftingRecipes = [
     inputs: { berries: 3, wildFlower: 1 },
     outputs: { tealDye: 1 },
     color: '#20a0a0'
-  },
-  {
-    id: 'indigoDye',
-    name: 'Indigo Dye',
-    description: 'Deep blue dye from marsh indigo flowers',
-    inputs: { indigoFlower: 2 },
-    outputs: { indigoDye: 1 },
-    color: '#4060c0'
-  },
-  {
-    id: 'violetDye',
-    name: 'Violet Dye',
-    description: 'Rich purple dye from marsh violets',
-    inputs: { violetFlower: 2 },
-    outputs: { violetDye: 1 },
-    color: '#9060c0'
   },
   // --- Forest Trade Items ---
   {
@@ -3657,8 +3603,7 @@ const signpostLocations = {
   village: { x: 7, y: 10, name: 'Village', unlocked: false },
   forest: { x: 5, y: 8, name: 'Forest', unlocked: false },
   beach: { x: 12, y: 8, name: 'Beach', unlocked: false },
-  mountain: { x: 10, y: 8, name: 'Mountain', unlocked: false },
-  wetlands: { x: 9, y: 6, name: 'Marshes', unlocked: false }
+  mountain: { x: 10, y: 8, name: 'Mountain', unlocked: false }
 };
 
 // Get list of unlocked fast travel destinations (excluding current map)
@@ -5085,8 +5030,8 @@ function updateFishing() {
       showMessage("🐟 Something's biting! Press E quickly!");
     }
   } else if (fishingPhase === 'biting') {
-    // Player has ~0.8 seconds to react
-    if (fishingTimer > 50) {
+    // Player has ~1.5 seconds to react
+    if (fishingTimer > 90) {
       fishingPhase = 'failed';
       showMessage("The fish got away! Too slow.");
       setTimeout(() => stopFishing(), 1000);
@@ -5094,16 +5039,15 @@ function updateFishing() {
   } else if (fishingPhase === 'reeling') {
     // Active reeling phase - keep the bar in the target zone
     
-    // Fish pulls with varying intensity - stronger and more erratic
-    const pullVariance = Math.sin(fishingTimer * 0.15) * fishingDifficulty * 1.5;
-    const randomJerk = (Math.random() - 0.5) * fishingDifficulty * 2;
-    fishingFishPull = (fishingDifficulty * 1.5 + pullVariance + randomJerk) * (Math.random() > 0.5 ? 1 : -1);
+    // Fish pulls with varying intensity
+    const pullVariance = Math.sin(fishingTimer * 0.1) * fishingDifficulty;
+    fishingFishPull = (fishingDifficulty * 0.8 + pullVariance) * (Math.random() > 0.5 ? 1 : -1);
     
-    // Apply fish pull to reel position - stronger effect
-    fishingReelPosition += fishingFishPull * 0.8;
+    // Apply fish pull to reel position
+    fishingReelPosition += fishingFishPull * 0.5;
     
-    // Apply friction/decay to reel speed - less friction means more drift
-    fishingReelSpeed *= 0.75;
+    // Apply friction/decay to reel speed
+    fishingReelSpeed *= 0.85;
     fishingReelPosition += fishingReelSpeed;
     
     // Clamp position
@@ -5114,14 +5058,14 @@ function updateFishing() {
     
     if (inZone) {
       fishingTimer++;
-      // Need to stay in zone for ~3 seconds total (180 frames at 60fps)
-      if (fishingTimer >= 180) {
+      // Need to stay in zone for ~2 seconds total (120 frames at 60fps)
+      if (fishingTimer >= 120) {
         fishingPhase = 'success';
         fishingTimer = 0;
       }
     } else {
-      // Lose progress faster if outside zone
-      fishingTimer = Math.max(0, fishingTimer - 1.5);
+      // Slowly lose progress if outside zone
+      fishingTimer = Math.max(0, fishingTimer - 0.5);
     }
     
     // Fail if position goes too extreme for too long
@@ -5155,16 +5099,15 @@ function handleFishingInput(action) {
       // Start reeling!
       fishingPhase = 'reeling';
       fishingTimer = 0;
-      // Smaller zones: easy=38-62, medium=35-65 moves more, hard=32-68 moves a lot
       fishingTargetZone = {
-        min: 45 - (fishingDifficulty - 1) * 3, // Harder fish = zone moves more but similar size
-        max: 55 + (fishingDifficulty - 1) * 3
+        min: 40 - (fishingDifficulty - 1) * 5, // Harder = smaller zone
+        max: 60 + (fishingDifficulty - 1) * 5
       };
       showMessage("Keep the bar in the green zone!");
       return true;
     } else if (fishingPhase === 'reeling') {
-      // Reel in - push toward center (weaker push = need more taps)
-      fishingReelSpeed += (50 - fishingReelPosition) > 0 ? 2 : -2;
+      // Reel in - push toward center
+      fishingReelSpeed += (50 - fishingReelPosition) > 0 ? 3 : -3;
       return true;
     }
   } else if (action === 'cancel') {
@@ -6855,48 +6798,7 @@ let questStage = 0;
         }
       }
       
-      // Forest right edge (col 18) -> Wetlands left
-      if (currentMap === 'forest' && player.x >= MAP_COLS - 1) {
-        if (player.y >= 4 && player.y <= 8) {
-          switchMap('wetlands', 1, 6);
-          showMessage('You enter the misty marshes...');
-          return;
-        }
-      }
-      
-      // Wetlands left edge (col 0) -> Forest right
-      if (currentMap === 'wetlands' && player.x <= 0) {
-        if (player.y >= 5 && player.y <= 7) {
-          switchMap('forest', MAP_COLS - 2, 6);
-          showMessage('You return to the forest.');
-          return;
-        }
-      }
-      
-      // Wetlands top edge (row 0) -> Mountain bottom (if unlocked)
-      if (currentMap === 'wetlands' && player.y <= 0) {
-        if (player.x >= 7 && player.x <= 10) {
-          if (canAccessMap('mountain')) {
-            switchMap('mountain', 9, MAP_ROWS - 2);
-            showMessage('You climb up the mountain path from the marshes.');
-          } else {
-            showMessage('The mountain path is blocked by fallen rocks. Perhaps with more crafting skill...');
-            player.y = 1; // Push back
-          }
-          return;
-        }
-      }
-      
-      // Wetlands bottom edge (row 12) -> Forest entrance
-      if (currentMap === 'wetlands' && player.y >= MAP_ROWS - 1) {
-        if (player.x >= 7 && player.x <= 10) {
-          switchMap('forest', 14, 1);
-          showMessage('You head back through the southern path.');
-          return;
-        }
-      }
-      
-      // Forest top edge (row 0) -> Mountain bottom (if unlocked) - direct path still available
+      // Forest top edge (row 0) -> Mountain bottom (if unlocked)
       if (currentMap === 'forest' && player.y <= 0) {
         if (player.x >= 8 && player.x <= 10) {
           if (canAccessMap('mountain')) {
@@ -6910,7 +6812,7 @@ let questStage = 0;
         }
       }
       
-      // Mountain bottom edge -> Forest top or Wetlands (depending on exit point)
+      // Mountain bottom edge -> Forest top
       if (currentMap === 'mountain' && player.y >= MAP_ROWS - 1) {
         if (player.x >= 8 && player.x <= 10) {
           switchMap('forest', player.x, 1);
@@ -7478,9 +7380,9 @@ function showMessage(text, durationMs = 3500) {
       const t = mapData[ty][tx];
       // Solid tiles: trees(2), water(3), fences(4), interior walls(7), 
       // market stall(10), well(11), ocean(17), rock(19), palm tree(21), 
-      // tide pool(22), cliff(23), signpost(29), swamp water(31)
+      // tide pool(22), cliff(23), signpost(29)
       if (t === 2 || t === 3 || t === 4 || t === 7 || t === 10 || t === 11 ||
-          t === 17 || t === 19 || t === 21 || t === 22 || t === 23 || t === 29 || t === 31) return true;
+          t === 17 || t === 19 || t === 21 || t === 22 || t === 23 || t === 29) return true;
       
       // Check for sheep collision
       if (currentMap === sheep.map && tx === sheep.x && ty === sheep.y) return true;
@@ -8908,250 +8810,6 @@ function update() {
     // Post cap
     targetCtx.fillStyle = '#4a2510';
     targetCtx.fillRect(poleX - 1, py + 6, 8, 3);
-
-  } else if (t === 30) {
-    // WETLAND GRASS - marshy green grass
-    const wetGrassStyles = [
-      { base: '#3a6050', mid: '#4a7060', light: '#5a8070', dark: '#2a4a40' },
-      { base: '#386055', mid: '#487065', light: '#588075', dark: '#284a45' },
-      { base: '#3c6555', mid: '#4c7565', light: '#5c8575', dark: '#2c4f45' }
-    ];
-    const style = wetGrassStyles[variation % 3];
-    
-    // Base gradient
-    const g = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
-    g.addColorStop(0, style.base);
-    g.addColorStop(0.5, style.mid);
-    g.addColorStop(1, style.dark);
-    targetCtx.fillStyle = g;
-    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-    
-    // Wet mud patches
-    targetCtx.fillStyle = 'rgba(60, 50, 40, 0.25)';
-    for (let i = 0; i < 2 + variation; i++) {
-      const mudX = px + ((i * 13 + variation * 7) % 22);
-      const mudY = py + ((i * 9 + variation2 * 5) % 20);
-      targetCtx.beginPath();
-      targetCtx.ellipse(mudX + 5, mudY + 5, 6, 4, i * 0.3, 0, Math.PI * 2);
-      targetCtx.fill();
-    }
-    
-    // Swamp grass blades (taller, darker)
-    for (let i = 0; i < 4 + variation; i++) {
-      const bladeX = px + 3 + ((i * 6 + variation * 3) % (TILE_SIZE - 6));
-      const bladeHeight = 8 + (i % 3) * 3;
-      const sway = Math.sin(animationTime * 1.2 + x * 0.4 + y * 0.3 + i) * 2;
-      
-      targetCtx.fillStyle = i % 2 === 0 ? style.light : style.mid;
-      targetCtx.beginPath();
-      targetCtx.moveTo(bladeX, py + TILE_SIZE - 1);
-      targetCtx.quadraticCurveTo(bladeX + 1 + sway * 0.5, py + TILE_SIZE - bladeHeight * 0.5, bladeX + 2 + sway, py + TILE_SIZE - bladeHeight);
-      targetCtx.lineTo(bladeX + 3 + sway, py + TILE_SIZE - bladeHeight + 2);
-      targetCtx.quadraticCurveTo(bladeX + 2 + sway * 0.5, py + TILE_SIZE - bladeHeight * 0.5 + 1, bladeX + 2, py + TILE_SIZE - 1);
-      targetCtx.fill();
-    }
-
-  } else if (t === 31) {
-    // SWAMP WATER - murky shallow water (solid/impassable)
-    // Base murky water color
-    const waterG = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
-    waterG.addColorStop(0, '#3a5a50');
-    waterG.addColorStop(0.5, '#2a4a40');
-    waterG.addColorStop(1, '#1a3a30');
-    targetCtx.fillStyle = waterG;
-    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-    
-    // Animated ripples
-    const ripplePhase = animationTime + x * 0.5 + y * 0.3;
-    for (let i = 0; i < 3; i++) {
-      const rippleX = px + 8 + ((i * 11 + variation * 5) % 18);
-      const rippleY = py + 8 + ((i * 7 + variation2 * 3) % 18);
-      const rippleSize = 3 + Math.sin(ripplePhase + i * 2) * 1.5;
-      
-      targetCtx.strokeStyle = 'rgba(100, 140, 120, 0.4)';
-      targetCtx.lineWidth = 1;
-      targetCtx.beginPath();
-      targetCtx.ellipse(rippleX, rippleY, rippleSize, rippleSize * 0.5, 0, 0, Math.PI * 2);
-      targetCtx.stroke();
-    }
-    
-    // Algae patches
-    targetCtx.fillStyle = 'rgba(60, 100, 70, 0.3)';
-    targetCtx.beginPath();
-    targetCtx.ellipse(px + 10 + variation * 3, py + 12, 6, 4, 0, 0, Math.PI * 2);
-    targetCtx.fill();
-
-  } else if (t === 32) {
-    // REEDS - tall marsh reeds (walkable)
-    // Draw wetland grass base first
-    const wetBase = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
-    wetBase.addColorStop(0, '#3a6050');
-    wetBase.addColorStop(1, '#2a4a40');
-    targetCtx.fillStyle = wetBase;
-    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-    
-    // Tall reeds
-    for (let i = 0; i < 4; i++) {
-      const reedX = px + 4 + i * 7 + (variation % 3);
-      const reedHeight = 20 + (i % 3) * 4;
-      const sway = Math.sin(animationTime * 0.8 + i * 0.5 + x * 0.3) * 3;
-      
-      // Reed stem
-      targetCtx.strokeStyle = '#5a7a50';
-      targetCtx.lineWidth = 2;
-      targetCtx.beginPath();
-      targetCtx.moveTo(reedX, py + TILE_SIZE);
-      targetCtx.quadraticCurveTo(reedX + sway * 0.3, py + TILE_SIZE - reedHeight * 0.5, reedX + sway, py + TILE_SIZE - reedHeight);
-      targetCtx.stroke();
-      
-      // Reed top (cattail shape)
-      targetCtx.fillStyle = '#8a6040';
-      targetCtx.beginPath();
-      targetCtx.ellipse(reedX + sway, py + TILE_SIZE - reedHeight - 2, 2, 5, 0, 0, Math.PI * 2);
-      targetCtx.fill();
-    }
-
-  } else if (t === 33) {
-    // LILY PADS - on water (solid/walkable)
-    // Water base
-    const waterG = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
-    waterG.addColorStop(0, '#3a5a50');
-    waterG.addColorStop(1, '#2a4a40');
-    targetCtx.fillStyle = waterG;
-    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-    
-    // Lily pad - large circular leaf
-    const padX = px + 16;
-    const padY = py + 16;
-    const padSize = 10 + variation;
-    
-    // Pad shadow
-    targetCtx.fillStyle = 'rgba(0, 30, 20, 0.3)';
-    targetCtx.beginPath();
-    targetCtx.ellipse(padX + 2, padY + 2, padSize, padSize * 0.7, 0, 0, Math.PI * 2);
-    targetCtx.fill();
-    
-    // Main pad
-    targetCtx.fillStyle = '#4a8a50';
-    targetCtx.beginPath();
-    targetCtx.ellipse(padX, padY, padSize, padSize * 0.7, 0, 0.2, Math.PI * 2 - 0.2);
-    targetCtx.lineTo(padX, padY);
-    targetCtx.fill();
-    
-    // Pad veins
-    targetCtx.strokeStyle = '#3a7a40';
-    targetCtx.lineWidth = 1;
-    for (let v = 0; v < 4; v++) {
-      const angle = v * (Math.PI / 3) + 0.5;
-      targetCtx.beginPath();
-      targetCtx.moveTo(padX, padY);
-      targetCtx.lineTo(padX + Math.cos(angle) * padSize * 0.8, padY + Math.sin(angle) * padSize * 0.5);
-      targetCtx.stroke();
-    }
-    
-    // Small flower (occasional)
-    if (variation2 === 1) {
-      const bob = Math.sin(animationTime * 1.5) * 2;
-      targetCtx.fillStyle = '#ffa0d0';
-      for (let p = 0; p < 5; p++) {
-        const petalAngle = p * (Math.PI * 2 / 5);
-        const petalX = padX + Math.cos(petalAngle) * 4;
-        const petalY = padY - 3 + bob + Math.sin(petalAngle) * 3;
-        targetCtx.beginPath();
-        targetCtx.ellipse(petalX, petalY, 2, 3, petalAngle, 0, Math.PI * 2);
-        targetCtx.fill();
-      }
-      targetCtx.fillStyle = '#ffff80';
-      targetCtx.beginPath();
-      targetCtx.arc(padX, padY - 3 + bob, 2, 0, Math.PI * 2);
-      targetCtx.fill();
-    }
-
-  } else if (t === 34) {
-    // INDIGO DYE PLANT - harvestable (foraging spot)
-    // Wetland grass base
-    const wetBase = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
-    wetBase.addColorStop(0, '#3a6050');
-    wetBase.addColorStop(1, '#2a4a40');
-    targetCtx.fillStyle = wetBase;
-    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-    
-    // Plant stem
-    const sway = Math.sin(animationTime * 1.2 + x + y) * 2;
-    targetCtx.strokeStyle = '#4a7a50';
-    targetCtx.lineWidth = 3;
-    targetCtx.beginPath();
-    targetCtx.moveTo(px + 16, py + TILE_SIZE - 2);
-    targetCtx.quadraticCurveTo(px + 16 + sway * 0.3, py + 18, px + 16 + sway * 0.5, py + 8);
-    targetCtx.stroke();
-    
-    // Indigo flower clusters
-    const flowerColors = ['#4040a0', '#5050b0', '#6060c0'];
-    for (let f = 0; f < 3; f++) {
-      const fX = px + 12 + f * 4 + sway * (0.3 + f * 0.2);
-      const fY = py + 6 + f * 4;
-      targetCtx.fillStyle = flowerColors[f];
-      targetCtx.beginPath();
-      targetCtx.arc(fX, fY, 3, 0, Math.PI * 2);
-      targetCtx.fill();
-    }
-    
-    // Sparkle effect (harvestable indicator)
-    const sparkle = Math.sin(animationTime * 3) > 0.5;
-    if (sparkle) {
-      targetCtx.fillStyle = 'rgba(150, 150, 255, 0.6)';
-      targetCtx.beginPath();
-      targetCtx.arc(px + 14 + sway, py + 5, 2, 0, Math.PI * 2);
-      targetCtx.fill();
-    }
-
-  } else if (t === 35) {
-    // VIOLET DYE PLANT - harvestable (foraging spot)
-    // Wetland grass base
-    const wetBase = targetCtx.createLinearGradient(px, py, px, py + TILE_SIZE);
-    wetBase.addColorStop(0, '#3a6050');
-    wetBase.addColorStop(1, '#2a4a40');
-    targetCtx.fillStyle = wetBase;
-    targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-    
-    // Plant stem
-    const sway = Math.sin(animationTime * 1.1 + x * 0.5 + y * 0.7) * 2;
-    targetCtx.strokeStyle = '#4a7a50';
-    targetCtx.lineWidth = 2;
-    targetCtx.beginPath();
-    targetCtx.moveTo(px + 16, py + TILE_SIZE - 2);
-    targetCtx.quadraticCurveTo(px + 16 + sway * 0.4, py + 16, px + 16 + sway * 0.6, py + 6);
-    targetCtx.stroke();
-    
-    // Violet flowers
-    const violetBob = Math.sin(animationTime * 2) * 1;
-    for (let f = 0; f < 3; f++) {
-      const fX = px + 10 + f * 6 + sway * (0.2 + f * 0.15);
-      const fY = py + 4 + Math.abs(f - 1) * 3 + violetBob;
-      
-      // Petals
-      targetCtx.fillStyle = '#9040a0';
-      for (let p = 0; p < 5; p++) {
-        const pAngle = p * (Math.PI * 2 / 5) - Math.PI / 2;
-        targetCtx.beginPath();
-        targetCtx.ellipse(fX + Math.cos(pAngle) * 2.5, fY + Math.sin(pAngle) * 2.5, 2, 3, pAngle, 0, Math.PI * 2);
-        targetCtx.fill();
-      }
-      // Center
-      targetCtx.fillStyle = '#ffff60';
-      targetCtx.beginPath();
-      targetCtx.arc(fX, fY, 1.5, 0, Math.PI * 2);
-      targetCtx.fill();
-    }
-    
-    // Sparkle
-    const sparkle = Math.sin(animationTime * 2.5 + 1) > 0.5;
-    if (sparkle) {
-      targetCtx.fillStyle = 'rgba(200, 150, 255, 0.6)';
-      targetCtx.beginPath();
-      targetCtx.arc(px + 18 + sway, py + 6, 2, 0, Math.PI * 2);
-      targetCtx.fill();
-    }
   }
 }
 
@@ -9816,17 +9474,6 @@ function render() {
     ctx.textAlign = 'center';
     ctx.fillText('🎣 Press F to Fish', canvas.width / 2, canvas.height - 58);
     ctx.textAlign = 'left';
-    ctx.restore();
-  }
-  
-  // Debug: Show player position on beach (temporary)
-  if (currentMap === 'beach') {
-    ctx.save();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    ctx.fillRect(canvas.width - 120, 8, 110, 20);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '10px monospace';
-    ctx.fillText(`Pos: ${player.x}, ${player.y}`, canvas.width - 115, 22);
     ctx.restore();
   }
 
