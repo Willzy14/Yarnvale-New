@@ -2407,11 +2407,20 @@ let inventory = {
   mittens: 0,
   luxuryMittens: 0,
   socks: 0,
+  luxurySocks: 0,
   hat: 0,
   fancyHat: 0,
   blanket: 0,
   featherFan: 0,
   gold: 0,
+  // Dyed items
+  tealScarf: 0,
+  amberHat: 0,
+  tealSocks: 0,
+  amberMittens: 0,
+  // Shell crafts
+  shellNecklace: 0,
+  shellChimes: 0,
   // Forest forageables
   mushroom: 0,
   berries: 0,
@@ -2705,6 +2714,72 @@ const craftingRecipes = [
     outputs: { featherFan: 1 },
     sellPrice: 40,
     color: '#2d8b6e'
+  },
+  // --- Luxury Socks ---
+  {
+    id: 'luxurySocks',
+    name: 'Luxury Socks',
+    description: 'Extra soft socks from luxury yarn',
+    inputs: { luxuryYarn: 2 },
+    outputs: { luxurySocks: 1 },
+    sellPrice: 18,
+    color: '#e8c0f0'
+  },
+  // --- Dyed Items ---
+  {
+    id: 'tealScarf',
+    name: 'Teal Scarf',
+    description: 'A beautifully dyed teal scarf',
+    inputs: { scarf: 1, tealDye: 1 },
+    outputs: { tealScarf: 1 },
+    sellPrice: 22,
+    color: '#20a0a0'
+  },
+  {
+    id: 'amberHat',
+    name: 'Amber Hat',
+    description: 'A warm hat with golden amber tones',
+    inputs: { hat: 1, amberDye: 1 },
+    outputs: { amberHat: 1 },
+    sellPrice: 24,
+    color: '#d4a020'
+  },
+  {
+    id: 'tealSocks',
+    name: 'Teal Socks',
+    description: 'Stylish teal-dyed socks',
+    inputs: { socks: 1, tealDye: 1 },
+    outputs: { tealSocks: 1 },
+    sellPrice: 18,
+    color: '#30b0b0'
+  },
+  {
+    id: 'amberMittens',
+    name: 'Amber Mittens',
+    description: 'Cosy mittens with warm amber hue',
+    inputs: { mittens: 1, amberDye: 1 },
+    outputs: { amberMittens: 1 },
+    sellPrice: 28,
+    color: '#e0b040'
+  },
+  // --- Shell Crafts ---
+  {
+    id: 'shellNecklace',
+    name: 'Shell Necklace',
+    description: 'A decorative beach-themed accessory',
+    inputs: { shell: 5, yarn: 1 },
+    outputs: { shellNecklace: 1 },
+    sellPrice: 25,
+    color: '#f0e8d0'
+  },
+  {
+    id: 'shellChimes',
+    name: 'Shell Chimes',
+    description: 'Wind chimes made from ocean shells',
+    inputs: { shell: 8 },
+    outputs: { shellChimes: 1 },
+    sellPrice: 35,
+    color: '#c8e0f0'
   }
 ];
 
@@ -2868,6 +2943,7 @@ function isValidAnimalTile(animal, tx, ty) {
   
   // Check collision with other animals
   if (animal !== sheep && tx === sheep.x && ty === sheep.y && sheep.map === animal.map) return false;
+  if (animal !== sheep2 && tx === sheep2.x && ty === sheep2.y && sheep2.map === animal.map) return false;
   if (animal !== goat && tx === goat.x && ty === goat.y && goat.map === animal.map) return false;
   if (animal !== peacock && tx === peacock.x && ty === peacock.y && peacock.map === animal.map) return false;
   
@@ -3903,7 +3979,7 @@ const SAVE_KEY = 'yarnvale_save';
 
 function saveGame() {
   const saveData = {
-    version: 4,
+    version: 5,
     timestamp: Date.now(),
     player: {
       x: player.x,
@@ -3917,6 +3993,12 @@ function saveGame() {
       y: sheep.y,
       hasWool: sheep.hasWool,
       woolTimer: sheep.woolTimer
+    },
+    sheep2: {
+      x: sheep2.x,
+      y: sheep2.y,
+      hasWool: sheep2.hasWool,
+      woolTimer: sheep2.woolTimer
     },
     goat: {
       x: goat.x,
@@ -3970,6 +4052,19 @@ function loadGame() {
     sheep.woolTimer = saveData.sheep.woolTimer;
     goat.hasFur = saveData.goat.hasFur;
     goat.furTimer = saveData.goat.furTimer;
+    
+    // Restore sheep2 (version 5+)
+    if (saveData.version >= 5 && saveData.sheep2) {
+      sheep2.x = saveData.sheep2.x ?? sheep2.homeX;
+      sheep2.y = saveData.sheep2.y ?? sheep2.homeY;
+      sheep2.px = sheep2.x * TILE_SIZE;
+      sheep2.py = sheep2.y * TILE_SIZE;
+      sheep2.targetX = sheep2.x;
+      sheep2.targetY = sheep2.y;
+      sheep2.isMoving = false;
+      sheep2.hasWool = saveData.sheep2.hasWool ?? true;
+      sheep2.woolTimer = saveData.sheep2.woolTimer ?? 0;
+    }
     
     // Restore animal positions (version 3+)
     if (saveData.version >= 3) {
@@ -5119,6 +5214,9 @@ function showMessage(text, durationMs = 3500) {
       // Check for sheep collision
       if (currentMap === sheep.map && tx === sheep.x && ty === sheep.y) return true;
       
+      // Check for sheep2 collision
+      if (currentMap === sheep2.map && tx === sheep2.x && ty === sheep2.y) return true;
+      
       // Check for goat collision
       if (currentMap === goat.map && tx === goat.x && ty === goat.y) return true;
       
@@ -5191,8 +5289,22 @@ function handleMarket() {
     // Sell the highest value item
     const item = sellableItems[0];
     inventory[item.key] -= 1;
-    inventory.gold += item.price;
-    showMessage(`You sell ${item.name} for ${item.price} gold! You now have ${inventory.gold} gold.`);
+    
+    // Calculate friendship bonus (up to 25% extra gold based on average friendship)
+    const friendshipValues = Object.values(friendship);
+    const avgFriendship = friendshipValues.length > 0 
+      ? friendshipValues.reduce((a, b) => a + b, 0) / friendshipValues.length 
+      : 0;
+    const friendshipBonus = Math.floor(item.price * (avgFriendship / FRIENDSHIP_MAX) * 0.25);
+    const totalPrice = item.price + friendshipBonus;
+    
+    inventory.gold += totalPrice;
+    
+    if (friendshipBonus > 0) {
+      showMessage(`You sell ${item.name} for ${item.price} + ${friendshipBonus} bonus gold! Your good reputation helps!`);
+    } else {
+      showMessage(`You sell ${item.name} for ${item.price} gold! You now have ${inventory.gold} gold.`);
+    }
     if (sounds.sell) sounds.sell.play().catch(() => {});
     return;
   }
@@ -5301,6 +5413,35 @@ function handleMarket() {
       if (sheep.hasWool) {
         sheep.hasWool = false;
         sheep.woolTimer = 0;
+        inventory.wool += 1;
+        showMessage('You gently shear the sheep and collect a bundle of soft wool.');
+        
+        // Play shearing sound
+        if (sounds.shear) {
+          sounds.shear.currentTime = 0;
+          sounds.shear.play().catch(() => {});
+        }
+        
+        // Play a random sheep sound
+        const sfx = sheepSounds[Math.floor(Math.random() * sheepSounds.length)];
+        sfx.currentTime = 0;
+        sfx.play().catch(() => {});
+      } else {
+        showMessage('This sheep has already been shorn. Give its wool time to grow back.');
+      }
+    }
+  }
+
+  // Sheep2 interaction – only in overworld
+  if (currentMap === 'overworld' && sheep2.map === 'overworld') {
+    const dx = Math.abs(player.x - sheep2.x);
+    const dy = Math.abs(player.y - sheep2.y);
+
+    // player must stand next to the sheep (N/S/E/W)
+    if (dx + dy === 1) {
+      if (sheep2.hasWool) {
+        sheep2.hasWool = false;
+        sheep2.woolTimer = 0;
         inventory.wool += 1;
         showMessage('You gently shear the sheep and collect a bundle of soft wool.');
         
@@ -5439,6 +5580,7 @@ function update() {
   
   // --- Animal wandering update ---
   updateAnimalWandering(sheep);
+  updateAnimalWandering(sheep2);
   updateAnimalWandering(goat);
   updateAnimalWandering(peacock);
   
@@ -5453,6 +5595,18 @@ function update() {
 
       if (currentMap === 'overworld') {
         showMessage('Your sheep has grown its wool back.');
+      }
+    }
+  }
+
+  // --- Sheep2 wool regrowth ---
+  if (!sheep2.hasWool) {
+    sheep2.woolTimer++;
+    if (sheep2.woolTimer > 600) {
+      sheep2.hasWool = true;
+      sheep2.woolTimer = 0;
+      if (currentMap === 'overworld') {
+        showMessage('Your other sheep has grown its wool back.');
       }
     }
   }
