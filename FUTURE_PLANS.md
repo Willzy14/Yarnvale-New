@@ -1,101 +1,99 @@
-# Yarnvale Future Plans
+# Yarnvale Future Plans (Delivery: Dec 25, 2025)
+
+This roadmap focuses on richer story, events, and replayable loops to ship a “cozy, content-rich” build by Dec 25. Asset improvements (sprites/UI/icons) are tracked separately in `ASSET_WISHLIST.md` and can arrive in parallel.
 
 ---
-## 🤖 AGENT HANDOFF NOTES (Dec 7, 2025 - Evening Session)
+## High-Level Goals
+- Guide the player through a memorable arc: Welcome → Loom legend → Festival of Threads finale.
+- Add replayable loops: daily/weekly orders, mini-games, friendship perks, event rewards.
+- Deepen the world: new biomes, landmarks, props, and small-set stories.
+- Keep it mobile-friendly, low-friction (no starvation, quick sessions).
 
-### What Was Completed Today:
-1. **Intro/Welcome System** - New players see a welcome screen with "Begin Your Journey" button, followed by Elder Mara NPC dialogue explaining the game basics. Stored in localStorage so it only shows once.
-2. **Overworld Map Cleanup** - Removed messy half-paddock, centered cottage at top, moved pond to bottom-left, cleaner path layout.
-3. **Mobile Task Board Improvements** - Smaller panel on mobile, visible red X close button, bigger touch targets, max 3 tasks shown with "+X more" indicator.
-4. **Peacock Animal** - New animal that gives decorative feathers! Wanders the overworld, has colorful animated tail, gives 2 feathers when interacted with, feathers regrow in 15 seconds.
-5. **Feather Crafting Recipes**:
-   - Fancy Hat (hat + 2 feathers) - sells for 35 gold
-   - Feather Fan (4 feathers) - sells for 40 gold
-6. **New Inventory Items**: feather, fancyHat, featherFan
+## Timeline (Dec 8 → Dec 25)
+- **Phase 1 (Dec 8–12):** Story spine, onboarding refresh, new quests, fast travel, daily orders.
+- **Phase 2 (Dec 13–18):** New content beats (festival arc, hermit arc), mini-games, pen upgrades.
+- **Phase 3 (Dec 19–22):** Biome polish (wetlands/snowy highlands), economy tuning, accessibility/settings.
+- **Phase 4 (Dec 23–25):** QA polish, bug sweep, perf tidy, cache bump, build locks.
 
-### Key Code Locations in index.html:
-- Intro System: ~lines 1720-1865 (`introState`, `drawWelcomeScreen()`, `drawIntroDialogue()`)
-- Task Board: ~lines 1958-2140 (`drawTaskBoardUI()` - mobile improvements)
-- Peacock: ~lines 2704-2724 (`const peacock`), ~lines 6250-6360 (`drawPeacock()`)
-- Peacock Interaction: ~lines 5020-5040 (feather collection)
-- Feather Recipes: ~lines 2585-2600 (`fancyHat`, `featherFan`)
-- Collision Detection: ~lines 4822-4828 (includes peacock)
+## Core Additions
+1) **Narrative & Events**
+   - Festival of Threads (3 steps): gather dyes/feathers/luxury cloth → decorate square → evening lighting + reward (fast travel voucher/discount).
+   - Hermit’s Loom Whisper arc: Old Mosswort gives shard hints; simple cave riddle; loom attunement mini-scene on completion.
+   - Beach Shell Song: collect shells for a lullaby gift; unlocks shell crafts discount.
+   - Village Heart quests: short arcs for Granny, Felix, Theo, Iris—each grants a perk (discount/recipe/emote).
 
-### Save System:
-- Now **Version 4** schema
-- Includes: peacock state (position, hasFeathers, featherTimer)
+2) **Systems & Loops**
+   - Daily/Weekly Orders board: 2 dailies + 1 weekly with timers; pays gold + friendship.
+   - Fast Travel Signposts: unlock on discovery (Farm, Village, Forest, Beach, Mountain); small fee or voucher from festival.
+   - Pen Upgrades: tiered capacity and a “decor slot” for passive buff (e.g., +10% wool yield when decorated).
+   - Friendship Perks: thresholds unlock shop discounts or unique recipes (e.g., dye bundle from Iris, luxury pattern from Theo).
+   - Autosave on map transition + manual save.
 
-### Next Priority Tasks:
-1. **Llamas** - Another new animal for fine wool (luxury yarn boost)
-2. **Pen building system** - Place pen plots, buildable fences
-3. **More feather/fine wool recipes** - Capes, ponchos, plushies
-4. **Fast-travel signposts** - After area discovery
+3) **Mini-Games (lightweight)**
+   - Loom Attune: timed taps to align threads (reward: +1 crafted output for next 3 crafts).
+   - Fishing Lite (Beach): hold-and-release timing bar for shells/fish trinkets (feeds crafts/sales).
+   - Knitting Sprint: short timing loop to “perfect” an item for +1 value.
 
-### Known Issues / Polish Needed:
-- None reported currently
-- Mobile tested and working
+4) **World & Biomes**
+   - New sub-biome: **Wetlands** (small map) with reeds + new dye plant; connects Forest → Mountain.
+   - Snowy ridge tiles near Mountain top; place a crystal altar landmark.
+   - Props pass: benches, lanterns, signposts, crates, bridges for paths; decorative festival bunting in Village.
+
+5) **Crafting & Economy**
+   - New recipes: capes/ponchos (fine wool), plushies (soft fur + dye), banners/lanterns (cloth + resin + dye), shell jewelry set, fishing trinkets.
+   - Luxury set: royal scarf/hat/cloak using fine wool + rare dye; higher sell price.
+   - Orders economy: tie recipes to daily/weekly requests to showcase new items.
+
+6) **Accessibility & UX**
+   - Inventory filters (Materials / Crafted / Quest).
+   - Font size toggle (standard/large), colorblind-safe palette for critical UI accents.
+   - Controller-friendly prompts (future-proof) and clear touch hints.
 
 ---
+## Updated Checklist
 
-## Goals
-- Deliver ~1 hour of guided play (tutorial → early goals → mid progression).
-- Enrich forest and south village with purpose and services.
-- Add mobile animals, pens, and new materials/recipes that feed the economy.
-- Keep systems lightweight (no starvation fail states) and mobile-friendly.
-
-## Milestones (build order)
-1. Guided onboarding + task board UI.
-2. Animal systems: pens, moving animals, wandering/pathing, light treat boosts.
-3. World density: forest resources + south village vendors and board.
-4. New animals/outputs: llamas (fine wool), peacocks (decor feathers), optional rabbits (soft fur).
-5. Crafting/economy expansion: new materials, recipes, seasonal orders.
-6. Quests/narrative beats: festival/loom arc, NPC perks.
-7. Polish/pacing: fast travel, mobile UI refinements, save/autosave, perf.
-
-## Checklist
 ### World / Maps
-- [x] Add forest points of interest (forage: mushrooms/resin; rare dye plants; shrine hook).
-- [x] Enrich south village: dye shop, tailor stall (buys premium cloth), animal broker, notice board.
-- [ ] Place pen plots on farm; buildable fences (wood/rope) gating capacity.
-- [ ] Add fast-travel signposts after discovery (farm ↔ village ↔ forest).
+- [ ] Fast-travel signposts after discovery (Farm ↔ Village ↔ Forest ↔ Beach ↔ Mountain).
+- [ ] Wetlands connector map with reeds + dye plant; snowy ridge landmark near Mountain.
+- [ ] Props pass: benches, lanterns, bridges, signposts, festival bunting in Village.
 
 ### Animals
-- [ ] Llamas: slower shear, yield fine wool (boost luxury yarn).
-- [x] Peacocks: drop decor feathers periodically; sell or use in fashion/decor.
-- [ ] (Optional) Rabbits: fast-regrowing soft fur, lower value quick loop.
-- [x] Wandering AI within radius; penned animals stay in bounds; simple obstacle avoidance.
-- [ ] Treat/feeding buff (no starvation): next yield quality/quantity boost.
-- [ ] Move animals between pens via interact menu; pens have capacity tiers.
+- [ ] Llamas: slow shear, fine wool (luxury yarn boost), penned.
+- [x] Peacocks: decor feathers; regrow.
+- [ ] Optional rabbits: fast soft fur loop.
+- [ ] Treat buff (no starvation): next yield bonus.
+- [ ] Pen upgrades/capacity tiers; move animals between pens.
 
 ### Crafting & Economy
-- [x] New materials: fine wool, feathers, soft fur, forest dyes (amber/teal), resin/varnish, cloth bolts.
-- [x] New recipes: Fancy Hat (hat + feathers), Feather Fan (feathers only)
-- [ ] More recipes: capes (yarn + feathers), ponchos (fine wool), plushies (soft fur + dye), banners (cloth + dye), pillows, festival lanterns (resin + dye).
-- [ ] Luxury set: Royal scarf/hat/cloak using fine wool + rare dye for high sell value.
-- [ ] Seasonal/weekly orders board: timed deliveries for gold + reputation.
+- [x] Dyes (amber/teal); shell crafts; dyed items; luxury socks.
+- [ ] New recipes: capes, ponchos, plushies, banners, lanterns, shell jewelry set, fishing trinkets.
+- [ ] Luxury “royal” set (fine wool + rare dye).
+- [ ] Daily/weekly orders board with timers and rewards.
 
-### Quests & NPCs
-- [ ] Festival of Threads mini-arc: collect feathers/dyes/fine wool to decorate square; unlock fast travel/discounts.
-- [ ] Forest herbalist NPC (teaches dyes/resin); village tailor (fine cloth); animal broker (unlocks llamas/peacocks post-quest).
-- [ ] Friendship perks: discounts or unique recipes (e.g., teal dye from herbalist).
+### Quests & Story
+- [ ] Festival of Threads 3-step arc with evening payoff + voucher/discount.
+- [ ] Hermit’s loom whisper arc; cave riddle; shard hinting.
+- [ ] Beach Shell Song mini-arc (shell collection → lullaby reward).
+- [ ] Village Heart mini-quests (Granny/Felix/Theo/Iris) granting perks/recipes.
 
 ### Building & Progression
-- [ ] Pen construction/upgrades: capacity + decor slot per pen.
-- [ ] Cottage upgrades: loom corner (crafting yield buff), storage chest (inventory expand), display rack (showcase item grants passive bonus).
-- [ ] Terrain polish: fences, signposts, benches for lived-in feel.
+- [ ] Pen construction/upgrades with decor slot buffs.
+- [ ] Cottage upgrade hooks: loom corner buff, storage chest, display rack passive.
 
 ### Systems / UX
-- [x] Task board UI for quests/orders with rewards listed.
-- [ ] Inventory filters (materials / crafted / quest items).
-- [x] Mobile UI: larger touch targets for shops/crafting; persistent close button on task board.
-- [ ] Autosave on map transitions (keep manual save/load).
+- [x] Task board UI.
+- [ ] Inventory filters; large-text toggle; colorblind-safe accent palette.
+- [ ] Autosave on map transitions; keep manual save/load.
+- [ ] Fast travel menu; controller/touch prompt clarity.
 
 ### Performance / Tech
-- [ ] Sprite/tilesheet audit; trim unused frames; lazy-load audio.
-- [ ] Object pooling for animals/NPCs; clean up offscreen entities.
-- [ ] Service worker cache bump when assets change.
+- [ ] Sprite/audio audit; lazy-load ambience.
+- [ ] Object pooling/offscreen cleanup for animals/NPCs.
+- [ ] Cache bump when assets change (sw.js version).
 
-## Success Criteria
-- First 10 minutes: guided tasks cover shearing, crafting, selling, gifting, saving.
-- 20–40 minutes: unlock forest/village utility, build first pen, get first new animal, craft 2–3 new items.
-- 40–60 minutes: complete festival/order-board arc, unlock fast travel, own multiple animals in pens, craft a luxury item.
+---
+## Success Criteria (Dec 25 build)
+- First 15 minutes: guided welcome, shard legend hook, first craft/sell/gift, task board used.
+- 30–45 minutes: festival arc active; first pen upgrade; first fast-travel unlock; friendship perk earned.
+- 45–60 minutes: wetlands visited; loom attune mini-game; luxury/lamp/banner crafted; daily order completed.
+- Replay: daily/weekly orders, mini-games, and fast travel keep sessions snackable.
