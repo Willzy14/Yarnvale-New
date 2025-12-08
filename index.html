@@ -1402,7 +1402,7 @@ touchDirButtons.forEach((button) => {
         if (dir === 'up') {
           dyeShopSelection = Math.max(0, dyeShopSelection - 1);
         } else if (dir === 'down') {
-          dyeShopSelection = Math.min(dyePrices.length - 1, dyeShopSelection + 1);
+          dyeShopSelection = Math.min(dyeShopTrades.length - 1, dyeShopSelection + 1);
         }
       } else if (merchantShopOpen) {
         if (dir === 'up') {
@@ -1440,7 +1440,7 @@ bindPointerButton(touchActionButton, () => {
     return;
   }
   if (dyeShopOpen) {
-    buyDye();
+    tradeAtDyeShop();
     return;
   }
   if (tailorShopOpen) {
@@ -4489,21 +4489,21 @@ const GOAT_DRAW_OFFSET_Y = 10; // push goat sprite down a bit to clear trees
       
       // Handle Dye Shop touch/click
       if (dyeShopOpen) {
-        const panelW = 300;
-        const panelH = 280;
+        const panelW = 320;
+        const panelH = 260;
         const panelX = (canvas.width - panelW) / 2;
         const panelY = (canvas.height - panelH) / 2;
-        const startY = panelY + 68;
-        const itemHeight = 22;
+        const startY = panelY + 55;
+        const itemHeight = 32;
         
         // Check if clicking on an item
-        for (let i = 0; i < dyePrices.length; i++) {
-          const itemY = startY + i * itemHeight - 8;
+        for (let i = 0; i < dyeShopTrades.length; i++) {
+          const itemY = startY + i * itemHeight - 10;
           if (clickX >= panelX + 8 && clickX <= panelX + panelW - 8 &&
-              clickY >= itemY && clickY <= itemY + 20) {
+              clickY >= itemY && clickY <= itemY + 28) {
             if (i === dyeShopSelection) {
-              // Double tap on same item = buy
-              buyDye();
+              // Double tap on same item = trade
+              tradeAtDyeShop();
             } else {
               // Select the item
               dyeShopSelection = i;
