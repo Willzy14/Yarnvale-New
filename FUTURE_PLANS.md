@@ -5,7 +5,7 @@
 
 ### Current Version: V40 (Props Pass)
 ### Save Version: 8
-### Service Worker Cache: yarnvale-v16
+### Service Worker Cache: yarnvale-v17
 
 ### Completed This Session:
 - ✅ V38: Autosave on Map Transitions (toggle in options menu)

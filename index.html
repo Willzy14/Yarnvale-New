@@ -8298,7 +8298,8 @@ const GOAT_DRAW_OFFSET_Y = 10; // push goat sprite down a bit to clear trees
     let mapData  = maps[currentMap].data;
 
     handleEnvironmentAudio(currentMap);
-  ensureBaseMapCanvas(currentMap);
+  // ensureBaseMapCanvas is optional since we redraw tiles each frame
+  // ensureBaseMapCanvas(currentMap);
 
 
 
