@@ -1478,6 +1478,11 @@ bindPointerButton(touchActionButton, () => {
     handleLoomAttuneInput('action');
     return;
   }
+  // Handle knitting sprint mini-game
+  if (knittingSprintActive) {
+    handleKnittingSprintInput('action');
+    return;
+  }
   // Handle gift menu - give selected item
   if (giftMenuOpen) {
     giveSelectedGift();
@@ -1552,6 +1557,10 @@ bindPointerButton(touchBackButton, () => {
   }
   if (loomAttuneActive) {
     handleLoomAttuneInput('cancel');
+    return;
+  }
+  if (knittingSprintActive) {
+    handleKnittingSprintInput('cancel');
     return;
   }
   if (optionsMenuOpen) {
@@ -3104,6 +3113,14 @@ function canAffordRecipe(recipe) {
 function craftRecipe(recipe) {
   if (!canAffordRecipe(recipe)) return false;
   
+  // For sellable items, offer Knitting Sprint mini-game
+  if (recipe.sellPrice && recipe.sellPrice > 0) {
+    startKnittingSprint(recipe);
+    craftingMenuOpen = false;
+    return true;
+  }
+  
+  // For non-sellable items, craft normally
   // Deduct inputs
   for (const [item, amount] of Object.entries(recipe.inputs)) {
     inventory[item] -= amount;
@@ -4099,6 +4116,398 @@ function drawLoomAttuneUI() {
     ctx.fillStyle = '#ffd700';
     ctx.font = '9px system-ui';
     ctx.fillText(`Active Bonus: ${loomAttuneBonusCrafts} crafts remaining`, panelX + panelW/2, panelY + 165);
+  }
+}
+
+// =========================
+// KNITTING SPRINT MINI-GAME
+// =========================
+
+// Knitting Sprint State
+let knittingSprintActive = false;
+let knittingSprintPhase = 'ready'; // 'ready', 'countdown', 'playing', 'result'
+let knittingSprintRecipe = null; // The recipe being crafted
+let knittingSprintBeats = []; // Array of beat timings
+let knittingSprintBeatIndex = 0; // Current beat to hit
+let knittingSprintScore = 0; // How many beats hit successfully
+let knittingSprintRequired = 5; // Beats needed for bonus
+let knittingSprintTotalBeats = 6; // Total beats in the sprint
+let knittingSprintTimer = 0; // Timer for beat spawning
+let knittingSprintBeatSpeed = 2; // How fast beats move
+let knittingSprintResult = '';
+let knittingSprintResultTimer = 0;
+let knittingSprintCountdown = 0;
+let knittingSprintValueBonus = 0; // Accumulated value bonus from successful sprints
+
+// Beat objects: { x, active, hit, missed }
+let knittingSprintActiveBeat = null;
+
+// Start Knitting Sprint mini-game
+function startKnittingSprint(recipe) {
+  knittingSprintActive = true;
+  knittingSprintPhase = 'countdown';
+  knittingSprintRecipe = recipe;
+  knittingSprintBeatIndex = 0;
+  knittingSprintScore = 0;
+  knittingSprintResult = '';
+  knittingSprintCountdown = 180; // 3 second countdown
+  knittingSprintActiveBeat = null;
+  knittingSprintTimer = 0;
+  
+  if (touchBackButton) touchBackButton.classList.add('visible');
+  showMessage("Knitting Sprint! Tap [E] when the yarn reaches the needles!");
+}
+
+// Close Knitting Sprint
+function closeKnittingSprint(cancelled = false) {
+  knittingSprintActive = false;
+  knittingSprintPhase = 'ready';
+  if (touchBackButton) touchBackButton.classList.remove('visible');
+  
+  if (cancelled) {
+    showMessage("Sprint cancelled - crafting normally.");
+    // Still craft the item, just without bonus
+    if (knittingSprintRecipe) {
+      craftRecipeNormal(knittingSprintRecipe);
+    }
+  }
+  knittingSprintRecipe = null;
+}
+
+// Handle input during Knitting Sprint
+function handleKnittingSprintInput(action) {
+  if (!knittingSprintActive) return;
+  
+  if (action === 'cancel') {
+    closeKnittingSprint(true);
+    return;
+  }
+  
+  if (action === 'action' && knittingSprintPhase === 'playing') {
+    // Check if there's an active beat in the hit zone
+    if (knittingSprintActiveBeat && !knittingSprintActiveBeat.hit && !knittingSprintActiveBeat.missed) {
+      const hitZoneStart = 75;
+      const hitZoneEnd = 95;
+      
+      if (knittingSprintActiveBeat.x >= hitZoneStart && knittingSprintActiveBeat.x <= hitZoneEnd) {
+        // Perfect hit!
+        knittingSprintActiveBeat.hit = true;
+        knittingSprintScore++;
+        if (sounds.knit) sounds.knit.play().catch(() => {});
+        showMessage(`Perfect! ${knittingSprintScore}/${knittingSprintRequired}`);
+      } else if (knittingSprintActiveBeat.x >= hitZoneStart - 15 && knittingSprintActiveBeat.x <= hitZoneEnd + 5) {
+        // Close enough - still counts
+        knittingSprintActiveBeat.hit = true;
+        knittingSprintScore++;
+        showMessage(`Good! ${knittingSprintScore}/${knittingSprintRequired}`);
+      } else {
+        // Missed timing
+        showMessage("Too early!");
+      }
+    }
+  }
+}
+
+// Update Knitting Sprint game state
+function updateKnittingSprint() {
+  if (!knittingSprintActive) return;
+  
+  if (knittingSprintPhase === 'countdown') {
+    knittingSprintCountdown--;
+    if (knittingSprintCountdown <= 0) {
+      knittingSprintPhase = 'playing';
+      knittingSprintTimer = 0;
+    }
+    return;
+  }
+  
+  if (knittingSprintPhase === 'playing') {
+    knittingSprintTimer++;
+    
+    // Spawn new beat every ~60 frames (1 second)
+    if (!knittingSprintActiveBeat && knittingSprintBeatIndex < knittingSprintTotalBeats) {
+      if (knittingSprintTimer >= 60) {
+        knittingSprintActiveBeat = { x: 0, hit: false, missed: false };
+        knittingSprintBeatIndex++;
+        knittingSprintTimer = 0;
+      }
+    }
+    
+    // Move active beat
+    if (knittingSprintActiveBeat && !knittingSprintActiveBeat.hit) {
+      knittingSprintActiveBeat.x += knittingSprintBeatSpeed;
+      
+      // Check if beat passed the hit zone
+      if (knittingSprintActiveBeat.x > 100) {
+        if (!knittingSprintActiveBeat.hit) {
+          knittingSprintActiveBeat.missed = true;
+          showMessage("Missed!");
+        }
+        // Clear beat and prepare for next
+        knittingSprintActiveBeat = null;
+        
+        // Check if game is over
+        if (knittingSprintBeatIndex >= knittingSprintTotalBeats) {
+          knittingSprintPhase = 'result';
+          knittingSprintResultTimer = 120;
+          
+          if (knittingSprintScore >= knittingSprintRequired) {
+            knittingSprintResult = 'success';
+            knittingSprintValueBonus++;
+            showMessage("⚡ Speed Bonus! Crafted item worth +1 gold!");
+          } else {
+            knittingSprintResult = 'fail';
+            showMessage(`Finished ${knittingSprintScore}/${knittingSprintRequired} - crafting normally.`);
+          }
+        }
+      }
+    }
+    
+    // Clear hit beats after a moment
+    if (knittingSprintActiveBeat && knittingSprintActiveBeat.hit) {
+      knittingSprintActiveBeat.x += 5; // Fly off quickly
+      if (knittingSprintActiveBeat.x > 110) {
+        knittingSprintActiveBeat = null;
+        
+        // Check if game is over
+        if (knittingSprintBeatIndex >= knittingSprintTotalBeats) {
+          knittingSprintPhase = 'result';
+          knittingSprintResultTimer = 120;
+          
+          if (knittingSprintScore >= knittingSprintRequired) {
+            knittingSprintResult = 'success';
+            knittingSprintValueBonus++;
+            showMessage("⚡ Speed Bonus! Crafted item worth +1 gold!");
+          } else {
+            knittingSprintResult = 'fail';
+            showMessage(`Finished ${knittingSprintScore}/${knittingSprintRequired} - crafting normally.`);
+          }
+        }
+      }
+    }
+  }
+  
+  if (knittingSprintPhase === 'result') {
+    knittingSprintResultTimer--;
+    if (knittingSprintResultTimer <= 0) {
+      // Craft the item with or without bonus
+      const wasSuccess = knittingSprintResult === 'success';
+      craftRecipeWithBonus(knittingSprintRecipe, wasSuccess);
+      closeKnittingSprint(false);
+    }
+  }
+}
+
+// Craft recipe normally (used when sprint is cancelled)
+function craftRecipeNormal(recipe) {
+  if (!canAffordRecipe(recipe)) return false;
+  
+  // Deduct inputs
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    inventory[item] -= amount;
+  }
+  
+  // Add outputs (with loom attune bonus if active)
+  for (const [item, amount] of Object.entries(recipe.outputs)) {
+    let finalAmount = amount;
+    if (loomAttuneBonusCrafts > 0) {
+      finalAmount += 1;
+    }
+    inventory[item] = (inventory[item] || 0) + finalAmount;
+  }
+  
+  // Consume loom attune bonus
+  if (loomAttuneBonusCrafts > 0) {
+    loomAttuneBonusCrafts--;
+    if (loomAttuneBonusCrafts === 0) {
+      showMessage("Loom attunement faded. Craft bonus ended.");
+    }
+  }
+  
+  onItemCrafted();
+  return true;
+}
+
+// Craft recipe with potential sprint bonus
+function craftRecipeWithBonus(recipe, hasSprintBonus) {
+  if (!canAffordRecipe(recipe)) return false;
+  
+  // Deduct inputs
+  for (const [item, amount] of Object.entries(recipe.inputs)) {
+    inventory[item] -= amount;
+  }
+  
+  // Add outputs (with loom attune bonus if active)
+  for (const [item, amount] of Object.entries(recipe.outputs)) {
+    let finalAmount = amount;
+    if (loomAttuneBonusCrafts > 0) {
+      finalAmount += 1;
+    }
+    inventory[item] = (inventory[item] || 0) + finalAmount;
+    
+    // Track sprint bonus for this item type
+    if (hasSprintBonus && recipe.sellPrice) {
+      // Store sprint bonus in a special tracker
+      if (!sprintBonusItems[item]) sprintBonusItems[item] = 0;
+      sprintBonusItems[item] += finalAmount;
+    }
+  }
+  
+  // Consume loom attune bonus
+  if (loomAttuneBonusCrafts > 0) {
+    loomAttuneBonusCrafts--;
+    if (loomAttuneBonusCrafts === 0) {
+      showMessage("Loom attunement faded.");
+    }
+  }
+  
+  onItemCrafted();
+  return true;
+}
+
+// Track items with sprint bonus (they sell for +1 gold each)
+let sprintBonusItems = {};
+
+// Draw Knitting Sprint UI
+function drawKnittingSprintUI() {
+  if (!knittingSprintActive) return;
+  
+  // Darken background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Panel
+  const panelW = 280;
+  const panelH = 180;
+  const panelX = (canvas.width - panelW) / 2;
+  const panelY = (canvas.height - panelH) / 2;
+  
+  // Panel background
+  ctx.fillStyle = 'rgba(60, 40, 30, 0.95)';
+  ctx.beginPath();
+  ctx.roundRect(panelX, panelY, panelW, panelH, 12);
+  ctx.fill();
+  
+  // Panel border
+  ctx.strokeStyle = '#d4a574';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect(panelX, panelY, panelW, panelH, 12);
+  ctx.stroke();
+  
+  // Title
+  ctx.fillStyle = '#f0d0a0';
+  ctx.font = 'bold 16px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('🧶 Knitting Sprint! 🧶', panelX + panelW/2, panelY + 28);
+  
+  // Progress
+  ctx.fillStyle = '#d0c0a0';
+  ctx.font = '11px system-ui';
+  ctx.fillText(`Hits: ${knittingSprintScore}/${knittingSprintRequired}`, panelX + panelW/2, panelY + 48);
+  
+  // Countdown phase
+  if (knittingSprintPhase === 'countdown') {
+    const countNum = Math.ceil(knittingSprintCountdown / 60);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 48px system-ui';
+    ctx.fillText(countNum.toString(), panelX + panelW/2, panelY + 110);
+    ctx.font = '12px system-ui';
+    ctx.fillStyle = '#c0b090';
+    ctx.fillText('Get ready...', panelX + panelW/2, panelY + 140);
+    return;
+  }
+  
+  // Draw the timing bar
+  const barX = panelX + 20;
+  const barY = panelY + 65;
+  const barW = panelW - 40;
+  const barH = 35;
+  
+  // Bar background (knitting needles track)
+  ctx.fillStyle = 'rgba(40, 30, 20, 0.9)';
+  ctx.beginPath();
+  ctx.roundRect(barX, barY, barW, barH, 8);
+  ctx.fill();
+  
+  // Hit zone (the needles)
+  const hitZoneStart = 75;
+  const hitZoneEnd = 95;
+  const hitX = barX + (hitZoneStart / 100) * barW;
+  const hitW = ((hitZoneEnd - hitZoneStart) / 100) * barW;
+  
+  // Hit zone glow
+  ctx.fillStyle = `rgba(255, 200, 100, ${0.4 + 0.2 * Math.sin(Date.now() / 200)})`;
+  ctx.fillRect(hitX - 5, barY - 5, hitW + 10, barH + 10);
+  
+  // Hit zone
+  ctx.fillStyle = '#ffa040';
+  ctx.fillRect(hitX, barY, hitW, barH);
+  
+  // Needles icon
+  ctx.fillStyle = '#c0c0c0';
+  ctx.font = '20px system-ui';
+  ctx.fillText('🪡', hitX + hitW/2, barY + barH/2 + 7);
+  
+  // Draw active beat (yarn ball)
+  if (knittingSprintActiveBeat && knittingSprintPhase === 'playing') {
+    const beatX = barX + (knittingSprintActiveBeat.x / 100) * barW;
+    const beatY = barY + barH/2;
+    
+    if (knittingSprintActiveBeat.hit) {
+      // Hit effect - sparkle
+      ctx.fillStyle = '#ffff00';
+      ctx.font = '18px system-ui';
+      ctx.fillText('✨', beatX, beatY + 6);
+    } else {
+      // Yarn ball
+      ctx.fillStyle = '#ff8090';
+      ctx.beginPath();
+      ctx.arc(beatX, beatY, 12, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Yarn texture
+      ctx.strokeStyle = '#ff6070';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(beatX, beatY, 8, 0, Math.PI * 1.5);
+      ctx.stroke();
+      
+      // Highlight
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.beginPath();
+      ctx.arc(beatX - 3, beatY - 3, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  
+  // Result display
+  if (knittingSprintPhase === 'result') {
+    ctx.font = 'bold 18px system-ui';
+    if (knittingSprintResult === 'success') {
+      ctx.fillStyle = '#90ff90';
+      ctx.fillText('⚡ SPEED BONUS! ⚡', panelX + panelW/2, panelY + 130);
+      ctx.font = '11px system-ui';
+      ctx.fillStyle = '#c0ffc0';
+      ctx.fillText('Item sells for +1 gold!', panelX + panelW/2, panelY + 150);
+    } else {
+      ctx.fillStyle = '#ffa0a0';
+      ctx.fillText('Nice try!', panelX + panelW/2, panelY + 130);
+      ctx.font = '11px system-ui';
+      ctx.fillStyle = '#e0d0c0';
+      ctx.fillText('Crafted normally.', panelX + panelW/2, panelY + 150);
+    }
+  } else {
+    // Instructions
+    ctx.fillStyle = '#b0a090';
+    ctx.font = '10px system-ui';
+    ctx.fillText('Press [E] when yarn reaches the needles!', panelX + panelW/2, panelY + 125);
+    ctx.font = '9px system-ui';
+    ctx.fillText('[Esc] Skip (craft normally)', panelX + panelW/2, panelY + 145);
+    
+    // Beat counter
+    ctx.fillStyle = '#908070';
+    ctx.fillText(`Beat ${knittingSprintBeatIndex}/${knittingSprintTotalBeats}`, panelX + panelW/2, panelY + 165);
   }
 }
 
@@ -7369,6 +7778,22 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
+  // Handle knitting sprint mini-game
+  if (knittingSprintActive) {
+    if (key === 'e' || e.code === 'Space' || e.key === 'Enter') {
+      handleKnittingSprintInput('action');
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Escape') {
+      handleKnittingSprintInput('cancel');
+      e.preventDefault();
+      return;
+    }
+    e.preventDefault();
+    return;
+  }
+
   // Handle gift menu
   if (giftMenuOpen) {
     const items = getGiftableItems();
@@ -7890,15 +8315,28 @@ function handleMarket() {
       ? friendshipValues.reduce((a, b) => a + b, 0) / friendshipValues.length 
       : 0;
     const friendshipBonus = Math.floor(item.price * (avgFriendship / FRIENDSHIP_MAX) * 0.25);
-    const totalPrice = item.price + friendshipBonus;
+    
+    // Check for Knitting Sprint bonus
+    let sprintBonus = 0;
+    if (sprintBonusItems[item.key] && sprintBonusItems[item.key] > 0) {
+      sprintBonus = 1;
+      sprintBonusItems[item.key]--;
+    }
+    
+    const totalPrice = item.price + friendshipBonus + sprintBonus;
     
     inventory.gold += totalPrice;
     
-    if (friendshipBonus > 0) {
-      showMessage(`You sell ${item.name} for ${item.price} + ${friendshipBonus} bonus gold! Your good reputation helps!`);
-    } else {
-      showMessage(`You sell ${item.name} for ${item.price} gold! You now have ${inventory.gold} gold.`);
+    let bonusText = '';
+    if (friendshipBonus > 0 && sprintBonus > 0) {
+      bonusText = ` (+${friendshipBonus} reputation, +${sprintBonus} sprint bonus)`;
+    } else if (friendshipBonus > 0) {
+      bonusText = ` (+${friendshipBonus} reputation bonus)`;
+    } else if (sprintBonus > 0) {
+      bonusText = ` (+${sprintBonus} sprint bonus!)`;
     }
+    
+    showMessage(`Sold ${item.name} for ${totalPrice} gold${bonusText}`);
     if (sounds.sell) sounds.sell.play().catch(() => {});
     return;
   }
@@ -8201,6 +8639,9 @@ function update() {
   // Update loom attune mini-game
   updateLoomAttune();
   
+  // Update knitting sprint mini-game
+  updateKnittingSprint();
+  
   // --- Smooth tile movement ---
   if (player.moving) {
     const remX = player.targetPx - player.px;
@@ -8231,7 +8672,7 @@ function update() {
     let dy = 0;
 
     // don't allow movement while menus are open or in build mode
-    const anyMenuOpen = inventoryOpen || optionsMenuOpen || merchantShopOpen || dyeShopOpen || tailorShopOpen || farmShopOpen || fastTravelOpen || ordersBoardOpen || dialogueOpen || giftMenuOpen || buildModeActive || loomAttuneActive || fishingActive;
+    const anyMenuOpen = inventoryOpen || optionsMenuOpen || merchantShopOpen || dyeShopOpen || tailorShopOpen || farmShopOpen || fastTravelOpen || ordersBoardOpen || dialogueOpen || giftMenuOpen || buildModeActive || loomAttuneActive || fishingActive || knittingSprintActive;
     if (!anyMenuOpen) {
       if (keys.ArrowUp || keys.w || touchDirections.up) {
         dy = -1;
@@ -10686,7 +11127,11 @@ function render() {
   // Loom Attune Mini-Game UI
   drawLoomAttuneUI();
   
+  // Knitting Sprint Mini-Game UI
+  drawKnittingSprintUI();
+  
   // Task Board UI (drawn last so it's on top, but before debug)
+  drawTaskBoardUI();
   drawTaskBoardUI();
   
   // Intro screen (drawn on top of everything)
