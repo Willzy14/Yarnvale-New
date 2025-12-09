@@ -8597,7 +8597,9 @@ let questStage = 0;
       player.moving = false;
 
       handleEnvironmentAudio(name);
-      ensureBaseMapCanvas(name);
+      // Note: Base map canvas is pre-rendered but render() redraws fresh each frame
+      // for animation support, so this is optional
+      // ensureBaseMapCanvas(name);
       currentInteractables = getInteractablesForMap(name);
       updateHelperLabelState(currentInteractables, true);
       

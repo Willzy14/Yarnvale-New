@@ -1,35 +1,53 @@
 # Yarnvale Future Plans (Delivery: Dec 25, 2025)
 
 ---
-## 📋 CONTINUATION NOTES (Last Updated: Session ending V36)
+## 📋 CONTINUATION NOTES (Last Updated: Session ending V40)
 
-### Current Version: V36 (Village Heart Quests)
+### Current Version: V40 (Props Pass)
 ### Save Version: 8
+### Service Worker Cache: yarnvale-v16
 
 ### Completed This Session:
-- ✅ V35: Festival of Threads Arc (3-step village event with Elder Mara)
-- ✅ V36: Village Heart Quests (Granny/Felix/Iris/Theo quest chains with perk rewards)
-- ✅ Bug Fix: Critical game freeze on farm→village transition (isFestivalAvailable→canStartFestival)
-- ✅ Bug Fix: Added missing updateFestivalCeremony() call in game loop
-- ✅ Bug Fix: Corrected player properties in fast travel function
+- ✅ V38: Autosave on Map Transitions (toggle in options menu)
+- ✅ V39: Inventory Filters (All/Materials/Crafted/Dyes/Foraged tabs)
+- ✅ V40: Props Pass (benches, lanterns, crates, festival bunting)
+- ✅ Bug Fix: Crystal altar collision (tile 38 now solid)
+- ✅ Bug Fix: Inventory/task board overlap (auto-close one when opening other)
+- ✅ Bug Fix: Service worker cache bumped multiple times for mobile updates
+- ✅ Bug Fix: Map transition freeze (commented out unused ensureBaseMapCanvas call)
+
+### New Prop Tiles Added:
+- Tile 41: Wooden bench with realistic wood grain
+- Tile 42: Lantern post with animated glowing flame
+- Tile 43: Bridge plank with wood texture (for future use)
+- Tile 44: Wooden crate with depth/shadow
+- Tile 45: Festival bunting with swaying animation
+
+### Props Placed On Maps:
+- **Overworld**: 2 crates, 1 bench, 1 lantern
+- **Village**: 4 benches, 2 lanterns, 2 crates, 14 festival buntings (row 6)
+- **Forest**: 2 benches, 2 lanterns, 2 crates
+- **Beach**: 1 bench, 1 crate
+- **Mountain**: Uses snow tree (tile 40) already
+- **Wetlands**: Uses reeds/lily pads already
 
 ### Key Code Locations:
-- **Festival System**: Lines ~1792-2060 (festivalProgress, ceremony, decorations)
-- **Heart Quests**: Lines ~2062-2250 (villageHeartQuests, heartQuestProgress, perks)
-- **Elder Mara NPC**: Lines ~7052-7085 (festival coordinator)
-- **Festival Menu UI**: Lines ~4415-4520 (openFestivalMenu, handleFestivalMenuInput, drawFestivalMenuUI)
-- **Festival Decorations**: Lines ~7830-7900 (drawFestivalDecorations)
+- **Prop Tile Rendering**: Lines ~11317-11530 (drawTile for tiles 41-45)
+- **Prop Collision**: Lines ~9352-9362 (isSolidTile includes 41, 42, 44)
+- **Inventory Filters**: Lines ~3107-3110 (filter state), ~12165-12200 (tab UI)
+- **Autosave**: Lines ~1320-1345 (autosaveGame, toggleAutosave)
 
 ### Notes for Next Session:
-- Heart Quests require friendship >= 30 and 2+ villagers helped to unlock
-- Festival requires beach to be unlocked to start
-- Festival reward: 10 free fast travels + 50 gold
+- Festival bunting (tile 45) is walkable, draws path underneath
+- Bench, lantern, crate are solid (can't walk through)
+- Base map canvas caching disabled in switchMap() to fix freeze
+- All inventory tabs have compact layout to fit mobile screens
 
 ### Suggested Next Features (Priority Order):
-1. **Loom Attune Mini-Game** - Timed taps for crafting bonus (already planned)
-2. **Snowy Ridge** - New landmark near Mountain top
-3. **Props Pass** - Benches, lanterns, bridges for visual polish
-4. **Inventory Filters** - Materials / Crafted / Quest tabs
+1. **Hermit's Loom Whisper Arc** - Old Mosswort shard hints, cave riddle
+2. **Beach Shell Song** - Shell collection mini-arc for lullaby reward
+3. **Snowy Ridge Landmark** - Crystal altar viewing area near mountain top
+4. **Llamas** - Fine wool, luxury yarn boost
 
 ---
 
@@ -126,7 +144,7 @@ A new vendor NPC on the overworld (near the paddock area) who sells:
 - [x] Fast-travel signposts after discovery (Farm ↔ Village ↔ Forest ↔ Beach ↔ Mountain ↔ Wetlands). ✅ V26
 - [x] Wetlands connector map with reeds + dye plant (indigo/violet); connects Forest ↔ Mountain. ✅ V30
 - [ ] Snowy ridge landmark near Mountain top.
-- [ ] Props pass: benches, lanterns, bridges, signposts, festival bunting in Village.
+- [x] Props pass: benches, lanterns, crates, festival bunting in Village. ✅ V40
 
 ### Animals
 - [ ] Llamas: slow shear, fine wool (luxury yarn boost), penned.
@@ -155,8 +173,9 @@ A new vendor NPC on the overworld (near the paddock area) who sells:
 
 ### Systems / UX
 - [x] Task board UI.
-- [ ] Inventory filters; large-text toggle; colorblind-safe accent palette.
-- [ ] Autosave on map transitions; keep manual save/load.
+- [x] Inventory filters (Materials/Crafted/Dyes/Foraged tabs). ✅ V39
+- [ ] Large-text toggle; colorblind-safe accent palette.
+- [x] Autosave on map transitions (with toggle). ✅ V38
 - [x] Fast travel menu with signpost discovery. ✅ V26
 - [ ] Controller/touch prompt clarity.
 
