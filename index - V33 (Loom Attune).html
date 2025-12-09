@@ -1355,37 +1355,8 @@ window.addEventListener('resize', updateTouchControlsVisibility);
 updateTouchControlsVisibility();
 
 function setTouchDirection(dir, pressed) {
-  if (typeof touchDirections === 'undefined') return;
   if (!(dir in touchDirections)) return;
   touchDirections[dir] = pressed;
-}
-
-// Clear all held touch directions (prevents stuck movement when menus open)
-function clearAllTouchDirections() {
-  if (typeof touchDirections === 'undefined') return;
-  touchDirections.up = false;
-  touchDirections.down = false;
-  touchDirections.left = false;
-  touchDirections.right = false;
-}
-
-// Clear all held keyboard keys (prevents stuck movement when menus open)
-function clearAllKeys() {
-  if (typeof keys === 'undefined') return;
-  keys.ArrowUp = false;
-  keys.ArrowDown = false;
-  keys.ArrowLeft = false;
-  keys.ArrowRight = false;
-  keys.w = false;
-  keys.a = false;
-  keys.s = false;
-  keys.d = false;
-}
-
-// Clear all input state (both touch and keyboard)
-function clearAllInputState() {
-  clearAllTouchDirections();
-  clearAllKeys();
 }
 
 function bindPointerButton(element, onPress, onRelease) {
@@ -1489,8 +1460,9 @@ touchDirButtons.forEach((button) => {
       }
     },
     () => {
-      // Always release direction on pointer up to prevent stuck movement
-      setTouchDirection(dir, false);
+      if (!craftingMenuOpen && !tailorShopOpen && !dyeShopOpen && !merchantShopOpen && !farmShopOpen && !fastTravelOpen && !ordersBoardOpen && !buildModeActive && !giftMenuOpen) {
+        setTouchDirection(dir, false);
+      }
     }
   );
 });
@@ -1578,12 +1550,12 @@ bindPointerButton(touchBackButton, () => {
     handleFishingInput('cancel');
     return;
   }
-  if (optionsMenuOpen) {
-    closeOptionsMenu();
-    return;
-  }
   if (loomAttuneActive) {
     handleLoomAttuneInput('cancel');
+    return;
+  }
+  if (optionsMenuOpen) {
+    closeOptionsMenu();
     return;
   }
   if (giftMenuOpen) {
@@ -3731,7 +3703,6 @@ function openFastTravel() {
     showMessage("No other signposts discovered yet. Explore more!");
     return;
   }
-  clearAllInputState(); // Prevent stuck movement (touch + keyboard)
   fastTravelOpen = true;
   fastTravelSelection = 0;
   if (touchBackButton) touchBackButton.classList.add('visible');
@@ -3741,7 +3712,6 @@ function openFastTravel() {
 function closeFastTravel() {
   fastTravelOpen = false;
   fastTravelSelection = 0;
-  clearAllInputState(); // Ensure clean input state when closing
   if (touchBackButton) touchBackButton.classList.remove('visible');
 }
 
@@ -3818,55 +3788,61 @@ function drawFastTravelUI() {
   
   // Semi-transparent background
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Menu panel
-  const panelWidth = 220;
-  const panelHeight = 60 + destinations.length * 35;
-  const panelX = (CANVAS_WIDTH - panelWidth) / 2;
-  const panelY = (CANVAS_HEIGHT - panelHeight) / 2;
+  // Menu panel - increased height to fit instructions inside
+  const panelWidth = 240;
+  const panelHeight = 90 + destinations.length * 32;
+  const panelX = (canvas.width - panelWidth) / 2;
+  const panelY = (canvas.height - panelHeight) / 2;
   
   // Panel background
   ctx.fillStyle = '#5c4033';
-  ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+  ctx.beginPath();
+  ctx.roundRect(panelX, panelY, panelWidth, panelHeight, 8);
+  ctx.fill();
   ctx.strokeStyle = '#8b7355';
   ctx.lineWidth = 3;
-  ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+  ctx.beginPath();
+  ctx.roundRect(panelX, panelY, panelWidth, panelHeight, 8);
+  ctx.stroke();
   
   // Title
   ctx.fillStyle = '#f5deb3';
   ctx.font = 'bold 16px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('🚩 Fast Travel', CANVAS_WIDTH / 2, panelY + 25);
+  ctx.fillText('🚩 Fast Travel', canvas.width / 2, panelY + 24);
   
   // Gold display
-  ctx.font = '12px monospace';
+  ctx.font = '11px monospace';
   ctx.fillStyle = '#ffd700';
-  ctx.fillText(`Cost: ${FAST_TRAVEL_FEE}g | Your gold: ${inventory.gold || 0}g`, CANVAS_WIDTH / 2, panelY + 45);
+  ctx.fillText(`Cost: ${FAST_TRAVEL_FEE}g | Gold: ${inventory.gold || 0}g`, canvas.width / 2, panelY + 42);
   
   // Destination list
   ctx.textAlign = 'left';
   destinations.forEach((dest, i) => {
-    const y = panelY + 70 + i * 35;
+    const y = panelY + 62 + i * 32;
     
     // Selection highlight
     if (i === fastTravelSelection) {
-      ctx.fillStyle = 'rgba(255, 255, 200, 0.3)';
-      ctx.fillRect(panelX + 10, y - 12, panelWidth - 20, 30);
+      ctx.fillStyle = 'rgba(255, 255, 200, 0.25)';
+      ctx.beginPath();
+      ctx.roundRect(panelX + 8, y - 8, panelWidth - 16, 26, 4);
+      ctx.fill();
       ctx.fillStyle = '#fffacd';
     } else {
       ctx.fillStyle = '#d2b48c';
     }
     
     ctx.font = '14px monospace';
-    ctx.fillText(`→ ${dest.name}`, panelX + 20, y + 5);
+    ctx.fillText(`→ ${dest.name}`, panelX + 18, y + 8);
   });
   
-  // Instructions
+  // Instructions - now inside the panel
   ctx.fillStyle = '#a0a0a0';
-  ctx.font = '10px monospace';
+  ctx.font = '9px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('[W/S] Select  [E] Travel  [Esc] Cancel', CANVAS_WIDTH / 2, panelY + panelHeight - 10);
+  ctx.fillText('[W/S] Select  [E] Travel  [Esc] Back', canvas.width / 2, panelY + panelHeight - 12);
 }
 
 // =========================
@@ -3889,11 +3865,12 @@ let loomAttuneResultTimer = 0;
 // Loom Attune Buff - bonus crafts remaining
 let loomAttuneBonusCrafts = 0;
 
-// Loom spot in cottage
+// Loom spot in cottage (adjacent to spinning wheel area)
+// Loom attune uses the same spot as knitting/spinning wheel
 const loomSpot = {
   map: 'cottage',
-  x: 5,
-  y: 2
+  x: 3,  // Same as knittingSpot
+  y: 4   // Same as knittingSpot
 };
 
 // Check if player is near the loom
@@ -3913,10 +3890,9 @@ function startLoomAttune() {
   loomAttuneAttempts = 0;
   loomAttuneResult = '';
   
-  // Randomize target zone position and make it progressively harder
+  // Randomize target zone position
   randomizeLoomTarget();
   
-  clearAllTouchDirections();
   if (touchBackButton) touchBackButton.classList.add('visible');
   showMessage("Attune the Crystal Loom! Press E when the light is in the glow zone!");
 }
@@ -3974,10 +3950,6 @@ function handleLoomAttuneInput(action) {
       showMessage("The light slipped away... Try again next time!");
     }
   }
-  
-  if (loomAttunePhase === 'result' && loomAttuneResultTimer <= 0) {
-    closeLoomAttune();
-  }
 }
 
 // Update loom attune game state
@@ -4011,12 +3983,12 @@ function drawLoomAttuneUI() {
   
   // Dim background
   ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   
   const panelW = 300;
   const panelH = 180;
-  const panelX = (CANVAS_WIDTH - panelW) / 2;
-  const panelY = (CANVAS_HEIGHT - panelH) / 2;
+  const panelX = (canvas.width - panelW) / 2;
+  const panelY = (canvas.height - panelH) / 2;
   
   // Panel background - mystical purple
   ctx.fillStyle = 'rgba(60, 40, 80, 0.95)';
@@ -4033,20 +4005,20 @@ function drawLoomAttuneUI() {
   
   // Title
   ctx.fillStyle = '#e0d0f0';
-  ctx.font = 'bold 16px system-ui';
+  ctx.font = 'bold 14px system-ui';
   ctx.textAlign = 'center';
-  ctx.fillText('✨ Crystal Loom Attunement ✨', panelX + panelW/2, panelY + 28);
+  ctx.fillText('✨ Crystal Loom Attunement ✨', panelX + panelW/2, panelY + 24);
   
   // Progress indicators
   ctx.fillStyle = '#c0b0d0';
-  ctx.font = '12px system-ui';
-  ctx.fillText(`Alignment: ${loomAttuneAttempts}/${loomAttuneRequired}`, panelX + panelW/2, panelY + 48);
+  ctx.font = '11px system-ui';
+  ctx.fillText(`Alignment: ${loomAttuneAttempts}/${loomAttuneRequired}`, panelX + panelW/2, panelY + 42);
   
   // Draw the timing bar
   const barX = panelX + 30;
-  const barY = panelY + 70;
+  const barY = panelY + 60;
   const barW = panelW - 60;
-  const barH = 30;
+  const barH = 28;
   
   // Bar background
   ctx.fillStyle = 'rgba(30, 20, 40, 0.8)';
@@ -4091,33 +4063,33 @@ function drawLoomAttuneUI() {
   
   // Result display
   if (loomAttunePhase === 'result') {
-    ctx.font = 'bold 20px system-ui';
+    ctx.font = 'bold 18px system-ui';
     if (loomAttuneResult === 'success') {
       ctx.fillStyle = '#90ff90';
-      ctx.fillText('✨ ATTUNED! ✨', panelX + panelW/2, panelY + 130);
-      ctx.font = '12px system-ui';
+      ctx.fillText('✨ ATTUNED! ✨', panelX + panelW/2, panelY + 120);
+      ctx.font = '11px system-ui';
       ctx.fillStyle = '#c0ffc0';
-      ctx.fillText('+1 bonus item on next 3 crafts!', panelX + panelW/2, panelY + 150);
+      ctx.fillText('+1 bonus item on next 3 crafts!', panelX + panelW/2, panelY + 140);
     } else {
       ctx.fillStyle = '#ff9090';
-      ctx.fillText('Misaligned...', panelX + panelW/2, panelY + 130);
-      ctx.font = '12px system-ui';
+      ctx.fillText('Misaligned...', panelX + panelW/2, panelY + 120);
+      ctx.font = '11px system-ui';
       ctx.fillStyle = '#ffc0c0';
-      ctx.fillText('Try again later!', panelX + panelW/2, panelY + 150);
+      ctx.fillText('Try again later!', panelX + panelW/2, panelY + 140);
     }
   } else {
     // Instructions
     ctx.fillStyle = '#a090b0';
-    ctx.font = '11px system-ui';
-    ctx.fillText('Press [E] when the light enters the glow zone!', panelX + panelW/2, panelY + 125);
     ctx.font = '10px system-ui';
-    ctx.fillText('[Esc] Cancel', panelX + panelW/2, panelY + 145);
+    ctx.fillText('Press [E] when the light enters the glow zone!', panelX + panelW/2, panelY + 115);
+    ctx.font = '9px system-ui';
+    ctx.fillText('[Esc] Cancel', panelX + panelW/2, panelY + 135);
   }
   
   // Show bonus indicator if active
   if (loomAttuneBonusCrafts > 0 && loomAttunePhase !== 'result') {
     ctx.fillStyle = '#ffd700';
-    ctx.font = '10px system-ui';
+    ctx.font = '9px system-ui';
     ctx.fillText(`Active Bonus: ${loomAttuneBonusCrafts} crafts remaining`, panelX + panelW/2, panelY + 165);
   }
 }
@@ -5628,7 +5600,8 @@ function drawFishingUI() {
 const cottageFurniture = [
   { map: 'cottage', x: 1, y: 3, type: 'armchair' },
   { map: 'cottage', x: 6, y: 2, type: 'bookshelf' },
-  { map: 'cottage', x: 6, y: 4, type: 'chest' }
+  { map: 'cottage', x: 6, y: 4, type: 'chest' },
+  { map: 'cottage', x: 3, y: 4, type: 'spinningWheel' }  // Knitting/Loom spot
 ];
 
 // ===== NPC SYSTEM =====
@@ -8207,7 +8180,7 @@ function update() {
   
   // Update loom attune mini-game
   updateLoomAttune();
-
+  
   // --- Smooth tile movement ---
   if (player.moving) {
     const remX = player.targetPx - player.px;
@@ -10147,6 +10120,21 @@ function render() {
     ctx.font = '12px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('🎣 Press F to Fish', canvas.width / 2, canvas.height - 58);
+    ctx.textAlign = 'left';
+    ctx.restore();
+  }
+  
+  // Loom attune hint
+  if (!loomAttuneActive && isNearLoom()) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(80, 40, 100, 0.8)';
+    ctx.beginPath();
+    ctx.roundRect(canvas.width / 2 - 85, canvas.height - 75, 170, 24, 6);
+    ctx.fill();
+    ctx.fillStyle = '#e8c0f8';
+    ctx.font = '12px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('🧶 Press E to Attune Loom', canvas.width / 2, canvas.height - 58);
     ctx.textAlign = 'left';
     ctx.restore();
   }

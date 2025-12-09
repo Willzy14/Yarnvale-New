@@ -1473,6 +1473,11 @@ bindPointerButton(touchActionButton, () => {
     handleFishingInput('action');
     return;
   }
+  // Handle loom attune mini-game
+  if (loomAttuneActive) {
+    handleLoomAttuneInput('action');
+    return;
+  }
   // Handle gift menu - give selected item
   if (giftMenuOpen) {
     giveSelectedGift();
@@ -1543,6 +1548,10 @@ bindPointerButton(touchInventoryButton, () => {
 bindPointerButton(touchBackButton, () => {
   if (fishingActive) {
     handleFishingInput('cancel');
+    return;
+  }
+  if (loomAttuneActive) {
+    handleLoomAttuneInput('cancel');
     return;
   }
   if (optionsMenuOpen) {
@@ -3100,9 +3109,24 @@ function craftRecipe(recipe) {
     inventory[item] -= amount;
   }
   
-  // Add outputs
+  // Add outputs (with loom attune bonus if active)
   for (const [item, amount] of Object.entries(recipe.outputs)) {
-    inventory[item] = (inventory[item] || 0) + amount;
+    let finalAmount = amount;
+    
+    // Apply loom attune bonus
+    if (loomAttuneBonusCrafts > 0) {
+      finalAmount += 1;
+    }
+    
+    inventory[item] = (inventory[item] || 0) + finalAmount;
+  }
+  
+  // Consume loom attune bonus
+  if (loomAttuneBonusCrafts > 0) {
+    loomAttuneBonusCrafts--;
+    if (loomAttuneBonusCrafts === 0) {
+      showMessage("Loom attunement faded. Craft bonus ended.");
+    }
   }
   
   // Track story progress
@@ -3819,6 +3843,255 @@ function drawFastTravelUI() {
   ctx.font = '9px monospace';
   ctx.textAlign = 'center';
   ctx.fillText('[W/S] Select  [E] Travel  [Esc] Back', canvas.width / 2, panelY + panelHeight - 12);
+}
+
+// =========================
+// LOOM ATTUNE MINI-GAME
+// =========================
+
+// Loom Attune State
+let loomAttuneActive = false;
+let loomAttunePhase = 'ready'; // 'ready', 'playing', 'result'
+let loomAttuneCursor = 0; // Position of the moving cursor (0-100)
+let loomAttuneCursorDir = 1; // 1 = moving right, -1 = moving left
+let loomAttuneCursorSpeed = 2; // Speed of cursor movement
+let loomAttuneTargetStart = 40; // Sweet spot start position
+let loomAttuneTargetEnd = 60; // Sweet spot end position
+let loomAttuneAttempts = 0; // Number of successful taps in current game
+let loomAttuneRequired = 3; // Taps needed to win
+let loomAttuneResult = ''; // 'success' or 'fail'
+let loomAttuneResultTimer = 0;
+
+// Loom Attune Buff - bonus crafts remaining
+let loomAttuneBonusCrafts = 0;
+
+// Loom spot in cottage (adjacent to spinning wheel area)
+// Loom attune uses the same spot as knitting/spinning wheel
+const loomSpot = {
+  map: 'cottage',
+  x: 3,  // Same as knittingSpot
+  y: 4   // Same as knittingSpot
+};
+
+// Check if player is near the loom
+function isNearLoom() {
+  if (currentMap !== loomSpot.map) return false;
+  const dx = Math.abs(player.x - loomSpot.x);
+  const dy = Math.abs(player.y - loomSpot.y);
+  return dx + dy === 1;
+}
+
+// Start the loom attune mini-game
+function startLoomAttune() {
+  loomAttuneActive = true;
+  loomAttunePhase = 'playing';
+  loomAttuneCursor = 0;
+  loomAttuneCursorDir = 1;
+  loomAttuneAttempts = 0;
+  loomAttuneResult = '';
+  
+  // Randomize target zone position
+  randomizeLoomTarget();
+  
+  if (touchBackButton) touchBackButton.classList.add('visible');
+  showMessage("Attune the Crystal Loom! Press E when the light is in the glow zone!");
+}
+
+// Randomize target zone (gets smaller/faster with each attempt)
+function randomizeLoomTarget() {
+  const difficulty = loomAttuneAttempts;
+  const zoneSize = Math.max(12, 20 - difficulty * 2); // Zone shrinks each attempt
+  loomAttuneTargetStart = 30 + Math.random() * (40 - zoneSize);
+  loomAttuneTargetEnd = loomAttuneTargetStart + zoneSize;
+  loomAttuneCursorSpeed = 1.5 + difficulty * 0.5; // Speed increases
+}
+
+// Close loom attune
+function closeLoomAttune() {
+  loomAttuneActive = false;
+  loomAttunePhase = 'ready';
+  if (touchBackButton) touchBackButton.classList.remove('visible');
+}
+
+// Handle input during loom attune
+function handleLoomAttuneInput(action) {
+  if (!loomAttuneActive) return;
+  
+  if (action === 'cancel') {
+    closeLoomAttune();
+    showMessage("Attunement cancelled.");
+    return;
+  }
+  
+  if (action === 'action' && loomAttunePhase === 'playing') {
+    // Check if cursor is in the target zone
+    if (loomAttuneCursor >= loomAttuneTargetStart && loomAttuneCursor <= loomAttuneTargetEnd) {
+      // Success!
+      loomAttuneAttempts++;
+      if (sounds.knit) sounds.knit.play().catch(() => {});
+      
+      if (loomAttuneAttempts >= loomAttuneRequired) {
+        // Won the mini-game!
+        loomAttunePhase = 'result';
+        loomAttuneResult = 'success';
+        loomAttuneResultTimer = 120; // Show result for 2 seconds
+        loomAttuneBonusCrafts = 3; // Award 3 bonus crafts
+        showMessage("✨ Perfect Attunement! Next 3 crafts will produce +1 bonus item!");
+      } else {
+        // Continue to next tap
+        showMessage(`Good! ${loomAttuneRequired - loomAttuneAttempts} more to go!`);
+        randomizeLoomTarget();
+      }
+    } else {
+      // Missed!
+      loomAttunePhase = 'result';
+      loomAttuneResult = 'fail';
+      loomAttuneResultTimer = 90;
+      showMessage("The light slipped away... Try again next time!");
+    }
+  }
+}
+
+// Update loom attune game state
+function updateLoomAttune() {
+  if (!loomAttuneActive) return;
+  
+  if (loomAttunePhase === 'playing') {
+    // Move cursor back and forth
+    loomAttuneCursor += loomAttuneCursorDir * loomAttuneCursorSpeed;
+    
+    if (loomAttuneCursor >= 100) {
+      loomAttuneCursor = 100;
+      loomAttuneCursorDir = -1;
+    } else if (loomAttuneCursor <= 0) {
+      loomAttuneCursor = 0;
+      loomAttuneCursorDir = 1;
+    }
+  }
+  
+  if (loomAttunePhase === 'result') {
+    loomAttuneResultTimer--;
+    if (loomAttuneResultTimer <= 0) {
+      closeLoomAttune();
+    }
+  }
+}
+
+// Draw loom attune UI
+function drawLoomAttuneUI() {
+  if (!loomAttuneActive) return;
+  
+  // Dim background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  const panelW = 300;
+  const panelH = 180;
+  const panelX = (canvas.width - panelW) / 2;
+  const panelY = (canvas.height - panelH) / 2;
+  
+  // Panel background - mystical purple
+  ctx.fillStyle = 'rgba(60, 40, 80, 0.95)';
+  ctx.beginPath();
+  ctx.roundRect(panelX, panelY, panelW, panelH, 12);
+  ctx.fill();
+  
+  // Border glow
+  ctx.strokeStyle = '#a080c0';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect(panelX, panelY, panelW, panelH, 12);
+  ctx.stroke();
+  
+  // Title
+  ctx.fillStyle = '#e0d0f0';
+  ctx.font = 'bold 14px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('✨ Crystal Loom Attunement ✨', panelX + panelW/2, panelY + 24);
+  
+  // Progress indicators
+  ctx.fillStyle = '#c0b0d0';
+  ctx.font = '11px system-ui';
+  ctx.fillText(`Alignment: ${loomAttuneAttempts}/${loomAttuneRequired}`, panelX + panelW/2, panelY + 42);
+  
+  // Draw the timing bar
+  const barX = panelX + 30;
+  const barY = panelY + 60;
+  const barW = panelW - 60;
+  const barH = 28;
+  
+  // Bar background
+  ctx.fillStyle = 'rgba(30, 20, 40, 0.8)';
+  ctx.beginPath();
+  ctx.roundRect(barX, barY, barW, barH, 6);
+  ctx.fill();
+  
+  // Target zone (sweet spot) - glowing
+  const targetX = barX + (loomAttuneTargetStart / 100) * barW;
+  const targetW = ((loomAttuneTargetEnd - loomAttuneTargetStart) / 100) * barW;
+  
+  // Glow effect
+  const glowGradient = ctx.createLinearGradient(targetX, barY, targetX + targetW, barY);
+  glowGradient.addColorStop(0, 'rgba(150, 100, 255, 0.3)');
+  glowGradient.addColorStop(0.5, 'rgba(180, 130, 255, 0.6)');
+  glowGradient.addColorStop(1, 'rgba(150, 100, 255, 0.3)');
+  ctx.fillStyle = glowGradient;
+  ctx.fillRect(targetX, barY, targetW, barH);
+  
+  // Target zone border
+  ctx.strokeStyle = '#b090e0';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(targetX, barY, targetW, barH);
+  
+  // Moving cursor (light beam)
+  const cursorX = barX + (loomAttuneCursor / 100) * barW;
+  
+  // Cursor glow
+  const cursorGradient = ctx.createRadialGradient(cursorX, barY + barH/2, 0, cursorX, barY + barH/2, 20);
+  cursorGradient.addColorStop(0, 'rgba(255, 255, 200, 0.8)');
+  cursorGradient.addColorStop(1, 'rgba(255, 255, 200, 0)');
+  ctx.fillStyle = cursorGradient;
+  ctx.fillRect(cursorX - 20, barY - 5, 40, barH + 10);
+  
+  // Cursor line
+  ctx.strokeStyle = '#ffffc0';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cursorX, barY - 2);
+  ctx.lineTo(cursorX, barY + barH + 2);
+  ctx.stroke();
+  
+  // Result display
+  if (loomAttunePhase === 'result') {
+    ctx.font = 'bold 18px system-ui';
+    if (loomAttuneResult === 'success') {
+      ctx.fillStyle = '#90ff90';
+      ctx.fillText('✨ ATTUNED! ✨', panelX + panelW/2, panelY + 120);
+      ctx.font = '11px system-ui';
+      ctx.fillStyle = '#c0ffc0';
+      ctx.fillText('+1 bonus item on next 3 crafts!', panelX + panelW/2, panelY + 140);
+    } else {
+      ctx.fillStyle = '#ff9090';
+      ctx.fillText('Misaligned...', panelX + panelW/2, panelY + 120);
+      ctx.font = '11px system-ui';
+      ctx.fillStyle = '#ffc0c0';
+      ctx.fillText('Try again later!', panelX + panelW/2, panelY + 140);
+    }
+  } else {
+    // Instructions
+    ctx.fillStyle = '#a090b0';
+    ctx.font = '10px system-ui';
+    ctx.fillText('Press [E] when the light enters the glow zone!', panelX + panelW/2, panelY + 115);
+    ctx.font = '9px system-ui';
+    ctx.fillText('[Esc] Cancel', panelX + panelW/2, panelY + 135);
+  }
+  
+  // Show bonus indicator if active
+  if (loomAttuneBonusCrafts > 0 && loomAttunePhase !== 'result') {
+    ctx.fillStyle = '#ffd700';
+    ctx.font = '9px system-ui';
+    ctx.fillText(`Active Bonus: ${loomAttuneBonusCrafts} crafts remaining`, panelX + panelW/2, panelY + 165);
+  }
 }
 
 // =========================
@@ -5327,7 +5600,8 @@ function drawFishingUI() {
 const cottageFurniture = [
   { map: 'cottage', x: 1, y: 3, type: 'armchair' },
   { map: 'cottage', x: 6, y: 2, type: 'bookshelf' },
-  { map: 'cottage', x: 6, y: 4, type: 'chest' }
+  { map: 'cottage', x: 6, y: 4, type: 'chest' },
+  { map: 'cottage', x: 3, y: 4, type: 'spinningWheel' }  // Knitting/Loom spot
 ];
 
 // ===== NPC SYSTEM =====
@@ -7071,6 +7345,22 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
+  // Handle loom attune mini-game
+  if (loomAttuneActive) {
+    if (key === 'e' || e.code === 'Space' || e.key === 'Enter') {
+      handleLoomAttuneInput('action');
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Escape') {
+      handleLoomAttuneInput('cancel');
+      e.preventDefault();
+      return;
+    }
+    e.preventDefault();
+    return;
+  }
+
   // Handle gift menu
   if (giftMenuOpen) {
     const items = getGiftableItems();
@@ -7699,6 +7989,12 @@ function handleMarket() {
     return;
   }
 
+  // Crystal Loom – only in cottage (for attunement mini-game)
+  if (isNearLoom()) {
+    startLoomAttune();
+    return;
+  }
+
   // Market stall – only in overworld
   if (currentMap === marketSpot.map &&
       player.x === marketSpot.x &&
@@ -7882,6 +8178,9 @@ function update() {
   // Update fishing mini-game
   updateFishing();
   
+  // Update loom attune mini-game
+  updateLoomAttune();
+  
   // --- Smooth tile movement ---
   if (player.moving) {
     const remX = player.targetPx - player.px;
@@ -7912,7 +8211,7 @@ function update() {
     let dy = 0;
 
     // don't allow movement while menus are open or in build mode
-    const anyMenuOpen = inventoryOpen || optionsMenuOpen || merchantShopOpen || dyeShopOpen || tailorShopOpen || farmShopOpen || fastTravelOpen || ordersBoardOpen || dialogueOpen || giftMenuOpen || buildModeActive;
+    const anyMenuOpen = inventoryOpen || optionsMenuOpen || merchantShopOpen || dyeShopOpen || tailorShopOpen || farmShopOpen || fastTravelOpen || ordersBoardOpen || dialogueOpen || giftMenuOpen || buildModeActive || loomAttuneActive || fishingActive;
     if (!anyMenuOpen) {
       if (keys.ArrowUp || keys.w || touchDirections.up) {
         dy = -1;
@@ -9825,6 +10124,21 @@ function render() {
     ctx.restore();
   }
   
+  // Loom attune hint
+  if (!loomAttuneActive && isNearLoom()) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(80, 40, 100, 0.8)';
+    ctx.beginPath();
+    ctx.roundRect(canvas.width / 2 - 85, canvas.height - 75, 170, 24, 6);
+    ctx.fill();
+    ctx.fillStyle = '#e8c0f8';
+    ctx.font = '12px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('🧶 Press E to Attune Loom', canvas.width / 2, canvas.height - 58);
+    ctx.textAlign = 'left';
+    ctx.restore();
+  }
+  
   // Debug: Show player position on beach (temporary)
   if (currentMap === 'beach') {
     ctx.save();
@@ -10244,6 +10558,9 @@ function render() {
   
   // Fishing Mini-Game UI
   drawFishingUI();
+  
+  // Loom Attune Mini-Game UI
+  drawLoomAttuneUI();
   
   // Task Board UI (drawn last so it's on top, but before debug)
   drawTaskBoardUI();
