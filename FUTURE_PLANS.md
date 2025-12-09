@@ -1,16 +1,13 @@
 # Yarnvale Future Plans (Delivery: Dec 25, 2025)
 
 ---
-## 📋 CONTINUATION NOTES (Last Updated: Session ending V31)
+## 📋 CONTINUATION NOTES (Last Updated: Session ending V32)
 
-### Current Version: V31 (Fishing Tuned)
+### Current Version: V32 (Fast Travel Fix)
 ### Save Version: 6
 
 ### Completed This Session:
-- ✅ V28: New Crafting Recipes (~20 recipes including friendship-locked)
-- ✅ V29: Fishing Mini-Game (Beach, 3-phase: waiting→biting→reeling, 11 catch types)
-- ✅ V30: Wetlands Biome (6 new tiles, forageables, indigo/violet dyes, Forest↔Mountain transitions)
-- ✅ V31: Fishing difficulty tuning (shorter bite window, smaller zone, stronger fish pull)
+- ✅ V32: Fixed fast travel menu movement bug (touch directions not releasing when menu opens)
 
 ### Key Code Locations:
 - **Fishing System**: Lines ~4980-5260 (canStartFishing, startFishing, updateFishing, handleFishingInput, drawFishingUI)
@@ -150,7 +147,7 @@ A new vendor NPC on the overworld (near the paddock area) who sells:
 ### Building & Progression
 - [ ] Pen construction/upgrades with decor slot buffs.
 - [ ] Cottage upgrade hooks: loom corner buff, storage chest, display rack passive.
-- [ ] Barnaby's Farm Shop: fencing, gates, animal purchases.
+- [x] Barnaby's Farm Shop: fencing, gates, animal purchases. ✅ V25
 
 ### Systems / UX
 - [x] Task board UI.
