@@ -12305,23 +12305,31 @@ function render() {
     }
 
     // Draw sections based on filter
+    // "All" view is a compact overview so it fits on small screens
     if (inventoryFilter === 'all' || inventoryFilter === 'materials') {
-      drawItemSection(materials, 'MATERIALS');
+      const compact = inventoryFilter === 'all';
+      drawItemSection(materials, 'MATERIALS', compact);
     }
     
     if (inventoryFilter === 'all' || inventoryFilter === 'foraged') {
-      const ownedForaged = inventoryFilter === 'all' ? forageables.slice(0, 5) : forageables;
-      drawItemSection(ownedForaged, 'FORAGED');
+      const compact = inventoryFilter === 'all';
+      const ownedForaged = compact ? forageables.slice(0, 6) : forageables;
+      drawItemSection(ownedForaged, 'FORAGED', compact);
     }
     
     if (inventoryFilter === 'all' || inventoryFilter === 'crafted') {
-      drawItemSection(craftedItems, 'CRAFTED ITEMS', true);
+      const compact = inventoryFilter === 'all';
+      // In compact view, only show the first 8 crafted items to keep height reasonable
+      const craftedList = compact ? craftedItems.slice(0, 8) : craftedItems;
+      drawItemSection(craftedList, 'CRAFTED ITEMS', true);
     }
     
     if (inventoryFilter === 'all' || inventoryFilter === 'dyes') {
+      const compact = inventoryFilter === 'all';
       const ownedDyes = dyes.filter(d => inventory[d.key] > 0);
       if (ownedDyes.length > 0 || inventoryFilter === 'dyes') {
-        drawItemSection(inventoryFilter === 'dyes' ? dyes : ownedDyes, 'DYES');
+        const list = inventoryFilter === 'dyes' ? dyes : (compact ? ownedDyes.slice(0, 4) : ownedDyes);
+        drawItemSection(list, 'DYES', compact);
       }
     }
 
