@@ -44,7 +44,7 @@
 - All inventory tabs have compact layout to fit mobile screens
 
 ### Suggested Next Features (Priority Order):
-1. **Hermit's Loom Whisper Arc** - Old Mosswort shard hints, cave riddle
+1. **Hermit's Loom Whisper Arc** - IN PROGRESS (Mosswort hints + legend seeded)
 2. **Beach Shell Song** - Shell collection mini-arc for lullaby reward
 3. **Snowy Ridge Landmark** - Crystal altar viewing area near mountain top
 4. **Llamas** - Fine wool, luxury yarn boost
