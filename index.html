@@ -3360,8 +3360,8 @@ function updateAnimalWandering(animal) {
 // Knitting spot inside the cottage (must be on a floor tile)
 const knittingSpot = {
   map: 'cottage',
-  x: 5,
-  y: 1  // Top of room, near fireplace
+  x: 3,
+  y: 4  // Crafting table - left side of room
 };
 
 const marketSpot = {
@@ -3866,11 +3866,11 @@ let loomAttuneResultTimer = 0;
 let loomAttuneBonusCrafts = 0;
 
 // Loom spot in cottage (adjacent to spinning wheel area)
-// Loom attune uses the same spot as knitting/spinning wheel
+// Loom - separate from crafting table, near fireplace
 const loomSpot = {
   map: 'cottage',
-  x: 5,  // Same as knittingSpot - top of room near fireplace
-  y: 1   // Same as knittingSpot
+  x: 5,  // Top of room, opposite side from fireplace
+  y: 1
 };
 
 // Check if player is near the loom
@@ -9891,54 +9891,86 @@ function drawFurniture() {
     });
   }
 
+  // Draw Crafting Table at knittingSpot
   if (currentMap === knittingSpot.map) {
     const px = knittingSpot.x * TILE_SIZE;
     const py = knittingSpot.y * TILE_SIZE;
 
-    // Draw a more visible spinning wheel / loom
+    // Wooden table base
+    ctx.fillStyle = '#5a4030';
+    ctx.fillRect(px + 4, py + 12, TILE_SIZE - 8, TILE_SIZE - 14);
+    
+    // Table top
+    ctx.fillStyle = '#7a5840';
+    ctx.fillRect(px + 2, py + 8, TILE_SIZE - 4, 8);
+    
+    // Table surface details - yarn and needles
+    ctx.fillStyle = '#d68caf';  // Pink yarn ball
+    ctx.beginPath();
+    ctx.arc(px + 10, py + 11, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#88c4e8';  // Blue yarn ball
+    ctx.beginPath();
+    ctx.arc(px + 22, py + 10, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Knitting needles
+    ctx.strokeStyle = '#c0c0c0';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px + 14, py + 6);
+    ctx.lineTo(px + 20, py + 14);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(px + 18, py + 6);
+    ctx.lineTo(px + 12, py + 14);
+    ctx.stroke();
+  }
+
+  // Draw Spinning Wheel/Loom at loomSpot (separate from crafting table)
+  if (currentMap === loomSpot.map) {
+    const lx = loomSpot.x * TILE_SIZE;
+    const ly = loomSpot.y * TILE_SIZE;
+
     // Wooden frame base
     ctx.fillStyle = '#4a3423';
-    ctx.fillRect(px + 2, py + 6, TILE_SIZE - 4, TILE_SIZE - 8);
+    ctx.fillRect(lx + 2, ly + 6, TILE_SIZE - 4, TILE_SIZE - 8);
 
     // Wheel (large circle)
     ctx.fillStyle = '#7a5737';
     ctx.beginPath();
-    ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2 + 2, 10, 0, Math.PI * 2);
+    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2, 10, 0, Math.PI * 2);
     ctx.fill();
     
     // Wheel inner
     ctx.fillStyle = '#5a3f27';
     ctx.beginPath();
-    ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2 + 2, 6, 0, Math.PI * 2);
+    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2, 6, 0, Math.PI * 2);
     ctx.fill();
     
-    // Wheel spokes
+    // Wheel spokes (animated)
     ctx.strokeStyle = '#7a5737';
     ctx.lineWidth = 2;
     for (let i = 0; i < 4; i++) {
       ctx.beginPath();
       const angle = (i * Math.PI / 2) + (Date.now() / 1000);
-      ctx.moveTo(px + TILE_SIZE/2, py + TILE_SIZE/2 + 2);
-      ctx.lineTo(px + TILE_SIZE/2 + Math.cos(angle) * 8, py + TILE_SIZE/2 + 2 + Math.sin(angle) * 8);
+      ctx.moveTo(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2);
+      ctx.lineTo(lx + TILE_SIZE/2 + Math.cos(angle) * 8, ly + TILE_SIZE/2 + 2 + Math.sin(angle) * 8);
       ctx.stroke();
     }
 
-    // Yarn balls on wheel
-    ctx.fillStyle = '#d68caf';
-    ctx.beginPath();
-    ctx.arc(px + 8, py + 10, 4, 0, Math.PI * 2);
-    ctx.fill();
-
+    // Yarn on wheel
     ctx.fillStyle = '#f2d27a';
     ctx.beginPath();
-    ctx.arc(px + TILE_SIZE - 8, py + 12, 3, 0, Math.PI * 2);
+    ctx.arc(lx + 8, ly + 10, 3, 0, Math.PI * 2);
     ctx.fill();
     
     // Magical glow when loom is attuned (has bonus crafts)
     if (loomAttuneBonusCrafts > 0) {
       ctx.fillStyle = `rgba(200, 150, 255, ${0.3 + 0.2 * Math.sin(Date.now() / 300)})`;
       ctx.beginPath();
-      ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 14, 0, Math.PI * 2);
+      ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 14, 0, Math.PI * 2);
       ctx.fill();
     }
   }
