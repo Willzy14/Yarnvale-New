@@ -1599,6 +1599,10 @@ bindPointerButton(touchInventoryButton, () => {
     craftingMenuOpen = false;
   } else {
     inventoryOpen = !inventoryOpen;
+    // Close task board when opening inventory to prevent overlap
+    if (inventoryOpen && taskBoardOpen) {
+      taskBoardOpen = false;
+    }
   }
 }, null);
 
@@ -2701,6 +2705,10 @@ function getActiveTasks() {
 function toggleTaskBoard() {
   taskBoardOpen = !taskBoardOpen;
   taskBoardMinimized = false;
+  // Close inventory when opening task board to prevent overlap
+  if (taskBoardOpen && inventoryOpen) {
+    inventoryOpen = false;
+  }
 }
 
 function minimizeTaskBoard() {
@@ -9233,6 +9241,10 @@ window.addEventListener('keydown', (e) => {
   // toggle inventory with I or Esc
   if (key === 'i') {
     inventoryOpen = !inventoryOpen;
+    // Close task board when opening inventory to prevent overlap
+    if (inventoryOpen && taskBoardOpen) {
+      taskBoardOpen = false;
+    }
     e.preventDefault();
   }
   
