@@ -44,6 +44,10 @@
 - Base map canvas caching disabled in switchMap() to fix freeze
 - All inventory tabs have compact layout to fit mobile screens
 
+### Known Bugs to Fix:
+- ⚠️ **Barnaby's Farm Shop** - Cannot purchase items; pressing interact/E just resets to top of list instead of buying
+- ✅ Crafting mini-game removed - crafting now works directly
+
 ### Suggested Next Features (Priority Order):
 1. **Hermit's Loom Whisper Arc** - IN PROGRESS (Mosswort hints + legend seeded)
 2. **Beach Shell Song** - Shell collection mini-arc for lullaby reward
