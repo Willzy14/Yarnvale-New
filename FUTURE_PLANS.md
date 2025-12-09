@@ -1,31 +1,35 @@
 # Yarnvale Future Plans (Delivery: Dec 25, 2025)
 
 ---
-## 📋 CONTINUATION NOTES (Last Updated: Session ending V32)
+## 📋 CONTINUATION NOTES (Last Updated: Session ending V36)
 
-### Current Version: V32 (Fast Travel Fix)
-### Save Version: 6
+### Current Version: V36 (Village Heart Quests)
+### Save Version: 8
 
 ### Completed This Session:
-- ✅ V32: Fixed fast travel menu movement bug (touch directions not releasing when menu opens)
+- ✅ V35: Festival of Threads Arc (3-step village event with Elder Mara)
+- ✅ V36: Village Heart Quests (Granny/Felix/Iris/Theo quest chains with perk rewards)
+- ✅ Bug Fix: Critical game freeze on farm→village transition (isFestivalAvailable→canStartFestival)
+- ✅ Bug Fix: Added missing updateFestivalCeremony() call in game loop
+- ✅ Bug Fix: Corrected player properties in fast travel function
 
 ### Key Code Locations:
-- **Fishing System**: Lines ~4980-5260 (canStartFishing, startFishing, updateFishing, handleFishingInput, drawFishingUI)
-- **Wetlands Map**: Lines ~2420-2460 (mapData.wetlands, tiles 30-35)
-- **Wetlands Tile Rendering**: Lines ~8850-9060 (animated reeds, lily pads, glowing plants)
-- **Wetlands Forageables**: Lines ~2560-2598 (indigoFlower, violetFlower)
-- **New Dye Recipes**: Lines ~2780-2820 (indigoDye, violetDye)
+- **Festival System**: Lines ~1792-2060 (festivalProgress, ceremony, decorations)
+- **Heart Quests**: Lines ~2062-2250 (villageHeartQuests, heartQuestProgress, perks)
+- **Elder Mara NPC**: Lines ~7052-7085 (festival coordinator)
+- **Festival Menu UI**: Lines ~4415-4520 (openFestivalMenu, handleFestivalMenuInput, drawFestivalMenuUI)
+- **Festival Decorations**: Lines ~7830-7900 (drawFestivalDecorations)
 
 ### Notes for Next Session:
-- Fishing "might need a bit of finessing" per user - can adjust difficulty later
-- Fishing only works on beach map at ocean tiles (17) - player must be at row 2 facing up toward water
+- Heart Quests require friendship >= 30 and 2+ villagers helped to unlock
+- Festival requires beach to be unlocked to start
+- Festival reward: 10 free fast travels + 50 gold
 
 ### Suggested Next Features (Priority Order):
-1. **Barnaby's Farm Shop** - Fencing, gates, animal purchases (see detailed plan below)
-2. **Loom Attune Mini-Game** - Timed taps for crafting bonus
-3. **Knitting Sprint Mini-Game** - Timing loop for +1 item value
-4. **Festival of Threads Arc** - 3-step event with rewards
-5. **Village Heart Quests** - Short arcs for Granny/Felix/Theo/Iris
+1. **Loom Attune Mini-Game** - Timed taps for crafting bonus (already planned)
+2. **Snowy Ridge** - New landmark near Mountain top
+3. **Props Pass** - Benches, lanterns, bridges for visual polish
+4. **Inventory Filters** - Materials / Crafted / Quest tabs
 
 ---
 
@@ -138,10 +142,10 @@ A new vendor NPC on the overworld (near the paddock area) who sells:
 - [x] Daily/weekly orders board with timers and rewards. ✅ V27
 
 ### Quests & Story
-- [ ] Festival of Threads 3-step arc with evening payoff + voucher/discount.
+- [x] Festival of Threads 3-step arc with evening payoff + voucher/discount. ✅ V35
 - [ ] Hermit's loom whisper arc; cave riddle; shard hinting.
 - [ ] Beach Shell Song mini-arc (shell collection → lullaby reward).
-- [ ] Village Heart mini-quests (Granny/Felix/Theo/Iris) granting perks/recipes.
+- [x] Village Heart mini-quests (Granny/Felix/Theo/Iris) granting perks/recipes. ✅ V36
 - [x] Friendship Perks system: thresholds unlock shop discounts and recipes. ✅ V27
 
 ### Building & Progression
@@ -158,8 +162,8 @@ A new vendor NPC on the overworld (near the paddock area) who sells:
 
 ### Mini-Games
 - [x] Fishing Mini-Game (Beach): timing bar for shells/fish/treasure, difficulty tuned. ✅ V29/V31
-- [ ] Loom Attune: timed taps to align threads (reward: +1 crafted output for next 3 crafts).
-- [ ] Knitting Sprint: short timing loop to "perfect" an item for +1 value.
+- [x] Loom Attune: timed taps to align threads (reward: +1 crafted output for next 3 crafts). ✅ V33
+- [x] Knitting Sprint: short timing loop to "perfect" an item for +1 value. ✅ V34
 
 ### Performance / Tech
 - [ ] Sprite/audio audit; lazy-load ambience.
