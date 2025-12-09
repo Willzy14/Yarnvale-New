@@ -3,11 +3,12 @@
 ---
 ## 📋 CONTINUATION NOTES (Last Updated: Session ending V41)
 
-### Current Version: V41 (Freeze Fix + Props)
+### Current Version: V42 (Mosswort + Beach Shard)
 ### Save Version: 8
 ### Service Worker Cache: yarnvale-v17
 
 ### Completed This Session:
+- ✅ V42: Mosswort first-meeting dialogue, conditional beach unlock, beach shard guidance and collection, cave unlock on shard
 - ✅ V38: Autosave on Map Transitions (toggle in options menu)
 - ✅ V39: Inventory Filters (All/Materials/Crafted/Dyes/Foraged tabs)
 - ✅ V40: Props Pass (benches, lanterns, crates, festival bunting)
