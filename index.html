@@ -3881,6 +3881,14 @@ function isNearLoom() {
   return dx + dy === 1;
 }
 
+// Check if player is near the crafting table
+function isNearCraftingTable() {
+  if (currentMap !== knittingSpot.map) return false;
+  const dx = Math.abs(player.x - knittingSpot.x);
+  const dy = Math.abs(player.y - knittingSpot.y);
+  return dx + dy === 1;
+}
+
 // Start the loom attune mini-game
 function startLoomAttune() {
   loomAttuneActive = true;
@@ -7995,10 +8003,8 @@ function handleMarket() {
     }
   }
 
-  // Knitting spot – only in cottage
-  if (currentMap === knittingSpot.map &&
-      player.x === knittingSpot.x &&
-      player.y === knittingSpot.y) {
+  // Knitting spot – only in cottage (adjacent to crafting table)
+  if (isNearCraftingTable()) {
     handleKnitting();
     return;
   }
@@ -10212,6 +10218,21 @@ function render() {
     ctx.font = '12px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('🧶 Press E to Attune Loom', canvas.width / 2, canvas.height - 58);
+    ctx.textAlign = 'left';
+    ctx.restore();
+  }
+  
+  // Crafting table hint
+  if (!craftMenuOpen && isNearCraftingTable()) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(90, 60, 40, 0.8)';
+    ctx.beginPath();
+    ctx.roundRect(canvas.width / 2 - 70, canvas.height - 75, 140, 24, 6);
+    ctx.fill();
+    ctx.fillStyle = '#f0d8c0';
+    ctx.font = '12px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('🪡 Press E to Craft', canvas.width / 2, canvas.height - 58);
     ctx.textAlign = 'left';
     ctx.restore();
   }
