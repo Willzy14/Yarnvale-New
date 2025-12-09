@@ -12167,27 +12167,44 @@ function render() {
     const filterLabels = ['All', 'Materials', 'Crafted', 'Dyes', 'Foraged'];
     const filterW = (panelW - 20) / filterLabels.length;
     
+    // Draw filter tabs background bar
+    ctx.fillStyle = '#1a2a4a';
+    ctx.fillRect(panelX + 5, filterY - 2, panelW - 10, 26);
+    
     // Store filter button bounds for click handling
     inventoryFilterBounds = [];
-    for (let i = 0; i < filterLabels.length; i++) {
+    
+    // Draw each tab
+    for (let i = 0; i < 5; i++) {
       const fx = panelX + 10 + i * filterW;
-      const isActive = inventoryFilter === INVENTORY_FILTERS[i];
+      const label = filterLabels[i];
+      const filterKey = INVENTORY_FILTERS[i];
+      const isActive = (inventoryFilter === filterKey);
       
-      // Store bounds
-      inventoryFilterBounds.push({ x: fx, y: filterY, w: filterW - 2, h: 18, filter: INVENTORY_FILTERS[i] });
+      // Store bounds for click detection
+      inventoryFilterBounds.push({ x: fx, y: filterY, w: filterW - 4, h: 20, filter: filterKey });
       
-      // Draw tab
-      ctx.fillStyle = isActive ? 'rgba(80, 100, 150, 0.8)' : 'rgba(40, 50, 70, 0.6)';
-      ctx.fillRect(fx, filterY, filterW - 2, 18);
-      ctx.fillStyle = isActive ? '#fff' : '#a9b3cd';
-      ctx.font = '9px system-ui';
+      // Draw tab background
+      ctx.fillStyle = isActive ? '#4080c0' : '#2a3a5a';
+      ctx.fillRect(fx, filterY, filterW - 4, 20);
+      
+      // Draw border for active tab
+      if (isActive) {
+        ctx.strokeStyle = '#60a0e0';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(fx, filterY, filterW - 4, 20);
+      }
+      
+      // Draw tab text
+      ctx.fillStyle = isActive ? '#ffffff' : '#8899bb';
+      ctx.font = isActive ? 'bold 10px system-ui' : '10px system-ui';
       ctx.textAlign = 'center';
-      ctx.fillText(filterLabels[i], fx + (filterW - 2) / 2, filterY + 13);
-      ctx.textAlign = 'left';
+      ctx.fillText(label, fx + (filterW - 4) / 2, filterY + 14);
     }
+    ctx.textAlign = 'left';
 
     const rowHeight = 22;
-    let currentY = panelY + 72;
+    let currentY = panelY + 76;
 
     // Define all item categories
     const materials = [
