@@ -9953,20 +9953,28 @@ function drawFurniture() {
     const lx = loomSpot.x * TILE_SIZE;
     const ly = loomSpot.y * TILE_SIZE;
 
+    // Base magical glow (always visible - it's a Crystal Loom!)
+    const baseGlow = 0.15 + 0.1 * Math.sin(Date.now() / 500);
+    ctx.fillStyle = `rgba(180, 120, 220, ${baseGlow})`;
+    ctx.beginPath();
+    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 18, 0, Math.PI * 2);
+    ctx.fill();
+
     // Wooden frame base
     ctx.fillStyle = '#4a3423';
     ctx.fillRect(lx + 2, ly + 6, TILE_SIZE - 4, TILE_SIZE - 8);
 
-    // Wheel (large circle)
-    ctx.fillStyle = '#7a5737';
+    // Wheel (large circle) - with crystal shimmer
+    ctx.fillStyle = '#8a6747';
     ctx.beginPath();
     ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2, 10, 0, Math.PI * 2);
     ctx.fill();
     
-    // Wheel inner
-    ctx.fillStyle = '#5a3f27';
+    // Crystal center (the magical part)
+    const crystalGlow = 0.6 + 0.3 * Math.sin(Date.now() / 400);
+    ctx.fillStyle = `rgba(200, 160, 255, ${crystalGlow})`;
     ctx.beginPath();
-    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2, 6, 0, Math.PI * 2);
+    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2, 5, 0, Math.PI * 2);
     ctx.fill();
     
     // Wheel spokes (animated)
@@ -9986,12 +9994,23 @@ function drawFurniture() {
     ctx.arc(lx + 8, ly + 10, 3, 0, Math.PI * 2);
     ctx.fill();
     
-    // Magical glow when loom is attuned (has bonus crafts)
+    // Enhanced magical glow when loom is attuned (has bonus crafts)
     if (loomAttuneBonusCrafts > 0) {
-      ctx.fillStyle = `rgba(200, 150, 255, ${0.3 + 0.2 * Math.sin(Date.now() / 300)})`;
+      ctx.fillStyle = `rgba(220, 180, 255, ${0.4 + 0.25 * Math.sin(Date.now() / 200)})`;
       ctx.beginPath();
-      ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 14, 0, Math.PI * 2);
+      ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 16, 0, Math.PI * 2);
       ctx.fill();
+      
+      // Sparkle particles
+      for (let i = 0; i < 3; i++) {
+        const sparkleAngle = (Date.now() / 300) + (i * Math.PI * 2 / 3);
+        const sparkleX = lx + TILE_SIZE/2 + Math.cos(sparkleAngle) * 12;
+        const sparkleY = ly + TILE_SIZE/2 + Math.sin(sparkleAngle) * 12;
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + 0.3 * Math.sin(Date.now() / 150 + i)})`;
+        ctx.beginPath();
+        ctx.arc(sparkleX, sparkleY, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
 
