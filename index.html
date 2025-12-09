@@ -1820,6 +1820,8 @@ function handleEnvironmentAudio(mapName) {
 // =========================
 // #region CONFIG & MAPS
     const TILE_SIZE = 32;
+  // Build-mode placed fences storage (initialized empty to avoid save-time crashes)
+  let placedFences = [];
 
 // =========================
 // QUEST/STORY SYSTEM
@@ -7574,7 +7576,7 @@ function saveGame() {
     storyProgress: { ...storyProgress },
     taskProgress: { ...taskProgress },
     taskBoardOpen: taskBoardOpen,
-    placedFences: [...placedFences],
+    placedFences: Array.isArray(placedFences) ? [...placedFences] : [],
     purchasedAnimals: purchasedAnimals.map(animal => ({
       type: animal.type,
       map: animal.map,
@@ -12820,5 +12822,7 @@ if ('serviceWorker' in navigator) {
 }
 
   </script>
+  <!-- Provide a standard mobile-web-app-capable meta per warning -->
+  <meta name="mobile-web-app-capable" content="yes">
 </body>
 </html>
