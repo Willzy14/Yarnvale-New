@@ -7778,6 +7778,20 @@ function showMessage(text, durationMs = 3500) {
       if (t === 2 || t === 3 || t === 4 || t === 7 || t === 10 || t === 11 ||
           t === 17 || t === 19 || t === 21 || t === 22 || t === 23 || t === 29 || t === 31) return true;
       
+      // Check for cottage furniture collision
+      if (currentMap === 'cottage') {
+        // Crafting table
+        if (tx === knittingSpot.x && ty === knittingSpot.y) return true;
+        // Spinning wheel / Loom
+        if (tx === loomSpot.x && ty === loomSpot.y) return true;
+        // Fireplace
+        if (tx === fireplaceSpot.x && ty === fireplaceSpot.y) return true;
+        // Other furniture (armchair, bookshelf, chest)
+        for (const item of cottageFurniture) {
+          if (item.map === 'cottage' && tx === item.x && ty === item.y) return true;
+        }
+      }
+      
       // Check for sheep collision
       if (currentMap === sheep.map && tx === sheep.x && ty === sheep.y) return true;
       
