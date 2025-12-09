@@ -3745,14 +3745,7 @@ function canAffordRecipe(recipe) {
 function craftRecipe(recipe) {
   if (!canAffordRecipe(recipe)) return false;
   
-  // For sellable items, offer Knitting Sprint mini-game
-  if (recipe.sellPrice && recipe.sellPrice > 0) {
-    startKnittingSprint(recipe);
-    craftingMenuOpen = false;
-    return true;
-  }
-  
-  // For non-sellable items, craft normally
+  // Craft directly without mini-game
   // Deduct inputs
   for (const [item, amount] of Object.entries(recipe.inputs)) {
     inventory[item] -= amount;
@@ -3780,6 +3773,15 @@ function craftRecipe(recipe) {
       showMessage("Loom attunement faded. Craft bonus ended.");
     }
   }
+  
+  // Play crafting sound
+  if (sounds.knit) sounds.knit.play().catch(() => {});
+  
+  // Show success message
+  const outputText = Object.entries(recipe.outputs)
+    .map(([item, amount]) => `${amount} ${item}`)
+    .join(', ');
+  showMessage(`Crafted ${outputText}!`);
   
   // Track story progress
   onItemCrafted();
