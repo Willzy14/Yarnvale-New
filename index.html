@@ -3360,8 +3360,8 @@ function updateAnimalWandering(animal) {
 // Knitting spot inside the cottage (must be on a floor tile)
 const knittingSpot = {
   map: 'cottage',
-  x: 3,
-  y: 4
+  x: 5,
+  y: 1  // Top of room, near fireplace
 };
 
 const marketSpot = {
@@ -3869,8 +3869,8 @@ let loomAttuneBonusCrafts = 0;
 // Loom attune uses the same spot as knitting/spinning wheel
 const loomSpot = {
   map: 'cottage',
-  x: 3,  // Same as knittingSpot
-  y: 4   // Same as knittingSpot
+  x: 5,  // Same as knittingSpot - top of room near fireplace
+  y: 1   // Same as knittingSpot
 };
 
 // Check if player is near the loom
@@ -5600,8 +5600,8 @@ function drawFishingUI() {
 const cottageFurniture = [
   { map: 'cottage', x: 1, y: 3, type: 'armchair' },
   { map: 'cottage', x: 6, y: 2, type: 'bookshelf' },
-  { map: 'cottage', x: 6, y: 4, type: 'chest' },
-  { map: 'cottage', x: 3, y: 4, type: 'spinningWheel' }  // Knitting/Loom spot
+  { map: 'cottage', x: 6, y: 4, type: 'chest' }
+  // Spinning wheel drawn separately at knittingSpot (5, 1)
 ];
 
 // ===== NPC SYSTEM =====
