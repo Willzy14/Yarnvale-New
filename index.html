@@ -1521,9 +1521,16 @@ bindPointerButton(touchActionButton, () => {
     const availableRecipes = getAvailableRecipes();
     const recipe = availableRecipes[craftingMenuSelection];
     if (canAffordRecipe(recipe)) {
-      craftRecipe(recipe);
-      showMessage(`Crafted ${getRecipeOutputsText(recipe)}!`);
-      if (sounds.knit) sounds.knit.play().catch(() => {});
+      // Check if this will trigger the knitting sprint
+      if (recipe.sellPrice && recipe.sellPrice > 0) {
+        // Knitting sprint handles the crafting
+        craftRecipe(recipe);
+      } else {
+        // Normal crafting
+        craftRecipe(recipe);
+        showMessage(`Crafted ${getRecipeOutputsText(recipe)}!`);
+        if (sounds.knit) sounds.knit.play().catch(() => {});
+      }
     } else {
       showMessage(`Not enough materials for ${recipe.name}.`);
     }
@@ -8076,9 +8083,16 @@ window.addEventListener('keydown', (e) => {
       // Craft selected recipe
       const recipe = availableRecipes[craftingMenuSelection];
       if (canAffordRecipe(recipe)) {
-        craftRecipe(recipe);
-        showMessage(`Crafted ${getRecipeOutputsText(recipe)}!`);
-        if (sounds.knit) sounds.knit.play().catch(() => {});
+        // Check if this will trigger the knitting sprint
+        if (recipe.sellPrice && recipe.sellPrice > 0) {
+          // Knitting sprint handles the crafting
+          craftRecipe(recipe);
+        } else {
+          // Normal crafting
+          craftRecipe(recipe);
+          showMessage(`Crafted ${getRecipeOutputsText(recipe)}!`);
+          if (sounds.knit) sounds.knit.play().catch(() => {});
+        }
       } else {
         showMessage(`Not enough materials for ${recipe.name}.`);
       }
