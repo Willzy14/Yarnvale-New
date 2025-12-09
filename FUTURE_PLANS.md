@@ -1,9 +1,9 @@
 # Yarnvale Future Plans (Delivery: Dec 25, 2025)
 
 ---
-## 📋 CONTINUATION NOTES (Last Updated: Session ending V40)
+## 📋 CONTINUATION NOTES (Last Updated: Session ending V41)
 
-### Current Version: V40 (Props Pass)
+### Current Version: V41 (Freeze Fix + Props)
 ### Save Version: 8
 ### Service Worker Cache: yarnvale-v17
 
