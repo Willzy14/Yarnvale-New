@@ -1359,14 +1359,6 @@ function setTouchDirection(dir, pressed) {
   touchDirections[dir] = pressed;
 }
 
-// Clear all held touch directions (prevents stuck movement when menus open)
-function clearAllTouchDirections() {
-  touchDirections.up = false;
-  touchDirections.down = false;
-  touchDirections.left = false;
-  touchDirections.right = false;
-}
-
 function bindPointerButton(element, onPress, onRelease) {
   if (!element) return;
 
@@ -1468,8 +1460,9 @@ touchDirButtons.forEach((button) => {
       }
     },
     () => {
-      // Always release direction on pointer up to prevent stuck movement
-      setTouchDirection(dir, false);
+      if (!craftingMenuOpen && !tailorShopOpen && !dyeShopOpen && !merchantShopOpen && !farmShopOpen && !fastTravelOpen && !ordersBoardOpen && !buildModeActive && !giftMenuOpen) {
+        setTouchDirection(dir, false);
+      }
     }
   );
 });
@@ -3686,7 +3679,6 @@ function openFastTravel() {
     showMessage("No other signposts discovered yet. Explore more!");
     return;
   }
-  clearAllTouchDirections(); // Prevent stuck movement
   fastTravelOpen = true;
   fastTravelSelection = 0;
   if (touchBackButton) touchBackButton.classList.add('visible');
@@ -3772,55 +3764,61 @@ function drawFastTravelUI() {
   
   // Semi-transparent background
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Menu panel
-  const panelWidth = 220;
-  const panelHeight = 60 + destinations.length * 35;
-  const panelX = (CANVAS_WIDTH - panelWidth) / 2;
-  const panelY = (CANVAS_HEIGHT - panelHeight) / 2;
+  // Menu panel - increased height to fit instructions inside
+  const panelWidth = 240;
+  const panelHeight = 90 + destinations.length * 32;
+  const panelX = (canvas.width - panelWidth) / 2;
+  const panelY = (canvas.height - panelHeight) / 2;
   
   // Panel background
   ctx.fillStyle = '#5c4033';
-  ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+  ctx.beginPath();
+  ctx.roundRect(panelX, panelY, panelWidth, panelHeight, 8);
+  ctx.fill();
   ctx.strokeStyle = '#8b7355';
   ctx.lineWidth = 3;
-  ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+  ctx.beginPath();
+  ctx.roundRect(panelX, panelY, panelWidth, panelHeight, 8);
+  ctx.stroke();
   
   // Title
   ctx.fillStyle = '#f5deb3';
   ctx.font = 'bold 16px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('🚩 Fast Travel', CANVAS_WIDTH / 2, panelY + 25);
+  ctx.fillText('🚩 Fast Travel', canvas.width / 2, panelY + 24);
   
   // Gold display
-  ctx.font = '12px monospace';
+  ctx.font = '11px monospace';
   ctx.fillStyle = '#ffd700';
-  ctx.fillText(`Cost: ${FAST_TRAVEL_FEE}g | Your gold: ${inventory.gold || 0}g`, CANVAS_WIDTH / 2, panelY + 45);
+  ctx.fillText(`Cost: ${FAST_TRAVEL_FEE}g | Gold: ${inventory.gold || 0}g`, canvas.width / 2, panelY + 42);
   
   // Destination list
   ctx.textAlign = 'left';
   destinations.forEach((dest, i) => {
-    const y = panelY + 70 + i * 35;
+    const y = panelY + 62 + i * 32;
     
     // Selection highlight
     if (i === fastTravelSelection) {
-      ctx.fillStyle = 'rgba(255, 255, 200, 0.3)';
-      ctx.fillRect(panelX + 10, y - 12, panelWidth - 20, 30);
+      ctx.fillStyle = 'rgba(255, 255, 200, 0.25)';
+      ctx.beginPath();
+      ctx.roundRect(panelX + 8, y - 8, panelWidth - 16, 26, 4);
+      ctx.fill();
       ctx.fillStyle = '#fffacd';
     } else {
       ctx.fillStyle = '#d2b48c';
     }
     
     ctx.font = '14px monospace';
-    ctx.fillText(`→ ${dest.name}`, panelX + 20, y + 5);
+    ctx.fillText(`→ ${dest.name}`, panelX + 18, y + 8);
   });
   
-  // Instructions
+  // Instructions - now inside the panel
   ctx.fillStyle = '#a0a0a0';
-  ctx.font = '10px monospace';
+  ctx.font = '9px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('[W/S] Select  [E] Travel  [Esc] Cancel', CANVAS_WIDTH / 2, panelY + panelHeight - 10);
+  ctx.fillText('[W/S] Select  [E] Travel  [Esc] Back', canvas.width / 2, panelY + panelHeight - 12);
 }
 
 // =========================
