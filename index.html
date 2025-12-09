@@ -703,7 +703,72 @@ const artAssets = {
   goat: createImageAsset('Yarnvale Assets/Art/Animals/Goat.png', {
     columns: 3,
     frameHeight: 332
-  })
+  }),
+  // New animal assets
+  peacock: createImageAsset('Yarnvale Assets/Art/Animals/Peacock.png'),
+  llama: createImageAsset('Yarnvale Assets/Art/Animals/llama.png'),
+  shavedLlama: createImageAsset('Yarnvale Assets/Art/Animals/Shaved Llama.png'),
+  rabbit: createImageAsset('Yarnvale Assets/Art/Animals/Rabbit.png'),
+  
+  // Building assets
+  cottage: createImageAsset('Yarnvale Assets/Art/Buildings/Cottage.png'),
+  dyeShop: createImageAsset('Yarnvale Assets/Art/Buildings/Dye Shop.png'),
+  farmShop: createImageAsset('Yarnvale Assets/Art/Buildings/Farm Shop.png'),
+  marketStall: createImageAsset('Yarnvale Assets/Art/Buildings/Market Stall.png'),
+  tailorShop: createImageAsset('Yarnvale Assets/Art/Buildings/Tailor Shop.png'),
+  well: createImageAsset('Yarnvale Assets/Art/Buildings/Well.png'),
+  
+  // Furniture assets
+  barrel: createImageAsset('Yarnvale Assets/Art/Furniture/Barrel.png'),
+  bed: createImageAsset('Yarnvale Assets/Art/Furniture/Bed.png'),
+  crate: createImageAsset('Yarnvale Assets/Art/Furniture/Crate.png'),
+  spinningWheel: createImageAsset('Yarnvale Assets/Art/Furniture/Spinning Wheel.png'),
+  
+  // Props
+  bench: createImageAsset('Yarnvale Assets/Art/Props/Bench.png'),
+  bridge: createImageAsset('Yarnvale Assets/Art/Props/Bridge.png'),
+  firePlace: createImageAsset('Yarnvale Assets/Art/Props/Fire Place.png'),
+  lantern: createImageAsset('Yarnvale Assets/Art/Props/Lantern.png'),
+  signPost: createImageAsset('Yarnvale Assets/Art/Props/Sign Post.png'),
+  
+  // NPC assets
+  npcFelix: createImageAsset("Yarnvale Assets/Art/NPC's/Felix Trader.png"),
+  npcGranny: createImageAsset("Yarnvale Assets/Art/NPC's/Granny Willow.png"),
+  npcIris: createImageAsset("Yarnvale Assets/Art/NPC's/Iris Dyer.png"),
+  npcTheo: createImageAsset("Yarnvale Assets/Art/NPC's/Master Theo.png"),
+  npcMira: createImageAsset("Yarnvale Assets/Art/NPC's/Mira Gardener.png"),
+  npcMosswart: createImageAsset("Yarnvale Assets/Art/NPC's/Old Mosswart.png"),
+  npcThom: createImageAsset("Yarnvale Assets/Art/NPC's/Thom Shepherd.png"),
+  npcWilla: createImageAsset("Yarnvale Assets/Art/NPC's/Wondering Willa.png"),
+  
+  // Items - Crafted
+  itemBlanket: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Blanket.png'),
+  itemHats: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Hats.png'),
+  itemLuxuryHat: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Luxery Hat.png'),
+  itemLuxuryMittens: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Luxery Mittens.png'),
+  itemLuxuryScarf: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Luxery Scarf.png'),
+  itemLuxurySocks: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Luxery Socks.png'),
+  itemScarf: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Scarf.png'),
+  itemSocks: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Socks.png'),
+  itemMittens: createImageAsset('Yarnvale Assets/Art/Items/Crafted/mittens.png'),
+  
+  // Items - Forageables
+  itemBerries: createImageAsset('Yarnvale Assets/Art/Items/Foragebles/Berries.png'),
+  itemFrostBlossom: createImageAsset('Yarnvale Assets/Art/Items/Foragebles/Frost Blossm.png'),
+  itemMushroom: createImageAsset('Yarnvale Assets/Art/Items/Foragebles/Mushroom.png'),
+  itemShell: createImageAsset('Yarnvale Assets/Art/Items/Foragebles/Shell.png'),
+  itemResin: createImageAsset('Yarnvale Assets/Art/Items/Foragebles/Tree Resin.png'),
+  itemWildFlower: createImageAsset('Yarnvale Assets/Art/Items/Foragebles/Wild Flower.png'),
+  
+  // Items - Materials
+  itemAmberDye: createImageAsset('Yarnvale Assets/Art/Items/Materials/Amber Dye.png'),
+  itemCoin: createImageAsset('Yarnvale Assets/Art/Items/Materials/Coin.png'),
+  itemCrystalShard: createImageAsset('Yarnvale Assets/Art/Items/Materials/Crystal Shard.png'),
+  itemGoatFur: createImageAsset('Yarnvale Assets/Art/Items/Materials/Goat Fur.png'),
+  itemLuxuryYarn: createImageAsset('Yarnvale Assets/Art/Items/Materials/Luxury Yarn.png'),
+  itemFeather: createImageAsset('Yarnvale Assets/Art/Items/Materials/Peacock Feather.png'),
+  itemTealDye: createImageAsset('Yarnvale Assets/Art/Items/Materials/Teal dye.png'),
+  itemWool: createImageAsset('Yarnvale Assets/Art/Items/Materials/Wool.png')
 };
 
 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -7908,44 +7973,71 @@ function drawVillagers() {
     const px = v.x * TILE_SIZE;
     const py = v.y * TILE_SIZE;
     
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.beginPath();
-    ctx.ellipse(px + 16, py + 26, 8, 3, 0, 0, Math.PI * 2);
-    ctx.fill();
+    // Try to use NPC image asset based on villager ID
+    const npcAssetMap = {
+      'merchant': artAssets.npcFelix,
+      'granny': artAssets.npcGranny,
+      'iris': artAssets.npcIris,
+      'tailor': artAssets.npcTheo,
+      'gardener': artAssets.npcMira,
+      'herbalist': artAssets.npcMosswart,
+      'shepherd': artAssets.npcThom,
+      'elder': artAssets.npcWilla
+    };
     
-    // Body
-    ctx.fillStyle = v.color;
-    ctx.fillRect(px + 10, py + 12, 12, 14);
-    
-    // Legs
-    ctx.fillStyle = '#2b3145';
-    ctx.fillRect(px + 11, py + 24, 4, 6);
-    ctx.fillRect(px + 17, py + 24, 4, 6);
-    
-    // Head
-    ctx.beginPath();
-    ctx.arc(px + 16, py + 8, 6, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffcf9e';
-    ctx.fill();
-    
-    // Hair - varies by villager
-    let hairColor = '#8a6030';
-    if (v.id === 'granny') hairColor = '#c0c0c0';
-    else if (v.id === 'merchant') hairColor = '#3a2825';
-    else if (v.id === 'shepherd') hairColor = '#c4a574';
-    else if (v.id === 'gardener') hairColor = '#2e8b57';
-    else if (v.id === 'elder') hairColor = '#d8d8e8'; // Silver-purple for Elder Mara
-    
-    ctx.fillStyle = hairColor;
-    ctx.beginPath();
-    ctx.arc(px + 16, py + 6, 7, Math.PI, 0);
-    ctx.fill();
-    
-    // Eyes
-    ctx.fillStyle = '#3a2a24';
-    ctx.fillRect(px + 13, py + 7, 1, 2);
-    ctx.fillRect(px + 18, py + 7, 1, 2);
+    const asset = npcAssetMap[v.id];
+    if (asset && asset.loaded && !asset.error) {
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath();
+      ctx.ellipse(px + 16, py + 26, 8, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Draw the NPC image scaled to tile size
+      const fw = asset.frameWidth || asset.image.width;
+      const fh = asset.frameHeight || asset.image.height;
+      ctx.drawImage(asset.image, 0, 0, fw, fh, px, py, TILE_SIZE, TILE_SIZE);
+    } else {
+      // Fallback to procedural drawing
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath();
+      ctx.ellipse(px + 16, py + 26, 8, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Body
+      ctx.fillStyle = v.color;
+      ctx.fillRect(px + 10, py + 12, 12, 14);
+      
+      // Legs
+      ctx.fillStyle = '#2b3145';
+      ctx.fillRect(px + 11, py + 24, 4, 6);
+      ctx.fillRect(px + 17, py + 24, 4, 6);
+      
+      // Head
+      ctx.beginPath();
+      ctx.arc(px + 16, py + 8, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffcf9e';
+      ctx.fill();
+      
+      // Hair - varies by villager
+      let hairColor = '#8a6030';
+      if (v.id === 'granny') hairColor = '#c0c0c0';
+      else if (v.id === 'merchant') hairColor = '#3a2825';
+      else if (v.id === 'shepherd') hairColor = '#c4a574';
+      else if (v.id === 'gardener') hairColor = '#2e8b57';
+      else if (v.id === 'elder') hairColor = '#d8d8e8'; // Silver-purple for Elder Mara
+      
+      ctx.fillStyle = hairColor;
+      ctx.beginPath();
+      ctx.arc(px + 16, py + 6, 7, Math.PI, 0);
+      ctx.fill();
+      
+      // Eyes
+      ctx.fillStyle = '#3a2a24';
+      ctx.fillRect(px + 13, py + 7, 1, 2);
+      ctx.fillRect(px + 18, py + 7, 1, 2);
+    }
     
     // Exclamation mark if NPC has something important
     if (npcHasExclamation(v)) {
@@ -10455,29 +10547,45 @@ function update() {
     targetCtx.fillRect(px + 2, py + 16, 12, 12);
 
   } else if (t === 10) {
-    // MARKET STALL
-    targetCtx.fillStyle = '#8b4513';
-    targetCtx.fillRect(px + 4, py + 8, TILE_SIZE - 8, TILE_SIZE - 8);
-    targetCtx.fillStyle = '#cd853f';
-    targetCtx.fillRect(px + 2, py + 4, TILE_SIZE - 4, 6);
-    // awning
-    targetCtx.fillStyle = '#c41e3a';
-    targetCtx.fillRect(px, py, TILE_SIZE, 6);
+    // MARKET STALL - try image first
+    const asset = artAssets.marketStall;
+    if (asset && asset.loaded && !asset.error) {
+      const fw = asset.frameWidth || asset.image.width;
+      const fh = asset.frameHeight || asset.image.height;
+      targetCtx.drawImage(asset.image, 0, 0, fw, fh, px, py, TILE_SIZE, TILE_SIZE);
+    } else {
+      // Fallback procedural
+      targetCtx.fillStyle = '#8b4513';
+      targetCtx.fillRect(px + 4, py + 8, TILE_SIZE - 8, TILE_SIZE - 8);
+      targetCtx.fillStyle = '#cd853f';
+      targetCtx.fillRect(px + 2, py + 4, TILE_SIZE - 4, 6);
+      // awning
+      targetCtx.fillStyle = '#c41e3a';
+      targetCtx.fillRect(px, py, TILE_SIZE, 6);
+    }
 
   } else if (t === 11) {
-    // WELL
-    targetCtx.fillStyle = '#696969';
-    targetCtx.beginPath();
-    targetCtx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 12, 0, Math.PI * 2);
-    targetCtx.fill();
-    targetCtx.fillStyle = '#1a4d6e';
-    targetCtx.beginPath();
-    targetCtx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 8, 0, Math.PI * 2);
-    targetCtx.fill();
-    // roof supports
-    targetCtx.fillStyle = '#8b4513';
-    targetCtx.fillRect(px + 6, py + 2, 3, 10);
-    targetCtx.fillRect(px + TILE_SIZE - 9, py + 2, 3, 10);
+    // WELL - try image first
+    const asset = artAssets.well;
+    if (asset && asset.loaded && !asset.error) {
+      const fw = asset.frameWidth || asset.image.width;
+      const fh = asset.frameHeight || asset.image.height;
+      targetCtx.drawImage(asset.image, 0, 0, fw, fh, px, py, TILE_SIZE, TILE_SIZE);
+    } else {
+      // Fallback procedural
+      targetCtx.fillStyle = '#696969';
+      targetCtx.beginPath();
+      targetCtx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 12, 0, Math.PI * 2);
+      targetCtx.fill();
+      targetCtx.fillStyle = '#1a4d6e';
+      targetCtx.beginPath();
+      targetCtx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 8, 0, Math.PI * 2);
+      targetCtx.fill();
+      // roof supports
+      targetCtx.fillStyle = '#8b4513';
+      targetCtx.fillRect(px + 6, py + 2, 3, 10);
+      targetCtx.fillRect(px + TILE_SIZE - 9, py + 2, 3, 10);
+    }
 
   } else if (t === 12) {
     // FLOWER PATCH
@@ -11837,6 +11945,24 @@ function drawPeacock() {
   
   // Update display timer for tail animation
   peacock.displayTimer = (peacock.displayTimer + 1) % 360;
+
+  // Try to use the peacock image asset
+  const asset = artAssets.peacock;
+  if (asset && asset.loaded && !asset.error) {
+    // Draw shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(px + 16, py + 26, 12, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw the peacock image scaled to tile size
+    const fw = asset.frameWidth || asset.image.width;
+    const fh = asset.frameHeight || asset.image.height;
+    ctx.drawImage(asset.image, 0, 0, fw, fh, px, py, TILE_SIZE, TILE_SIZE);
+    return;
+  }
+
+  // Fallback to procedural drawing
   const fanAmount = peacock.hasFeathers ? 0.8 + Math.sin(peacock.displayTimer * 0.02) * 0.2 : 0.3;
 
   // Shadow
@@ -11956,33 +12082,50 @@ function drawFurniture() {
     const px = fireplaceSpot.x * TILE_SIZE;
     const py = fireplaceSpot.y * TILE_SIZE;
 
-    ctx.fillStyle = '#2d1a14';
-    ctx.fillRect(px + 2, py + 8, TILE_SIZE - 4, TILE_SIZE - 6);
+    // Try fireplace image
+    const asset = artAssets.firePlace;
+    if (asset && asset.loaded && !asset.error) {
+      const fw = asset.frameWidth || asset.image.width;
+      const fh = asset.frameHeight || asset.image.height;
+      ctx.drawImage(asset.image, 0, 0, fw, fh, px, py, TILE_SIZE, TILE_SIZE);
+      
+      // Still draw animated fire glow
+      const flicker = 6 + Math.sin(fireAnimTick * 0.25) * 3;
+      const glow = ctx.createRadialGradient(px + 16, py + 24, 2, px + 16, py + 24, 28);
+      glow.addColorStop(0, 'rgba(255, 173, 85, 0.45)');
+      glow.addColorStop(1, 'rgba(255, 173, 85, 0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(px - 20, py - 4, TILE_SIZE + 40, TILE_SIZE + 28);
+    } else {
+      // Fallback procedural
+      ctx.fillStyle = '#2d1a14';
+      ctx.fillRect(px + 2, py + 8, TILE_SIZE - 4, TILE_SIZE - 6);
 
-    ctx.fillStyle = '#553429';
-    ctx.fillRect(px, py + 6, TILE_SIZE, 5);
+      ctx.fillStyle = '#553429';
+      ctx.fillRect(px, py + 6, TILE_SIZE, 5);
 
-    ctx.fillStyle = '#26130f';
-    ctx.fillRect(px + 6, py + 16, TILE_SIZE - 12, TILE_SIZE - 20);
+      ctx.fillStyle = '#26130f';
+      ctx.fillRect(px + 6, py + 16, TILE_SIZE - 12, TILE_SIZE - 20);
 
-    const flicker = 6 + Math.sin(fireAnimTick * 0.25) * 3;
-    const sway = Math.sin(fireAnimTick * 0.4) * 2;
+      const flicker = 6 + Math.sin(fireAnimTick * 0.25) * 3;
+      const sway = Math.sin(fireAnimTick * 0.4) * 2;
 
-    ctx.fillStyle = '#f8d87c';
-    ctx.beginPath();
-    ctx.ellipse(px + 16 + sway, py + 20, 7, flicker, 0, 0, Math.PI * 2);
-    ctx.fill();
+      ctx.fillStyle = '#f8d87c';
+      ctx.beginPath();
+      ctx.ellipse(px + 16 + sway, py + 20, 7, flicker, 0, 0, Math.PI * 2);
+      ctx.fill();
 
-    ctx.fillStyle = '#ff964b';
-    ctx.beginPath();
-    ctx.ellipse(px + 16 + sway * 0.6, py + 21, 4, flicker - 2, 0, 0, Math.PI * 2);
-    ctx.fill();
+      ctx.fillStyle = '#ff964b';
+      ctx.beginPath();
+      ctx.ellipse(px + 16 + sway * 0.6, py + 21, 4, flicker - 2, 0, 0, Math.PI * 2);
+      ctx.fill();
 
-    const glow = ctx.createRadialGradient(px + 16, py + 24, 2, px + 16, py + 24, 28);
-    glow.addColorStop(0, 'rgba(255, 173, 85, 0.45)');
-    glow.addColorStop(1, 'rgba(255, 173, 85, 0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(px - 20, py - 4, TILE_SIZE + 40, TILE_SIZE + 28);
+      const glow = ctx.createRadialGradient(px + 16, py + 24, 2, px + 16, py + 24, 28);
+      glow.addColorStop(0, 'rgba(255, 173, 85, 0.45)');
+      glow.addColorStop(1, 'rgba(255, 173, 85, 0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(px - 20, py - 4, TILE_SIZE + 40, TILE_SIZE + 28);
+    }
   }
 
   if (currentMap === 'cottage') {
@@ -12009,12 +12152,34 @@ function drawFurniture() {
         ctx.fillStyle = '#a89ed8';
         ctx.fillRect(px + 18, py + 12, 5, 6);
       } else if (item.type === 'chest') {
-        ctx.fillStyle = '#7d4f2a';
-        ctx.fillRect(px + 8, py + 12, TILE_SIZE - 16, TILE_SIZE - 8);
-        ctx.fillStyle = '#b97f3a';
-        ctx.fillRect(px + 8, py + 12, TILE_SIZE - 16, 8);
-        ctx.fillStyle = '#2a1b10';
-        ctx.fillRect(px + 14, py + 16, TILE_SIZE - 28, 4);
+        // Try crate image for chest
+        const asset = artAssets.crate;
+        if (asset && asset.loaded && !asset.error) {
+          const fw = asset.frameWidth || asset.image.width;
+          const fh = asset.frameHeight || asset.image.height;
+          ctx.drawImage(asset.image, 0, 0, fw, fh, px, py, TILE_SIZE, TILE_SIZE);
+        } else {
+          ctx.fillStyle = '#7d4f2a';
+          ctx.fillRect(px + 8, py + 12, TILE_SIZE - 16, TILE_SIZE - 8);
+          ctx.fillStyle = '#b97f3a';
+          ctx.fillRect(px + 8, py + 12, TILE_SIZE - 16, 8);
+          ctx.fillStyle = '#2a1b10';
+          ctx.fillRect(px + 14, py + 16, TILE_SIZE - 28, 4);
+        }
+      } else if (item.type === 'barrel') {
+        const asset = artAssets.barrel;
+        if (asset && asset.loaded && !asset.error) {
+          const fw = asset.frameWidth || asset.image.width;
+          const fh = asset.frameHeight || asset.image.height;
+          ctx.drawImage(asset.image, 0, 0, fw, fh, px, py, TILE_SIZE, TILE_SIZE);
+        }
+      } else if (item.type === 'bed') {
+        const asset = artAssets.bed;
+        if (asset && asset.loaded && !asset.error) {
+          const fw = asset.frameWidth || asset.image.width;
+          const fh = asset.frameHeight || asset.image.height;
+          ctx.drawImage(asset.image, 0, 0, fw, fh, px, py, TILE_SIZE, TILE_SIZE);
+        }
       }
     });
   }
@@ -12061,67 +12226,91 @@ function drawFurniture() {
     const lx = loomSpot.x * TILE_SIZE;
     const ly = loomSpot.y * TILE_SIZE;
 
-    // Base magical glow (always visible - it's a Crystal Loom!)
-    const baseGlow = 0.35 + 0.15 * Math.sin(Date.now() / 500);
-    ctx.fillStyle = `rgba(180, 100, 255, ${baseGlow})`;
-    ctx.beginPath();
-    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 20, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Outer glow ring
-    ctx.strokeStyle = `rgba(200, 150, 255, ${0.3 + 0.2 * Math.sin(Date.now() / 400)})`;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 22, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Wooden frame base
-    ctx.fillStyle = '#4a3423';
-    ctx.fillRect(lx + 2, ly + 6, TILE_SIZE - 4, TILE_SIZE - 8);
-
-    // Wheel (large circle) - with crystal shimmer
-    ctx.fillStyle = '#8a6747';
-    ctx.beginPath();
-    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2, 10, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Crystal center (the magical part)
-    const crystalGlow = 0.6 + 0.3 * Math.sin(Date.now() / 400);
-    ctx.fillStyle = `rgba(200, 160, 255, ${crystalGlow})`;
-    ctx.beginPath();
-    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2, 5, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Wheel spokes (animated)
-    ctx.strokeStyle = '#7a5737';
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 4; i++) {
+    // Try to use spinning wheel image
+    const asset = artAssets.spinningWheel;
+    if (asset && asset.loaded && !asset.error) {
+      // Base magical glow (always visible - it's a Crystal Loom!)
+      const baseGlow = 0.35 + 0.15 * Math.sin(Date.now() / 500);
+      ctx.fillStyle = `rgba(180, 100, 255, ${baseGlow})`;
       ctx.beginPath();
-      const angle = (i * Math.PI / 2) + (Date.now() / 1000);
-      ctx.moveTo(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2);
-      ctx.lineTo(lx + TILE_SIZE/2 + Math.cos(angle) * 8, ly + TILE_SIZE/2 + 2 + Math.sin(angle) * 8);
-      ctx.stroke();
-    }
-
-    // Yarn on wheel
-    ctx.fillStyle = '#f2d27a';
-    ctx.beginPath();
-    ctx.arc(lx + 8, ly + 10, 3, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Enhanced magical glow when loom is attuned (has bonus crafts)
-    if (loomAttuneBonusCrafts > 0) {
-      ctx.fillStyle = `rgba(220, 180, 255, ${0.4 + 0.25 * Math.sin(Date.now() / 200)})`;
-      ctx.beginPath();
-      ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 16, 0, Math.PI * 2);
+      ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 20, 0, Math.PI * 2);
       ctx.fill();
       
-      // Sparkle particles
-      for (let i = 0; i < 3; i++) {
-        const sparkleAngle = (Date.now() / 300) + (i * Math.PI * 2 / 3);
-        const sparkleX = lx + TILE_SIZE/2 + Math.cos(sparkleAngle) * 12;
-        const sparkleY = ly + TILE_SIZE/2 + Math.sin(sparkleAngle) * 12;
-        ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + 0.3 * Math.sin(Date.now() / 150 + i)})`;
+      // Draw spinning wheel image
+      const fw = asset.frameWidth || asset.image.width;
+      const fh = asset.frameHeight || asset.image.height;
+      ctx.drawImage(asset.image, 0, 0, fw, fh, lx, ly, TILE_SIZE, TILE_SIZE);
+      
+      // Enhanced magical glow when loom is attuned
+      if (loomAttuneBonusCrafts > 0) {
+        ctx.fillStyle = `rgba(220, 180, 255, ${0.4 + 0.25 * Math.sin(Date.now() / 200)})`;
+        ctx.beginPath();
+        ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 16, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      // Fallback procedural drawing
+      // Base magical glow (always visible - it's a Crystal Loom!)
+      const baseGlow = 0.35 + 0.15 * Math.sin(Date.now() / 500);
+      ctx.fillStyle = `rgba(180, 100, 255, ${baseGlow})`;
+      ctx.beginPath();
+      ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 20, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Outer glow ring
+      ctx.strokeStyle = `rgba(200, 150, 255, ${0.3 + 0.2 * Math.sin(Date.now() / 400)})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 22, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Wooden frame base
+      ctx.fillStyle = '#4a3423';
+      ctx.fillRect(lx + 2, ly + 6, TILE_SIZE - 4, TILE_SIZE - 8);
+
+      // Wheel (large circle) - with crystal shimmer
+      ctx.fillStyle = '#8a6747';
+      ctx.beginPath();
+      ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2, 10, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Crystal center (the magical part)
+      const crystalGlow = 0.6 + 0.3 * Math.sin(Date.now() / 400);
+      ctx.fillStyle = `rgba(200, 160, 255, ${crystalGlow})`;
+      ctx.beginPath();
+      ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2, 5, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Wheel spokes (animated)
+      ctx.strokeStyle = '#7a5737';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        const angle = (i * Math.PI / 2) + (Date.now() / 1000);
+        ctx.moveTo(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2);
+        ctx.lineTo(lx + TILE_SIZE/2 + Math.cos(angle) * 8, ly + TILE_SIZE/2 + 2 + Math.sin(angle) * 8);
+        ctx.stroke();
+      }
+
+      // Yarn on wheel
+      ctx.fillStyle = '#f2d27a';
+      ctx.beginPath();
+      ctx.arc(lx + 8, ly + 10, 3, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Enhanced magical glow when loom is attuned (has bonus crafts)
+      if (loomAttuneBonusCrafts > 0) {
+        ctx.fillStyle = `rgba(220, 180, 255, ${0.4 + 0.25 * Math.sin(Date.now() / 200)})`;
+        ctx.beginPath();
+        ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 16, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Sparkle particles
+        for (let i = 0; i < 3; i++) {
+          const sparkleAngle = (Date.now() / 300) + (i * Math.PI * 2 / 3);
+          const sparkleX = lx + TILE_SIZE/2 + Math.cos(sparkleAngle) * 12;
+          const sparkleY = ly + TILE_SIZE/2 + Math.sin(sparkleAngle) * 12;
+          ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + 0.3 * Math.sin(Date.now() / 150 + i)})`;
         ctx.beginPath();
         ctx.arc(sparkleX, sparkleY, 2, 0, Math.PI * 2);
         ctx.fill();
