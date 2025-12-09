@@ -9954,11 +9954,18 @@ function drawFurniture() {
     const ly = loomSpot.y * TILE_SIZE;
 
     // Base magical glow (always visible - it's a Crystal Loom!)
-    const baseGlow = 0.15 + 0.1 * Math.sin(Date.now() / 500);
-    ctx.fillStyle = `rgba(180, 120, 220, ${baseGlow})`;
+    const baseGlow = 0.35 + 0.15 * Math.sin(Date.now() / 500);
+    ctx.fillStyle = `rgba(180, 100, 255, ${baseGlow})`;
     ctx.beginPath();
-    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 18, 0, Math.PI * 2);
+    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 20, 0, Math.PI * 2);
     ctx.fill();
+    
+    // Outer glow ring
+    ctx.strokeStyle = `rgba(200, 150, 255, ${0.3 + 0.2 * Math.sin(Date.now() / 400)})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 22, 0, Math.PI * 2);
+    ctx.stroke();
 
     // Wooden frame base
     ctx.fillStyle = '#4a3423';
