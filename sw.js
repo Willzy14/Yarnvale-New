@@ -1,5 +1,5 @@
 // Yarnvale Service Worker - enables offline play and PWA installation
-const CACHE_NAME = 'yarnvale-v19';
+const CACHE_NAME = 'yarnvale-v20';
 const urlsToCache = [
   './',
   './index.html',
