@@ -748,6 +748,16 @@ const artAssets = {
   goat: createImageAsset('Yarnvale Assets/Art/Animals/Goat.png', {
     columns: 3,
     frameHeight: 332
+  }),
+  goatLeft: createImageAsset('Yarnvale Assets/Animals/Goat Left.png', {
+    frameWidth: 128,
+    frameHeight: 128,
+    columns: 1
+  }),
+  goatRight: createImageAsset('Yarnvale Assets/Animals/Goat Right.png', {
+    frameWidth: 128,
+    frameHeight: 128,
+    columns: 1
   })
 };
 
@@ -8822,7 +8832,7 @@ const interactableLocations = [
 let fireAnimTick = 0;
 let goatAnimTick = 0;
 const GOAT_CROP_BOTTOM = 0;
-const GOAT_DRAW_OFFSET_Y = 10; // push goat sprite down a bit to clear trees
+const GOAT_DRAW_OFFSET_Y = 0; // No offset needed - sprites are properly cropped at 128px
 
 
 
@@ -12523,18 +12533,28 @@ function drawGoat() {
   const px = Math.round(goat.px);
   const py = Math.round(goat.py);
 
-  const asset = artAssets.goat;
+  // Select directional sprite based on goat facing
+  let asset = null;
+  if (goat.facing === 'left' && artAssets.goatLeft && artAssets.goatLeft.loaded) {
+    asset = artAssets.goatLeft;
+  } else if (goat.facing === 'right' && artAssets.goatRight && artAssets.goatRight.loaded) {
+    asset = artAssets.goatRight;
+  } else {
+    // Fallback to original spritesheet for up/down or if directional not loaded
+    asset = artAssets.goat;
+  }
+  
   if (asset && asset.loaded && !asset.error) {
-    const cols = asset.columns || 3;
+    const cols = asset.columns || 1;
     const fw = asset.frameWidth || (asset.image.width / cols);
     const fh = asset.frameHeight || asset.image.height;
-    // Animate faster when moving
+    // Animate faster when moving (only for multi-frame sprites)
     const animSpeed = goat.isMoving ? 8 : 12;
-    const frame = cols ? Math.floor(goatAnimTick / animSpeed) % cols : 0;
+    const frame = cols > 1 ? Math.floor(goatAnimTick / animSpeed) % cols : 0;
     const sx = frame * fw;
     const sy = 0;
-    // Scale full frame into the tile, with a small upward offset for padding
-    ctx.drawImage(asset.image, sx, sy, fw, fh, px, py + GOAT_DRAW_OFFSET_Y, TILE_SIZE, TILE_SIZE);
+    // Draw sprite - 128px sprites scale nicely to tile size
+    ctx.drawImage(asset.image, sx, sy, fw, fh, px + GOAT_DRAW_OFFSET_Y, py + GOAT_DRAW_OFFSET_Y, TILE_SIZE, TILE_SIZE);
   } else {
     // fallback simple goat shape
     ctx.fillStyle = '#d9d5cc';
