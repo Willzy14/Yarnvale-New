@@ -6336,6 +6336,10 @@ function updatePurchasedAnimals() {
       // Check collisions
       if (newX === player.x && newY === player.y) continue;
       if (isAnimalAt(newX, newY)) continue;
+      // Avoid villagers and reserved tiles
+      const villagerHere = villagers.some(v => v.map === currentMap && v.x === newX && v.y === newY);
+      if (villagerHere) continue;
+      if (isReservedTile(newX, newY, currentMap)) continue;
       
       animal.targetX = newX;
       animal.targetY = newY;
@@ -7538,6 +7542,9 @@ function updateNPCMovement() {
     );
     if (blocked) return;
     
+    // Keep reserved tiles clear (doors, market spot, boards, signposts)
+    if (isReservedTile(newX, newY, currentMap)) return;
+
     // Check collision with animals
     if (sheep.map === v.map && sheep.x === newX && sheep.y === newY) return;
     if (goat.map === v.map && goat.x === newX && goat.y === newY) return;
@@ -9410,6 +9417,33 @@ function showMessage(text, durationMs = 3500) {
   message = text;
   // set expiry time based on current timestamp
   messageExpiryTime = performance.now() + durationMs;
+}
+
+// Reserved tiles the game should keep clear for access/UI
+function isReservedTile(x, y, mapName) {
+  const doors = (doorTilesByMap[mapName] || []).some(d => d.x === x && d.y === y);
+  if (doors) return true;
+
+  if (mapName === 'village') {
+    if (x === marketSpot.x && y === marketSpot.y) return true;
+    if (ordersBoardLocation && x === ordersBoardLocation.x && y === ordersBoardLocation.y) return true;
+  }
+
+  const sp = signpostLocations[mapName];
+  if (sp && x === sp.x && y === sp.y) return true;
+
+  if (mapName === 'cottage') {
+    if (x === knittingSpot.x && y === knittingSpot.y) return true;
+    if (typeof loomSpot !== 'undefined' && x === loomSpot.x && y === loomSpot.y) return true;
+    if (x === fireplaceSpot.x && y === fireplaceSpot.y) return true;
+  }
+
+  if (mapName === 'mountain') {
+    const altarX = 9, altarY = 0;
+    if (Math.abs(x - altarX) <= 1 && Math.abs(y - altarY) <= 1) return true;
+  }
+
+  return false;
 }
 
 
