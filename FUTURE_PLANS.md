@@ -169,7 +169,7 @@ A new vendor NPC on the overworld (near the paddock area) who sells:
 
 ### Quests & Story
 - [x] Festival of Threads 3-step arc with evening payoff + voucher/discount. ✅ V35
-- [ ] Hermit's loom whisper arc; cave riddle; shard hinting.
+- [x] Hermit's loom whisper arc; cave riddle; shard hinting. ✅ V44
 - [ ] Beach Shell Song mini-arc (shell collection → lullaby reward).
 - [x] Village Heart mini-quests (Granny/Felix/Theo/Iris) granting perks/recipes. ✅ V36
 - [x] Friendship Perks system: thresholds unlock shop discounts and recipes. ✅ V27
