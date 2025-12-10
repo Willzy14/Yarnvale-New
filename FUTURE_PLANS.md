@@ -151,7 +151,7 @@ A new vendor NPC on the overworld (near the paddock area) who sells:
 ### World / Maps
 - [x] Fast-travel signposts after discovery (Farm ↔ Village ↔ Forest ↔ Beach ↔ Mountain ↔ Wetlands). ✅ V26
 - [x] Wetlands connector map with reeds + dye plant (indigo/violet); connects Forest ↔ Mountain. ✅ V30
-- [ ] Snowy ridge landmark near Mountain top.
+- [x] Snowy ridge landmark near Mountain top. ✅ V43
 - [x] Props pass: benches, lanterns, crates, festival bunting in Village. ✅ V40
 
 ### Animals
