@@ -558,6 +558,8 @@ const DEFAULT_MASTER_VOLUME = 0.35;
 
 // Pre-cached math constants (micro-optimization)
 const TAU = Math.PI * 2;  // Full circle in radians
+const TILE_SIZE = 32;
+const HALF_TILE = TILE_SIZE / 2;  // Pre-cached for performance
 
 // =========================
 // UI STYLE CONSTANTS (unified across all panels)
@@ -1973,8 +1975,6 @@ function handleEnvironmentAudio(mapName) {
 // CONFIG & MAPS
 // =========================
 // #region CONFIG & MAPS
-    const TILE_SIZE = 32;
-    const HALF_TILE = TILE_SIZE / 2;  // Pre-cached for performance
   // Build-mode placed fences storage (initialized empty to avoid save-time crashes)
   let placedFences = [];
 
