@@ -1,9 +1,9 @@
 # Yarnvale Future Plans (Delivery: Dec 25, 2025)
 
 ---
-## 📋 CONTINUATION NOTES (Last Updated: V55)
+## 📋 CONTINUATION NOTES (Last Updated: V56)
 
-### Current Version: V55 (Touch Prompts + Perf)
+### Current Version: V56 (UI Polish)
 ### Save Version: 8
 ### Service Worker Cache: yarnvale-v20
 
@@ -11,7 +11,21 @@
 - ✅ V54: Pen Decor Buffs (+1 yield when Wind Chimes purchased)
 - ✅ V55: Touch/Controller Prompt Polish (device-aware prompts throughout)
 - ✅ V55: Lazy-load music tracks (only load when scene entered)
+- ✅ V56: UI Consistency Audit (standardized panel styles with UI constants)
+- ✅ V56: Cached sky gradient (performance - avoid recreating every frame)
 - ✅ Cache bump: yarnvale-v20
+
+### UI Constants System (V56):
+- Created UI object with centralized style constants
+- panelBg, dimBg, headerBg for backgrounds
+- borderColor, borderWidth, borderRadius for borders
+- textPrimary, textSecondary, textGold, textSuccess, textError for colors
+- Shop-specific themes: dyeShop, tailorShop, farmShop
+
+### Panels Standardized:
+- Dialogue UI, Gift Menu, Task Board Panel
+- Inventory Panel, Crafting Menu
+- All three shop UIs (Dye, Tailor, Farm)
 
 ### Touch Prompts Updated:
 - Intro screen shows touch-specific instructions on mobile
@@ -24,30 +38,19 @@
 
 ### Performance Improvements:
 - Music tracks now lazy-load (preload='none', only created when scene entered)
+- Sky gradient cached and reused (avoid createLinearGradient every frame)
 - Maps are small enough that viewport culling isn't needed
 - Object pooling deferred (animal count is low, not needed)
 
 ### Key Code Locations:
-- **Touch Prompt Helper**: Lines ~600 (getPrompt function)
+- **UI Constants**: Lines ~560-590 (UI object)
+- **Touch Prompt Helper**: Lines ~632 (getPrompt function)
+- **Cached Sky Gradient**: Lines ~8845 (skyGradient)
 - **Intro Instructions**: Lines ~2640 (isMobile check)
 - **Fishing Prompts**: Lines ~7000, ~7145, ~13045
 - **Loom/Crafting Prompts**: Lines ~13058, ~13080
 - **Shop Prompts**: Lines ~4386, ~4500, ~6427
 - **Music Lazy-load**: Lines ~1055-1070 (initMusicTracksForScene)
-
-### Notes for Next Session:
-- All features from FUTURE_PLANS checklist are now COMPLETE! ✅
-- Remaining work is QA polish, bug sweep, and final testing
-- Consider adding more Festival/Story content if time permits
-
-### Known Bugs to Fix:
-- None currently.
-
-### Suggested Next Steps:
-1. **QA Sweep** - full playthrough testing all features
-2. **Balance tuning** - prices, regrow times, difficulty
-3. **Final polish** - animations, sounds, visual tweaks
-4. **Optional content** - more quests, recipes, or mini-game variations
 
 ---
 
