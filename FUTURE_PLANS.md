@@ -1,9 +1,9 @@
 # Yarnvale Future Plans (Delivery: Dec 25, 2025)
 
 ---
-## 📋 CONTINUATION NOTES (Last Updated: V56)
+## 📋 CONTINUATION NOTES (Last Updated: V57)
 
-### Current Version: V56 (UI Polish)
+### Current Version: V57 (Perf Optimizations)
 ### Save Version: 8
 ### Service Worker Cache: yarnvale-v20
 
@@ -13,19 +13,16 @@
 - ✅ V55: Lazy-load music tracks (only load when scene entered)
 - ✅ V56: UI Consistency Audit (standardized panel styles with UI constants)
 - ✅ V56: Cached sky gradient (performance - avoid recreating every frame)
+- ✅ V57: Cached canvas dimensions (canvasW, canvasH, canvasCenterX, canvasCenterY)
+- ✅ V57: Updated render hot path to use cached values
 - ✅ Cache bump: yarnvale-v20
 
-### UI Constants System (V56):
-- Created UI object with centralized style constants
-- panelBg, dimBg, headerBg for backgrounds
-- borderColor, borderWidth, borderRadius for borders
-- textPrimary, textSecondary, textGold, textSuccess, textError for colors
-- Shop-specific themes: dyeShop, tailorShop, farmShop
-
-### Panels Standardized:
-- Dialogue UI, Gift Menu, Task Board Panel
-- Inventory Panel, Crafting Menu
-- All three shop UIs (Dye, Tailor, Farm)
+### Performance Optimizations (V57):
+- Cached canvas.width/height as canvasW/canvasH constants
+- Cached canvas center coordinates as canvasCenterX/canvasCenterY
+- Sky gradient created once at startup, reused every frame
+- Render function and HUD now use cached values
+- getMapOffsets() uses cached dimensions
 
 ### Touch Prompts Updated:
 - Intro screen shows touch-specific instructions on mobile
