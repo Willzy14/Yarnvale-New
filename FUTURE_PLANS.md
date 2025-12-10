@@ -1,9 +1,9 @@
 # Yarnvale Future Plans (Delivery: Dec 25, 2025)
 
 ---
-## 📋 CONTINUATION NOTES (Last Updated: V57)
+## 📋 CONTINUATION NOTES (Last Updated: V58)
 
-### Current Version: V57 (Perf Optimizations)
+### Current Version: V58 (TAU Optimization)
 ### Save Version: 8
 ### Service Worker Cache: yarnvale-v20
 
@@ -15,9 +15,11 @@
 - ✅ V56: Cached sky gradient (performance - avoid recreating every frame)
 - ✅ V57: Cached canvas dimensions (canvasW, canvasH, canvasCenterX, canvasCenterY)
 - ✅ V57: Updated render hot path to use cached values
+- ✅ V58: Added TAU constant (Math.PI * 2), replaced 100+ occurrences
 - ✅ Cache bump: yarnvale-v20
 
-### Performance Optimizations (V57):
+### Performance Optimizations (V58):
+- TAU constant for full circles (avoids Math.PI * 2 multiplication)
 - Cached canvas.width/height as canvasW/canvasH constants
 - Cached canvas center coordinates as canvasCenterX/canvasCenterY
 - Sky gradient created once at startup, reused every frame
