@@ -1,9 +1,9 @@
 # Yarnvale Future Plans (Delivery: Dec 25, 2025)
 
 ---
-## 📋 CONTINUATION NOTES (Last Updated: V58)
+## 📋 CONTINUATION NOTES (Last Updated: V59)
 
-### Current Version: V58 (TAU Optimization)
+### Current Version: V59 (Final Optimizations)
 ### Save Version: 8
 ### Service Worker Cache: yarnvale-v20
 
@@ -16,23 +16,18 @@
 - ✅ V57: Cached canvas dimensions (canvasW, canvasH, canvasCenterX, canvasCenterY)
 - ✅ V57: Updated render hot path to use cached values
 - ✅ V58: Added TAU constant (Math.PI * 2), replaced 100+ occurrences
+- ✅ V59: Added HALF_TILE constant (TILE_SIZE / 2)
+- ✅ V59: Added frameTime caching (single Date.now() per frame)
+- ✅ V59: Replaced 10+ render-time Date.now() calls with frameTime
 - ✅ Cache bump: yarnvale-v20
 
-### Performance Optimizations (V58):
-- TAU constant for full circles (avoids Math.PI * 2 multiplication)
-- Cached canvas.width/height as canvasW/canvasH constants
-- Cached canvas center coordinates as canvasCenterX/canvasCenterY
-- Sky gradient created once at startup, reused every frame
-- Render function and HUD now use cached values
-- getMapOffsets() uses cached dimensions
-
-### Touch Prompts Updated:
-- Intro screen shows touch-specific instructions on mobile
-- Fishing hint: "Tap Interact to Fish" on mobile
-- Loom attune hint: "Tap Interact to Attune" on mobile
-- Crafting hint: "Tap Interact to Craft" on mobile
-- All shop UIs: "Tap item to Buy/Sell | Back to close" on mobile
-- Fish biting message: "Tap quickly!" instead of "Press E"
+### Performance Optimizations Summary (V59):
+- **TAU constant** - Full circle radians (6.283...), used 100+ times
+- **HALF_TILE constant** - Pre-computed TILE_SIZE/2, used 11+ times
+- **frameTime caching** - Single Date.now() call per frame, reused everywhere
+- **Sky gradient cached** - Created once at startup, not every frame
+- **Canvas dimensions cached** - canvasW, canvasH, canvasCenterX, canvasCenterY
+- **Render hot path optimized** - All HUD/hints use cached values
 - Task descriptions: Generic "interact" instead of "press E"
 
 ### Performance Improvements:
