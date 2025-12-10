@@ -3956,7 +3956,6 @@ function isValidAnimalTile(animal, tx, ty) {
 
 function updateAnimalWandering(animal) {
   if (animal.isCarried) return;
-  if (animal.isCarried) return;
   // Only update if on same map as player (optimization) or nearby
   // For now, always update animals on overworld
   
@@ -6048,8 +6047,8 @@ function removeBuildItemAtCursor() {
 function isAnimalAt(x, y) {
   if (!sheep.isCarried && sheep.map === currentMap && sheep.x === x && sheep.y === y) return true;
   if (!sheep2.isCarried && sheep2.map === currentMap && sheep2.x === x && sheep2.y === y) return true;
-  if (goat.map === currentMap && goat.x === x && goat.y === y) return true;
-  if (peacock.map === currentMap && peacock.x === x && peacock.y === y) return true;
+  if (!goat.isCarried && goat.map === currentMap && goat.x === x && goat.y === y) return true;
+  if (!peacock.isCarried && peacock.map === currentMap && peacock.x === x && peacock.y === y) return true;
   
   // Check purchased animals
   for (const animal of purchasedAnimals) {
@@ -7698,24 +7697,28 @@ function saveGame() {
     sheep: {
       x: sheep.x,
       y: sheep.y,
+      map: sheep.map,
       hasWool: sheep.hasWool,
       woolTimer: sheep.woolTimer
     },
     sheep2: {
       x: sheep2.x,
       y: sheep2.y,
+      map: sheep2.map,
       hasWool: sheep2.hasWool,
       woolTimer: sheep2.woolTimer
     },
     goat: {
       x: goat.x,
       y: goat.y,
+      map: goat.map,
       hasFur: goat.hasFur,
       furTimer: goat.furTimer
     },
     peacock: {
       x: peacock.x,
       y: peacock.y,
+      map: peacock.map,
       hasFeathers: peacock.hasFeathers,
       featherTimer: peacock.featherTimer
     },
@@ -7794,6 +7797,7 @@ function loadGame() {
     if (saveData.version >= 5 && saveData.sheep2) {
       sheep2.x = saveData.sheep2.x ?? sheep2.homeX;
       sheep2.y = saveData.sheep2.y ?? sheep2.homeY;
+      sheep2.map = saveData.sheep2.map ?? 'overworld';
       sheep2.px = sheep2.x * TILE_SIZE;
       sheep2.py = sheep2.y * TILE_SIZE;
       sheep2.targetX = sheep2.x;
@@ -7807,6 +7811,7 @@ function loadGame() {
     if (saveData.version >= 3) {
       sheep.x = saveData.sheep.x ?? sheep.homeX;
       sheep.y = saveData.sheep.y ?? sheep.homeY;
+      sheep.map = saveData.sheep.map ?? 'overworld';
       sheep.px = sheep.x * TILE_SIZE;
       sheep.py = sheep.y * TILE_SIZE;
       sheep.targetX = sheep.x;
@@ -7815,6 +7820,7 @@ function loadGame() {
       
       goat.x = saveData.goat.x ?? goat.homeX;
       goat.y = saveData.goat.y ?? goat.homeY;
+      goat.map = saveData.goat.map ?? 'overworld';
       goat.px = goat.x * TILE_SIZE;
       goat.py = goat.y * TILE_SIZE;
       goat.targetX = goat.x;
@@ -7826,6 +7832,7 @@ function loadGame() {
     if (saveData.version >= 4 && saveData.peacock) {
       peacock.x = saveData.peacock.x ?? peacock.homeX;
       peacock.y = saveData.peacock.y ?? peacock.homeY;
+      peacock.map = saveData.peacock.map ?? 'overworld';
       peacock.px = peacock.x * TILE_SIZE;
       peacock.py = peacock.y * TILE_SIZE;
       peacock.targetX = peacock.x;
@@ -9613,11 +9620,11 @@ function isReservedTile(x, y, mapName) {
       // Check for sheep2 collision (skip if carried)
       if (!sheep2.isCarried && currentMap === sheep2.map && tx === sheep2.x && ty === sheep2.y) return true;
       
-      // Check for goat collision
-      if (currentMap === goat.map && tx === goat.x && ty === goat.y) return true;
+      // Check for goat collision (skip if carried)
+      if (!goat.isCarried && currentMap === goat.map && tx === goat.x && ty === goat.y) return true;
       
-      // Check for peacock collision
-      if (currentMap === peacock.map && tx === peacock.x && ty === peacock.y) return true;
+      // Check for peacock collision (skip if carried)
+      if (!peacock.isCarried && currentMap === peacock.map && tx === peacock.x && ty === peacock.y) return true;
       
       // Check for villager collisions
       for (const npc of villagers) {
@@ -12093,6 +12100,7 @@ function drawCarriedAnimalOverlay() {
 
 function drawGoat() {
   if (currentMap !== goat.map) return;
+  if (goat.isCarried) return;
 
   // Use pixel position for smooth movement
   const px = Math.round(goat.px);
@@ -12185,6 +12193,7 @@ function drawSingleSheep(s) {
 
 function drawPeacock() {
   if (currentMap !== peacock.map) return;
+  if (peacock.isCarried) return;
 
   const px = Math.round(peacock.px);
   const py = Math.round(peacock.py);
