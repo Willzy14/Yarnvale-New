@@ -45,8 +45,11 @@
 - All inventory tabs have compact layout to fit mobile screens
 
 ### Known Bugs to Fix:
-- ⚠️ **Barnaby's Farm Shop** - Cannot purchase items; pressing interact/E just resets to top of list instead of buying
-- ✅ Crafting mini-game removed - crafting now works directly
+- None currently.
+
+### Bug Fixes (Recent):
+- ✅ Barnaby's Farm Shop: Touch Interact and keyboard E/Space now purchase the selected item (added missing touch handler)
+- ✅ Crafting mini-game removed – crafting works directly
 
 ### Suggested Next Features (Priority Order):
 1. **Hermit's Loom Whisper Arc** - IN PROGRESS (Mosswort hints + legend seeded)

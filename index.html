@@ -1558,6 +1558,10 @@ bindPointerButton(touchActionButton, () => {
     sellToTailor();
     return;
   }
+  if (farmShopOpen) {
+    buyFromFarmShop();
+    return;
+  }
   if (dialogueOpen) {
     advanceDialogue();
     return;
