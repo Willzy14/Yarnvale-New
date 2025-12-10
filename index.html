@@ -12042,8 +12042,29 @@ function drawCarriedAnimalOverlay() {
   const py = Math.round(player.py);
 
   const ref = carriedAnimal.ref;
-  const baseColor = ref.type === 'llama' ? '#e8d8c0' : ref.type === 'rabbit' ? '#d0c0b0' : '#f0efe8';
-  const accentColor = ref.type === 'llama' ? '#a89880' : ref.type === 'rabbit' ? '#b0a090' : '#d8d0c0';
+  const animalType = carriedAnimal.type;
+  
+  // Determine colors based on animal type
+  let baseColor, accentColor, eyeColor = '#3a2a24';
+  
+  if (animalType === 'goat') {
+    baseColor = '#e8e0d8';
+    accentColor = '#c0b8b0';
+  } else if (animalType === 'peacock') {
+    baseColor = '#2a6e4a';
+    accentColor = '#1a4e3a';
+    eyeColor = '#1a1a1a';
+  } else if (animalType === 'purchased' && ref.type === 'llama') {
+    baseColor = '#e8d8c0';
+    accentColor = '#a89880';
+  } else if (animalType === 'purchased' && ref.type === 'rabbit') {
+    baseColor = '#d0c0b0';
+    accentColor = '#b0a090';
+  } else {
+    // Default sheep colors
+    baseColor = '#f0efe8';
+    accentColor = '#d8d0c0';
+  }
 
   // Small bundled critter held slightly above player
   ctx.fillStyle = baseColor;
@@ -12057,9 +12078,17 @@ function drawCarriedAnimalOverlay() {
   ctx.fill();
 
   // Tiny eyes for charm
-  ctx.fillStyle = '#3a2a24';
+  ctx.fillStyle = eyeColor;
   ctx.fillRect(px + 15, py + 1, 1, 2);
   ctx.fillRect(px + 18, py + 1, 1, 2);
+  
+  // Peacock gets a tiny crest
+  if (animalType === 'peacock') {
+    ctx.fillStyle = '#4a9e6a';
+    ctx.fillRect(px + 16, py - 2, 1, 3);
+    ctx.fillRect(px + 15, py - 1, 1, 2);
+    ctx.fillRect(px + 17, py - 1, 1, 2);
+  }
 }
 
 function drawGoat() {
