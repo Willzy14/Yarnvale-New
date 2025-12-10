@@ -13061,12 +13061,12 @@ function render() {
 
   drawDebugWorldOverlays(offsetX, offsetY);
 
-        // HUD – minimal (Wool + Gold only)
+        // HUD – minimal (Wool, Yarn, Gold)
   ctx.save();
 
   const hudX = 8;
   const hudY = 8;
-  const hudW = 150;
+  const hudW = 195;
   const hudH = 40;
 
   // subtle background
@@ -13090,17 +13090,32 @@ function render() {
   ctx.fill();
 
   ctx.fillStyle = '#f5f7ff';
-  ctx.font = '12px system-ui';
-  ctx.fillText(`Wool: ${inventory.wool}`, hudX + 24, hudY + 29);
+  ctx.font = '11px system-ui';
+  ctx.fillText(`${inventory.wool || 0}`, hudX + 22, hudY + 30);
+
+  // Yarn icon + count (pink yarn ball)
+  ctx.fillStyle = '#f098c8';
+  ctx.beginPath();
+  ctx.arc(hudX + 62, hudY + 26, 4, 0, TAU);
+  ctx.fill();
+  // yarn strand detail
+  ctx.strokeStyle = '#d878a8';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(hudX + 62, hudY + 26, 2, 0, Math.PI);
+  ctx.stroke();
+
+  ctx.fillStyle = '#f5f7ff';
+  ctx.fillText(`${inventory.yarn || 0}`, hudX + 70, hudY + 30);
 
   // Gold icon + count
   ctx.fillStyle = '#f4c945';
   ctx.beginPath();
-  ctx.arc(hudX + 95, hudY + 26, 4, 0, TAU);
+  ctx.arc(hudX + 110, hudY + 26, 4, 0, TAU);
   ctx.fill();
 
   ctx.fillStyle = '#f5f7ff';
-  ctx.fillText(`G: ${inventory.gold}`, hudX + 105, hudY + 29);
+  ctx.fillText(`${inventory.gold || 0}g`, hudX + 118, hudY + 30);
 
   ctx.restore();
 
