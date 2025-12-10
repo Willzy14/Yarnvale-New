@@ -521,6 +521,7 @@
       <div class="touch-actions">
         <button type="button" id="touch-action">Interact</button>
         <button type="button" id="touch-gift">Gift</button>
+        <button type="button" id="touch-pickup">Pickup</button>
         <button type="button" id="touch-back">Back</button>
       </div>
     </div>
@@ -1303,6 +1304,7 @@ const touchControls = document.getElementById('touch-controls');
 const touchDirButtons = document.querySelectorAll('[data-dir]');
 const touchActionButton = document.getElementById('touch-action');
 const touchGiftButton = document.getElementById('touch-gift');
+const touchPickupButton = document.getElementById('touch-pickup');
 const touchInventoryButton = document.getElementById('touch-inventory');
 const touchBackButton = document.getElementById('touch-back');
 const touchOptionsButton = document.getElementById('touch-options');
@@ -1600,6 +1602,11 @@ bindPointerButton(touchGiftButton, () => {
   } else if (giftMenuOpen) {
     giveSelectedGift();
   }
+}, null);
+
+// Pickup button - pick up or drop animals
+bindPointerButton(touchPickupButton, () => {
+  tryPickupOrDropAnimal();
 }, null);
 
 bindPointerButton(touchInventoryButton, () => {
@@ -9769,6 +9776,7 @@ function tryDropCarriedAnimal() {
         ref.homeY = dropY;
       }
       carriedAnimal = null;
+      if (touchPickupButton) touchPickupButton.textContent = 'Pickup';
       showMessage('Animal placed down.');
       return true;
     }
@@ -9787,6 +9795,7 @@ function pickUpAnimal(ref, type) {
   ref.py = player.py;
   ref.targetX = player.x;
   ref.targetY = player.y;
+  if (touchPickupButton) touchPickupButton.textContent = 'Drop';
   showMessage('You pick up the animal. Move to a pen and drop with R.');
 }
 
@@ -9837,6 +9846,7 @@ function finalizeCarriedBeforeSave() {
     ref.targetX = player.x;
     ref.targetY = player.y;
     carriedAnimal = null;
+    if (touchPickupButton) touchPickupButton.textContent = 'Pickup';
   }
 }
 
