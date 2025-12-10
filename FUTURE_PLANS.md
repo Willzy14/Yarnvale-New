@@ -1,21 +1,19 @@
 # Yarnvale Future Plans (Delivery: Dec 25, 2025)
 
 ---
-## 📋 CONTINUATION NOTES (Last Updated: Session ending V41)
+## 📋 CONTINUATION NOTES (Last Updated: V53)
 
-### Current Version: V42 (Mosswort + Beach Shard)
+### Current Version: V53 (Accessibility Options)
 ### Save Version: 8
-### Service Worker Cache: yarnvale-v17
+### Service Worker Cache: yarnvale-v19
 
 ### Completed This Session:
-- ✅ V42: Mosswort first-meeting dialogue, conditional beach unlock, beach shard guidance and collection, cave unlock on shard
-- ✅ V38: Autosave on Map Transitions (toggle in options menu)
-- ✅ V39: Inventory Filters (All/Materials/Crafted/Dyes/Foraged tabs)
-- ✅ V40: Props Pass (benches, lanterns, crates, festival bunting)
-- ✅ Bug Fix: Crystal altar collision (tile 38 now solid)
-- ✅ Bug Fix: Inventory/task board overlap (auto-close one when opening other)
-- ✅ Bug Fix: Service worker cache bumped multiple times for mobile updates
-- ✅ Bug Fix: Map transition freeze (commented out unused ensureBaseMapCanvas call)
+- ✅ V49: Pen Upgrades (capacity + regrow speed), farm shop upgrade item
+- ✅ V50: Treat Buff system (craft treats; feed animals for faster regrow)
+- ✅ V51: Luxury Royal Set recipes (royal scarf/cloak/crown)
+- ✅ V52: Cottage Upgrades (3 tiers; faster crafting)
+- ✅ V53: Accessibility toggles (Large Text, Colorblind mode)
+- ✅ Bug Fix: Service worker cache bumped to yarnvale-v19; manifest icons replaced
 
 ### New Prop Tiles Added:
 - Tile 41: Wooden bench with realistic wood grain
@@ -52,10 +50,10 @@
 - ✅ Crafting mini-game removed – crafting works directly
 
 ### Suggested Next Features (Priority Order):
-1. **Hermit's Loom Whisper Arc** - IN PROGRESS (Mosswort hints + legend seeded)
-2. **Beach Shell Song** - Shell collection mini-arc for lullaby reward
-3. **Snowy Ridge Landmark** - Crystal altar viewing area near mountain top
-4. **Llamas** - Fine wool, luxury yarn boost
+1. **Performance/Tech Pass** - sprite/audio audit, lazy-load ambience, pooling, cache bumps tied to asset updates
+2. **Pen Decor Buffs** - optional decor slot that grants passive bonuses (e.g., +yield)
+3. **Controller/Touch Prompt Polish** - clearer on-screen hints, accessible glyphs
+4. **QA Sweep** - bug bash and tuning after recent feature drops
 
 ---
 
@@ -155,34 +153,35 @@ A new vendor NPC on the overworld (near the paddock area) who sells:
 - [x] Props pass: benches, lanterns, crates, festival bunting in Village. ✅ V40
 
 ### Animals
-- [ ] Llamas: slow shear, fine wool (luxury yarn boost), penned.
+- [x] Llamas: slow shear, fine wool (luxury yarn boost), penned. ✅ V48/V49
 - [x] Peacocks: decor feathers; regrow.
-- [ ] Optional rabbits: fast soft fur loop.
-- [ ] Treat buff (no starvation): next yield bonus.
-- [ ] Pen upgrades/capacity tiers; move animals between pens.
+- [x] Rabbits: fast soft fur loop. ✅ V48
+- [x] Treat buff (no starvation): next yield bonus. ✅ V50
+- [x] Pen upgrades/capacity tiers. ✅ V49
 
 ### Crafting & Economy
 - [x] Dyes (amber/teal); shell crafts; dyed items; luxury socks.
 - [x] New recipes: ~20 recipes including capes, ponchos, plushies, banners, lanterns, shell jewelry, friendship-locked recipes. ✅ V28
-- [ ] Luxury "royal" set (fine wool + rare dye).
+- [x] Luxury "royal" set (fine wool + rare dye). ✅ V51
 - [x] Daily/weekly orders board with timers and rewards. ✅ V27
 
 ### Quests & Story
 - [x] Festival of Threads 3-step arc with evening payoff + voucher/discount. ✅ V35
 - [x] Hermit's loom whisper arc; cave riddle; shard hinting. ✅ V44
-- [ ] Beach Shell Song mini-arc (shell collection → lullaby reward).
+- [x] Beach Shell Song mini-arc (shell collection → lullaby reward). ✅ V47
 - [x] Village Heart mini-quests (Granny/Felix/Theo/Iris) granting perks/recipes. ✅ V36
 - [x] Friendship Perks system: thresholds unlock shop discounts and recipes. ✅ V27
 
 ### Building & Progression
-- [ ] Pen construction/upgrades with decor slot buffs.
-- [ ] Cottage upgrade hooks: loom corner buff, storage chest, display rack passive.
+- [x] Pen construction/upgrades (capacity, regrow speed). ✅ V49
+- [ ] Pen decor slot buffs (passive bonuses) — NOT STARTED
+- [x] Cottage upgrade hooks (3 tiers; faster crafting). ✅ V52
 - [x] Barnaby's Farm Shop: fencing, gates, animal purchases. ✅ V25
 
 ### Systems / UX
 - [x] Task board UI.
 - [x] Inventory filters (Materials/Crafted/Dyes/Foraged tabs). ✅ V39
-- [ ] Large-text toggle; colorblind-safe accent palette.
+- [x] Large-text toggle; colorblind-safe accent palette. ✅ V53
 - [x] Autosave on map transitions (with toggle). ✅ V38
 - [x] Fast travel menu with signpost discovery. ✅ V26
 - [ ] Controller/touch prompt clarity.
@@ -195,7 +194,7 @@ A new vendor NPC on the overworld (near the paddock area) who sells:
 ### Performance / Tech
 - [ ] Sprite/audio audit; lazy-load ambience.
 - [ ] Object pooling/offscreen cleanup for animals/NPCs.
-- [ ] Cache bump when assets change (sw.js version).
+- [ ] Cache bump when assets change (sw.js version). (Current: yarnvale-v19)
 
 ---
 ## Success Criteria (Dec 25 build)
