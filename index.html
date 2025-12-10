@@ -5597,13 +5597,13 @@ function drawOrdersBoardUI() {
   
   // Semi-transparent background
   ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   
   // Main panel
   const panelWidth = 280;
   const panelHeight = 220;
-  const panelX = (CANVAS_WIDTH - panelWidth) / 2;
-  const panelY = (CANVAS_HEIGHT - panelHeight) / 2;
+  const panelX = (canvas.width - panelWidth) / 2;
+  const panelY = (canvas.height - panelHeight) / 2;
   
   // Panel background (cork board style)
   ctx.fillStyle = '#8b6914';
@@ -5620,7 +5620,7 @@ function drawOrdersBoardUI() {
   ctx.fillStyle = '#fff8dc';
   ctx.font = 'bold 14px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('📋 Orders Board', CANVAS_WIDTH / 2, panelY + 28);
+  ctx.fillText('📋 Orders Board', canvas.width / 2, panelY + 28);
   
   // Tab buttons
   const tabY = panelY + 40;
@@ -5643,9 +5643,9 @@ function drawOrdersBoardUI() {
   ctx.font = '9px monospace';
   ctx.fillStyle = '#d2b48c';
   if (ordersBoardTab === 'daily') {
-    ctx.fillText(`Refresh: ${getTimeUntilRefresh(lastDailyRefresh, DAY_MS)}`, CANVAS_WIDTH / 2, tabY + 35);
+    ctx.fillText(`Refresh: ${getTimeUntilRefresh(lastDailyRefresh, DAY_MS)}`, canvas.width / 2, tabY + 35);
   } else {
-    ctx.fillText(`Refresh: ${getTimeUntilRefresh(lastWeeklyRefresh, WEEK_MS)}`, CANVAS_WIDTH / 2, tabY + 35);
+    ctx.fillText(`Refresh: ${getTimeUntilRefresh(lastWeeklyRefresh, WEEK_MS)}`, canvas.width / 2, tabY + 35);
   }
   
   // Draw orders
@@ -5666,7 +5666,7 @@ function drawOrdersBoardUI() {
   ctx.fillStyle = '#d2b48c';
   ctx.font = '9px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('[A/D] Tab  [W/S] Select  [E] Complete  [Esc] Close', CANVAS_WIDTH / 2, panelY + panelHeight - 12);
+  ctx.fillText('[A/D] Tab  [W/S] Select  [E] Complete  [Esc] Close', canvas.width / 2, panelY + panelHeight - 12);
 }
 
 // Draw a single order card
