@@ -556,42 +556,6 @@
 const ASSET_BASE = 'Yarnvale Assets/Audio/';
 const DEFAULT_MASTER_VOLUME = 0.35;
 
-// Pre-cached math constants (micro-optimization)
-const TAU = Math.PI * 2;  // Full circle in radians
-const TILE_SIZE = 32;
-const HALF_TILE = TILE_SIZE / 2;  // Pre-cached for performance
-
-// =========================
-// UI STYLE CONSTANTS (unified across all panels)
-// =========================
-const UI = {
-  // Panel backgrounds
-  panelBg: 'rgba(6, 12, 26, 0.95)',        // Main panel background
-  dimBg: 'rgba(0, 0, 0, 0.55)',            // Screen dimmer
-  headerBg: 'rgba(18, 32, 64, 0.95)',      // Panel header bar
-  
-  // Borders
-  borderColor: 'rgba(255, 255, 255, 0.22)',
-  borderWidth: 2,
-  borderRadius: 8,
-  
-  // Text colors
-  textPrimary: '#f5f7ff',
-  textSecondary: '#a9b3cd',
-  textGold: '#ffd700',
-  textSuccess: '#80ff80',
-  textError: '#ff9090',
-  
-  // Selection highlight
-  selectHighlight: 'rgba(100, 180, 255, 0.25)',
-  selectBorder: '#64b4ff',
-  
-  // Shop-specific accent colors (keep character identity)
-  dyeShop: { bg: 'rgba(60, 40, 80, 0.98)', border: '#d8a0ff', accent: '#d8a0ff' },
-  tailorShop: { bg: 'rgba(92, 64, 51, 0.95)', border: '#d4a574', accent: '#d4a574' },
-  farmShop: { bg: 'rgba(90, 65, 40, 0.98)', border: '#c9a066', accent: '#c9a066' }
-};
-
 // =========================
 // ZONE DISPLAY NAMES
 // =========================
@@ -632,12 +596,6 @@ const debugState = {
 
 const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
 let GRASS_ZOOM = isCoarsePointer ? 0.45 : 0.30; // ~5% tighter on desktop
-
-// Touch-friendly prompt helper - returns appropriate text based on device
-function getPrompt(keyboard, touch) {
-  const isMobile = isCoarsePointer || showOverlayMode;
-  return isMobile ? touch : `${keyboard} / ${touch}`;
-}
 
 const SPRITE_CONFIG = {
   tileSize: 32,
@@ -750,16 +708,6 @@ const artAssets = {
   goat: createImageAsset('Yarnvale Assets/Art/Animals/Goat.png', {
     columns: 3,
     frameHeight: 332
-  }),
-  goatLeft: createImageAsset('Yarnvale Assets/Animals/Goat Left.png', {
-    frameWidth: 128,
-    frameHeight: 128,
-    columns: 1
-  }),
-  goatRight: createImageAsset('Yarnvale Assets/Animals/Goat Right.png', {
-    frameWidth: 128,
-    frameHeight: 128,
-    columns: 1
   })
 };
 
@@ -862,8 +810,8 @@ function helperKey(node) {
 function drawInteractableGlows(nodes) {
   nodes.forEach((node, index) => {
     const glowColors = node.glow || { inner: 'rgba(255,255,255,0.45)', outer: 'rgba(255,255,255,0)' };
-    const centerX = node.x * TILE_SIZE + HALF_TILE;
-    const centerY = node.y * TILE_SIZE + HALF_TILE;
+    const centerX = node.x * TILE_SIZE + TILE_SIZE / 2;
+    const centerY = node.y * TILE_SIZE + TILE_SIZE / 2;
     const pulse = 0.03 + 0.03 * Math.sin((fireAnimTick + index * 7) * 0.25);
     const radius = TILE_SIZE * (0.45 + pulse);
     const gradient = ctx.createRadialGradient(centerX, centerY, 3, centerX, centerY, radius);
@@ -871,7 +819,7 @@ function drawInteractableGlows(nodes) {
     gradient.addColorStop(1, glowColors.outer);
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, TAU);
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
     ctx.fill();
   });
 }
@@ -921,7 +869,7 @@ function drawInteractableLabels(nodes) {
     if (!state || state.visibleUntil < now) return;
 
     const text = node.label;
-    const baseX = node.x * TILE_SIZE + HALF_TILE;
+    const baseX = node.x * TILE_SIZE + TILE_SIZE / 2;
     const baseY = node.y * TILE_SIZE - 8;
     ctx.font = '11px system-ui';
     const textWidth = ctx.measureText(text).width;
@@ -1087,7 +1035,7 @@ const MUSIC_TRACK_FILES_COTTAGE = [
 
 function createMusicTrack(basePath, filename) {
   const audio = new Audio(basePath + filename);
-  audio.preload = 'none'; // Lazy-load: don't preload until needed
+  audio.preload = 'auto';
   audio.loop = false;
   audio.volume = 0;
   audio.addEventListener('error', () => {
@@ -1097,22 +1045,10 @@ function createMusicTrack(basePath, filename) {
   return audio;
 }
 
-// Lazy-loaded music track storage (only create when scene is first entered)
 const musicTracksByScene = {
-  overworld: null,
-  cottage: null
+  overworld: MUSIC_TRACK_FILES_OVERWORLD.map((file) => createMusicTrack(MUSIC_BASE, file)),
+  cottage: MUSIC_TRACK_FILES_COTTAGE.map((file) => createMusicTrack(MUSIC_INTERIOR_BASE, file))
 };
-
-// Initialize music tracks for a scene (lazy-load)
-function initMusicTracksForScene(scene) {
-  if (musicTracksByScene[scene]) return; // Already loaded
-  
-  if (scene === 'overworld') {
-    musicTracksByScene.overworld = MUSIC_TRACK_FILES_OVERWORLD.map((file) => createMusicTrack(MUSIC_BASE, file));
-  } else if (scene === 'cottage') {
-    musicTracksByScene.cottage = MUSIC_TRACK_FILES_COTTAGE.map((file) => createMusicTrack(MUSIC_INTERIOR_BASE, file));
-  }
-}
 
 // Track per-scene resume info so music continues where it left off when re-entering
 const musicResumeState = {
@@ -1140,9 +1076,6 @@ function shuffle(array) {
 }
 
 function allMusicTracks() {
-  // Ensure both scenes are initialized for volume/mute operations
-  initMusicTracksForScene('overworld');
-  initMusicTracksForScene('cottage');
   return [
     ...(musicTracksByScene.overworld || []),
     ...(musicTracksByScene.cottage || [])
@@ -1150,8 +1083,6 @@ function allMusicTracks() {
 }
 
 function getActiveTracks() {
-  // Lazy-load tracks for current scene
-  initMusicTracksForScene(musicState.scene);
   return musicTracksByScene[musicState.scene] || [];
 }
 
@@ -1980,6 +1911,7 @@ function handleEnvironmentAudio(mapName) {
 // CONFIG & MAPS
 // =========================
 // #region CONFIG & MAPS
+    const TILE_SIZE = 32;
   // Build-mode placed fences storage (initialized empty to avoid save-time crashes)
   let placedFences = [];
 
@@ -2701,12 +2633,7 @@ function drawWelcomeScreen() {
   // Instructions
   ctx.fillStyle = '#a0a0a0';
   ctx.font = '12px system-ui';
-  const isMobile = isCoarsePointer || showOverlayMode;
-  const instructions = isMobile ? [
-    'Use D-pad or swipe to move',
-    'Tap Interact button near objects',
-    'Craft items at your spinning wheel'
-  ] : [
+  const instructions = [
     'Use WASD or Arrow Keys to move',
     'Press E to interact with objects',
     'Craft items at your spinning wheel'
@@ -2798,7 +2725,7 @@ let taskBoardMinimized = false;
 // Task definitions - ordered by progression
 const gameTasks = [
   // Tutorial tasks
-  { id: 'shearSheep', name: 'Shear a sheep', description: 'Find the sheep and interact to shear', category: 'tutorial', check: () => inventory.wool > 0 || storyProgress.itemsCrafted > 0 },
+  { id: 'shearSheep', name: 'Shear a sheep', description: 'Find the sheep and press E to shear', category: 'tutorial', check: () => inventory.wool > 0 || storyProgress.itemsCrafted > 0 },
   { id: 'craftYarn', name: 'Spin wool into yarn', description: 'Use the spinning wheel in the cottage', category: 'tutorial', check: () => inventory.yarn > 0 || inventory.scarf > 0 || inventory.socks > 0 },
   { id: 'craftItem', name: 'Craft your first item', description: 'Make socks, scarf, or mittens', category: 'tutorial', check: () => storyProgress.itemsCrafted >= 1 },
   { id: 'sellItem', name: 'Sell at the market', description: 'Find the market stall and sell crafted goods', category: 'tutorial', check: () => inventory.gold > 0 },
@@ -2966,7 +2893,7 @@ function drawTaskBoardUI() {
     if (activeTasks.length > 0) {
       ctx.fillStyle = '#ff6b6b';
       ctx.beginPath();
-      ctx.arc(btnX + btnW - 4, btnY + 6, 5, 0, TAU);
+      ctx.arc(btnX + btnW - 4, btnY + 6, 5, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#fff';
       ctx.font = '8px system-ui';
@@ -2987,13 +2914,13 @@ function drawTaskBoardUI() {
   const panelH = isMobile ? Math.min(44 + tasksToShow.length * 28, 140) : Math.min(50 + tasks.length * 36, 260);
   
   // Panel background
-  ctx.fillStyle = UI.panelBg;
+  ctx.fillStyle = 'rgba(6, 12, 26, 0.92)';
   ctx.beginPath();
   ctx.roundRect(panelX, panelY, panelW, panelH, 10);
   ctx.fill();
   
   // Border
-  ctx.strokeStyle = UI.panelBorder;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.roundRect(panelX, panelY, panelW, panelH, 10);
@@ -3523,7 +3450,7 @@ function drawForageables() {
     // Draw glow/highlight
     ctx.fillStyle = `rgba(255, 255, 200, ${0.2 + Math.sin(animationTime * 3) * 0.1})`;
     ctx.beginPath();
-    ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 12, 0, TAU);
+    ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 12, 0, Math.PI * 2);
     ctx.fill();
     
     // Draw icon
@@ -4396,26 +4323,26 @@ function drawDyeShopUI() {
   const panelY = (canvas.height - panelH) / 2;
   
   // Dim background
-  ctx.fillStyle = UI.dimBg;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Panel background - character-specific color
-  ctx.fillStyle = UI.dyeShop.bg;
+  // Panel background - darker purple for better contrast
+  ctx.fillStyle = 'rgba(60, 40, 80, 0.98)';
   ctx.fillRect(panelX, panelY, panelW, panelH);
   
   // Border
-  ctx.strokeStyle = UI.dyeShop.border;
-  ctx.lineWidth = UI.borderWidth;
+  ctx.strokeStyle = '#d8a0ff';
+  ctx.lineWidth = 2;
   ctx.strokeRect(panelX + 1, panelY + 1, panelW - 2, panelH - 2);
   
   // Title
-  ctx.fillStyle = UI.textPrimary;
+  ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 14px system-ui';
   ctx.textAlign = 'center';
   ctx.fillText("🎨 Iris's Dye Shop 🎨", panelX + panelW/2, panelY + 20);
   
   // Subtitle
-  ctx.fillStyle = UI.dyeShop.accent;
+  ctx.fillStyle = '#d8a0ff';
   ctx.font = '10px system-ui';
   ctx.fillText('Trade foraged items for dyes!', panelX + panelW/2, panelY + 36);
   ctx.textAlign = 'left';
@@ -4446,11 +4373,10 @@ function drawDyeShopUI() {
   });
   
   // Instructions
-  const isMobile = isCoarsePointer || showOverlayMode;
   ctx.fillStyle = '#d8a0ff';
   ctx.font = '10px system-ui';
   ctx.textAlign = 'center';
-  ctx.fillText(isMobile ? 'Tap item to Trade | Back to close' : '↑↓ Select | Enter/Tap to Trade | ESC to close', panelX + panelW/2, panelY + panelH - 12);
+  ctx.fillText('↑↓ Select | Enter/Tap to Trade | ESC to close', panelX + panelW/2, panelY + panelH - 12);
   ctx.textAlign = 'left';
 }
 
@@ -4502,31 +4428,31 @@ function drawTailorShopUI() {
   const panelY = (canvas.height - panelH) / 2;
   
   // Dim background
-  ctx.fillStyle = UI.dimBg;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
   // Panel background
-  ctx.fillStyle = UI.tailorShop.bg;
+  ctx.fillStyle = 'rgba(92, 64, 51, 0.95)';
   ctx.fillRect(panelX, panelY, panelW, panelH);
   
   // Border
-  ctx.strokeStyle = UI.tailorShop.border;
-  ctx.lineWidth = UI.borderWidth;
+  ctx.strokeStyle = '#d4a574';
+  ctx.lineWidth = 2;
   ctx.strokeRect(panelX + 1, panelY + 1, panelW - 2, panelH - 2);
   
   // Title
-  ctx.fillStyle = UI.textPrimary;
+  ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 14px system-ui';
   ctx.textAlign = 'center';
   ctx.fillText("✂️ Master Theo's Tailoring ✂️", panelX + panelW/2, panelY + 20);
   
   // Gold display
-  ctx.fillStyle = UI.textGold;
+  ctx.fillStyle = '#ffd700';
   ctx.font = '12px system-ui';
   ctx.fillText(`Your Gold: ${inventory.gold || 0}g`, panelX + panelW/2, panelY + 38);
   
   // Subtitle
-  ctx.fillStyle = UI.tailorShop.accent;
+  ctx.fillStyle = '#d4a574';
   ctx.font = '10px system-ui';
   ctx.fillText('Sell your crafted goods!', panelX + panelW/2, panelY + 52);
   ctx.textAlign = 'left';
@@ -4560,11 +4486,10 @@ function drawTailorShopUI() {
   });
   
   // Instructions
-  const isMobile = isCoarsePointer || showOverlayMode;
   ctx.fillStyle = '#d4a574';
   ctx.font = '10px system-ui';
   ctx.textAlign = 'center';
-  ctx.fillText(isMobile ? 'Tap item to Sell | Back to close' : '↑↓ Select | Enter/Tap to Sell | ESC to close', panelX + panelW/2, panelY + panelH - 12);
+  ctx.fillText('↑↓ Select | Enter/Tap to Sell | ESC to close', panelX + panelW/2, panelY + panelH - 12);
   ctx.textAlign = 'left';
 }
 
@@ -5074,9 +4999,7 @@ function startLoomAttune() {
   randomizeLoomTarget();
   
   if (touchBackButton) touchBackButton.classList.add('visible');
-  const isMobile = isCoarsePointer || showOverlayMode;
-  const attuneMsg = isMobile ? "Attune the Crystal Loom! Tap Interact when the light is in the glow zone!" : "Attune the Crystal Loom! Press E when the light is in the glow zone!";
-  showMessage(attuneMsg);
+  showMessage("Attune the Crystal Loom! Press E when the light is in the glow zone!");
 }
 
 // Randomize target zone (gets smaller/faster with each attempt)
@@ -5600,7 +5523,7 @@ function drawKnittingSprintUI() {
   const hitW = ((hitZoneEnd - hitZoneStart) / 100) * barW;
   
   // Hit zone glow
-  ctx.fillStyle = `rgba(255, 200, 100, ${0.4 + 0.2 * Math.sin(frameTime / 200)})`;
+  ctx.fillStyle = `rgba(255, 200, 100, ${0.4 + 0.2 * Math.sin(Date.now() / 200)})`;
   ctx.fillRect(hitX - 5, barY - 5, hitW + 10, barH + 10);
   
   // Hit zone
@@ -5626,7 +5549,7 @@ function drawKnittingSprintUI() {
       // Yarn ball
       ctx.fillStyle = '#ff8090';
       ctx.beginPath();
-      ctx.arc(beatX, beatY, 12, 0, TAU);
+      ctx.arc(beatX, beatY, 12, 0, Math.PI * 2);
       ctx.fill();
       
       // Yarn texture
@@ -5639,7 +5562,7 @@ function drawKnittingSprintUI() {
       // Highlight
       ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
       ctx.beginPath();
-      ctx.arc(beatX - 3, beatY - 3, 4, 0, TAU);
+      ctx.arc(beatX - 3, beatY - 3, 4, 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -5947,7 +5870,7 @@ function drawOrderCard(order, x, y, width, selected) {
   // Pin decoration
   ctx.fillStyle = '#dc143c';
   ctx.beginPath();
-  ctx.arc(x + width - 12, y + 8, 5, 0, TAU);
+  ctx.arc(x + width - 12, y + 8, 5, 0, Math.PI * 2);
   ctx.fill();
   
   // Item icon and name
@@ -6380,35 +6303,35 @@ function drawFarmShopUI() {
   const panelY = (canvas.height - panelH) / 2;
   
   // Dim background
-  ctx.fillStyle = UI.dimBg;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Panel background - character-specific color
-  ctx.fillStyle = UI.farmShop.bg;
+  // Panel background - rustic brown
+  ctx.fillStyle = 'rgba(90, 65, 40, 0.98)';
   ctx.beginPath();
   ctx.roundRect(panelX, panelY, panelW, panelH, 8);
   ctx.fill();
   
   // Border
   ctx.strokeStyle = '#c9a066';
-  ctx.lineWidth = UI.borderWidth + 1;
+  ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.roundRect(panelX, panelY, panelW, panelH, UI.borderRadius);
+  ctx.roundRect(panelX, panelY, panelW, panelH, 8);
   ctx.stroke();
   
   // Title
-  ctx.fillStyle = UI.textPrimary;
+  ctx.fillStyle = '#ffeedd';
   ctx.font = 'bold 16px system-ui';
   ctx.textAlign = 'center';
   ctx.fillText("🏠 Barnaby's Farm Shop 🐑", panelX + panelW/2, panelY + 24);
   
   // Gold display
-  ctx.fillStyle = UI.textGold;
+  ctx.fillStyle = '#ffd700';
   ctx.font = '12px system-ui';
   ctx.fillText(`Your Gold: ${inventory.gold || 0}g`, panelX + panelW/2, panelY + 42);
   
   // Section headers
-  ctx.fillStyle = UI.farmShop.accent;
+  ctx.fillStyle = '#c9a066';
   ctx.font = 'bold 10px system-ui';
   ctx.textAlign = 'left';
   ctx.fillText('— BUILDING SUPPLIES —', panelX + 16, panelY + 60);
@@ -6422,7 +6345,7 @@ function drawFarmShopUI() {
     // Add category header for animals
     if (item.category === 'animal' && lastCategory !== 'animal') {
       itemY += 8;
-      ctx.fillStyle = UI.farmShop.accent;
+      ctx.fillStyle = '#c9a066';
       ctx.font = 'bold 10px system-ui';
       ctx.fillText('— ANIMALS —', panelX + 16, itemY);
       itemY += 16;
@@ -6486,11 +6409,10 @@ function drawFarmShopUI() {
   }
   
   // Instructions
-  const isMobile = isCoarsePointer || showOverlayMode;
   ctx.fillStyle = '#c9a066';
   ctx.font = '10px system-ui';
   ctx.textAlign = 'center';
-  ctx.fillText(isMobile ? 'Tap item to Buy | Back to close' : '↑↓ Select | E to Buy | ESC to close', panelX + panelW/2, panelY + panelH - 12);
+  ctx.fillText('↑↓ Select | E to Buy | ESC to close', panelX + panelW/2, panelY + panelH - 12);
   ctx.textAlign = 'left';
 }
 
@@ -6568,7 +6490,7 @@ function drawPurchasedAnimals() {
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.beginPath();
-    ctx.ellipse(px + 16, py + 28, 10, 4, 0, 0, TAU);
+    ctx.ellipse(px + 16, py + 28, 10, 4, 0, 0, Math.PI * 2);
     ctx.fill();
     
     // Draw based on animal type
@@ -6576,12 +6498,12 @@ function drawPurchasedAnimals() {
       // Body (fluffy)
       ctx.fillStyle = animal.hasResource ? '#f8f8f0' : '#d0d0c8';
       ctx.beginPath();
-      ctx.ellipse(px + 16, py + 18, 10, 8, 0, 0, TAU);
+      ctx.ellipse(px + 16, py + 18, 10, 8, 0, 0, Math.PI * 2);
       ctx.fill();
       // Head
       ctx.fillStyle = '#e0e0d8';
       ctx.beginPath();
-      ctx.arc(px + 16, py + 10, 5, 0, TAU);
+      ctx.arc(px + 16, py + 10, 5, 0, Math.PI * 2);
       ctx.fill();
       // Legs
       ctx.fillStyle = '#8a7a6a';
@@ -6591,13 +6513,13 @@ function drawPurchasedAnimals() {
       // Body
       ctx.fillStyle = animal.hasResource ? '#e8d8c0' : '#c8b8a0';
       ctx.beginPath();
-      ctx.ellipse(px + 16, py + 18, 9, 7, 0, 0, TAU);
+      ctx.ellipse(px + 16, py + 18, 9, 7, 0, 0, Math.PI * 2);
       ctx.fill();
       // Neck
       ctx.fillRect(px + 13, py + 4, 6, 12);
       // Head
       ctx.beginPath();
-      ctx.ellipse(px + 16, py + 3, 5, 4, 0, 0, TAU);
+      ctx.ellipse(px + 16, py + 3, 5, 4, 0, 0, Math.PI * 2);
       ctx.fill();
       // Legs
       ctx.fillStyle = '#a89880';
@@ -6607,26 +6529,26 @@ function drawPurchasedAnimals() {
       // Body
       ctx.fillStyle = animal.hasResource ? '#d0c0b0' : '#b0a090';
       ctx.beginPath();
-      ctx.ellipse(px + 16, py + 20, 7, 6, 0, 0, TAU);
+      ctx.ellipse(px + 16, py + 20, 7, 6, 0, 0, Math.PI * 2);
       ctx.fill();
       // Head
       ctx.beginPath();
-      ctx.arc(px + 16, py + 12, 5, 0, TAU);
+      ctx.arc(px + 16, py + 12, 5, 0, Math.PI * 2);
       ctx.fill();
       // Ears
       ctx.beginPath();
-      ctx.ellipse(px + 13, py + 5, 2, 5, -0.2, 0, TAU);
-      ctx.ellipse(px + 19, py + 5, 2, 5, 0.2, 0, TAU);
+      ctx.ellipse(px + 13, py + 5, 2, 5, -0.2, 0, Math.PI * 2);
+      ctx.ellipse(px + 19, py + 5, 2, 5, 0.2, 0, Math.PI * 2);
       ctx.fill();
     } else if (animal.type === 'extraGoat') {
       // Body
       ctx.fillStyle = animal.hasResource ? '#c8b8a8' : '#a89888';
       ctx.beginPath();
-      ctx.ellipse(px + 16, py + 18, 9, 7, 0, 0, TAU);
+      ctx.ellipse(px + 16, py + 18, 9, 7, 0, 0, Math.PI * 2);
       ctx.fill();
       // Head
       ctx.beginPath();
-      ctx.arc(px + 16, py + 8, 5, 0, TAU);
+      ctx.arc(px + 16, py + 8, 5, 0, Math.PI * 2);
       ctx.fill();
       // Horns
       ctx.strokeStyle = '#706050';
@@ -6798,14 +6720,14 @@ function drawTravelingMerchant() {
   // Wheels
   ctx.fillStyle = '#4a3728';
   ctx.beginPath();
-  ctx.arc(px - 2, py + 28, 5, 0, TAU);
-  ctx.arc(px + 18, py + 28, 5, 0, TAU);
+  ctx.arc(px - 2, py + 28, 5, 0, Math.PI * 2);
+  ctx.arc(px + 18, py + 28, 5, 0, Math.PI * 2);
   ctx.fill();
   
   // Shadow
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.beginPath();
-  ctx.ellipse(px + 16, py + 26, 8, 3, 0, 0, TAU);
+  ctx.ellipse(px + 16, py + 26, 8, 3, 0, 0, Math.PI * 2);
   ctx.fill();
   
   // Body (purple cloak)
@@ -6819,7 +6741,7 @@ function drawTravelingMerchant() {
   
   // Head
   ctx.beginPath();
-  ctx.arc(px + 16, py + 8, 6, 0, TAU);
+  ctx.arc(px + 16, py + 8, 6, 0, Math.PI * 2);
   ctx.fillStyle = '#deb887';
   ctx.fill();
   
@@ -6838,10 +6760,10 @@ function drawTravelingMerchant() {
   ctx.fillRect(px + 18, py + 7, 1, 2);
   
   // Exclamation mark (always has something to sell!)
-  const bob = Math.sin(frameTime / 200) * 2;
+  const bob = Math.sin(Date.now() / 200) * 2;
   ctx.fillStyle = '#ffdd44';
   ctx.beginPath();
-  ctx.arc(px + 16, py - 16 + bob, 8, 0, TAU);
+  ctx.arc(px + 16, py - 16 + bob, 8, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = '#222222';
   ctx.font = 'bold 12px system-ui';
@@ -7078,9 +7000,7 @@ function updateFishing() {
     if (fishingTimer >= fishingBiteDelay) {
       fishingPhase = 'biting';
       fishingTimer = 0;
-      const isMobile = isCoarsePointer || showOverlayMode;
-      const biteMsg = isMobile ? "🐟 Something's biting! Tap quickly!" : "🐟 Something's biting! Press E quickly!";
-      showMessage(biteMsg);
+      showMessage("🐟 Something's biting! Press E quickly!");
     }
   } else if (fishingPhase === 'biting') {
     // Player has ~0.8 seconds to react
@@ -7217,11 +7137,9 @@ function drawFishingUI() {
     ctx.font = 'bold 16px system-ui';
     ctx.fillText('! FISH BITING !', canvas.width / 2, panelY + 50);
     
-    const isMobile = isCoarsePointer || showOverlayMode;
-    const reelPrompt = isMobile ? 'Tap Interact to reel!' : 'Press E to reel in!';
     ctx.fillStyle = '#ffffff';
     ctx.font = '12px system-ui';
-    ctx.fillText(reelPrompt, canvas.width / 2, panelY + 75);
+    ctx.fillText('Press E / Tap to reel in!', canvas.width / 2, panelY + 75);
     
     // Splashing bobber
     ctx.font = '28px system-ui';
@@ -8403,7 +8321,7 @@ function drawVillagers() {
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.beginPath();
-    ctx.ellipse(px + 16, py + 26, 8, 3, 0, 0, TAU);
+    ctx.ellipse(px + 16, py + 26, 8, 3, 0, 0, Math.PI * 2);
     ctx.fill();
     
     // Body
@@ -8417,7 +8335,7 @@ function drawVillagers() {
     
     // Head
     ctx.beginPath();
-    ctx.arc(px + 16, py + 8, 6, 0, TAU);
+    ctx.arc(px + 16, py + 8, 6, 0, Math.PI * 2);
     ctx.fillStyle = '#ffcf9e';
     ctx.fill();
     
@@ -8442,14 +8360,14 @@ function drawVillagers() {
     // Exclamation mark if NPC has something important
     if (npcHasExclamation(v)) {
       // Bobbing animation
-      const bob = Math.sin(frameTime / 200) * 2;
+      const bob = Math.sin(Date.now() / 200) * 2;
       const exX = px + 16;
       const exY = py - 16 + bob;
       
       // Yellow background circle
       ctx.fillStyle = '#ffdd44';
       ctx.beginPath();
-      ctx.arc(exX, exY, 8, 0, TAU);
+      ctx.arc(exX, exY, 8, 0, Math.PI * 2);
       ctx.fill();
       
       // Black exclamation mark
@@ -8490,7 +8408,7 @@ function drawFestivalDecorations() {
     { x: 11, y: 6, type: 'garland' }
   ];
   
-  const time = frameTime / 1000;
+  const time = Date.now() / 1000;
   
   for (let i = 0; i < festivalProgress.decorationsPlaced && i < decorationSpots.length; i++) {
     const spot = decorationSpots[i];
@@ -8514,11 +8432,11 @@ function drawFestivalDecorations() {
       const glow = 0.5 + Math.sin(time * 3 + i) * 0.3;
       ctx.fillStyle = `rgba(255, 200, 100, ${glow})`;
       ctx.beginPath();
-      ctx.ellipse(px + 16, py + 8, 10, 12, 0, 0, TAU);
+      ctx.ellipse(px + 16, py + 8, 10, 12, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#ff8844';
       ctx.beginPath();
-      ctx.ellipse(px + 16, py + 8, 7, 9, 0, 0, TAU);
+      ctx.ellipse(px + 16, py + 8, 7, 9, 0, 0, Math.PI * 2);
       ctx.fill();
       // String
       ctx.strokeStyle = '#8b4513';
@@ -8539,11 +8457,11 @@ function drawFestivalDecorations() {
       // Pom-poms
       ctx.fillStyle = '#ffcc00';
       ctx.beginPath();
-      ctx.arc(px + 8, py + 10 + sway/2, 4, 0, TAU);
+      ctx.arc(px + 8, py + 10 + sway/2, 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#ff66aa';
       ctx.beginPath();
-      ctx.arc(px + 24, py + 10 + sway/2, 4, 0, TAU);
+      ctx.arc(px + 24, py + 10 + sway/2, 4, 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -8566,16 +8484,16 @@ function drawDialogueUI() {
   const panelY = canvas.height - panelH - 20;
 
   // Dim background
-  ctx.fillStyle = UI.dimBg;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Panel background
-  ctx.fillStyle = UI.panelBg;
+  ctx.fillStyle = 'rgba(6, 12, 26, 0.95)';
   ctx.fillRect(panelX, panelY, panelW, panelH);
 
   // Border
-  ctx.strokeStyle = UI.panelBorder;
-  ctx.lineWidth = UI.borderWidth;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+  ctx.lineWidth = 2;
   ctx.strokeRect(panelX + 0.5, panelY + 0.5, panelW - 1, panelH - 1);
 
   // Header with NPC name and color
@@ -8665,12 +8583,12 @@ function drawGiftMenuUI() {
   const panelY = (canvas.height - panelH) / 2;
 
   // Background
-  ctx.fillStyle = UI.panelBg;
+  ctx.fillStyle = 'rgba(6, 12, 26, 0.95)';
   ctx.fillRect(panelX, panelY, panelW, panelH);
 
   // Border
-  ctx.strokeStyle = UI.panelBorder;
-  ctx.lineWidth = UI.borderWidth;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+  ctx.lineWidth = 2;
   ctx.strokeRect(panelX + 0.5, panelY + 0.5, panelW - 1, panelH - 1);
 
   // Header
@@ -8846,7 +8764,7 @@ const interactableLocations = [
 let fireAnimTick = 0;
 let goatAnimTick = 0;
 const GOAT_CROP_BOTTOM = 0;
-const GOAT_DRAW_OFFSET_Y = 0; // No offset needed - sprites are properly cropped at 128px
+const GOAT_DRAW_OFFSET_Y = 10; // push goat sprite down a bit to clear trees
 
 
 
@@ -8868,18 +8786,6 @@ const GOAT_DRAW_OFFSET_Y = 0; // No offset needed - sprites are properly cropped
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false; // keep pixel art crisp
-    
-    // Pre-cached canvas dimensions (optimization - avoid property lookups)
-    const canvasW = canvas.width;
-    const canvasH = canvas.height;
-    const canvasCenterX = canvasW / 2;
-    const canvasCenterY = canvasH / 2;
-    
-    // Pre-cache sky gradient (optimization - avoid creating every frame)
-    const skyGradient = ctx.createLinearGradient(0, 0, 0, canvasH);
-    skyGradient.addColorStop(0, '#182c4e');
-    skyGradient.addColorStop(0.6, '#07131f');
-    skyGradient.addColorStop(1, '#020509');
 
     canvas.addEventListener('pointerdown', ensureMobileAudioUnlock);
     canvas.addEventListener('touchstart', ensureMobileAudioUnlock);
@@ -10773,7 +10679,7 @@ function update() {
       const patchY = py + ((i * 7 + variation2 * 3) % 20);
       targetCtx.fillStyle = i % 2 === 0 ? 'rgba(0,40,20,0.15)' : 'rgba(80,160,80,0.1)';
       targetCtx.beginPath();
-      targetCtx.ellipse(patchX + 6, patchY + 6, 5 + (i % 3), 3 + (i % 2), i * 0.5, 0, TAU);
+      targetCtx.ellipse(patchX + 6, patchY + 6, 5 + (i % 3), 3 + (i % 2), i * 0.5, 0, Math.PI * 2);
       targetCtx.fill();
     }
 
@@ -10812,18 +10718,18 @@ function update() {
       // Small yellow flower
       targetCtx.fillStyle = '#f0e060';
       targetCtx.beginPath();
-      targetCtx.arc(px + 22, py + 10, 2, 0, TAU);
+      targetCtx.arc(px + 22, py + 10, 2, 0, Math.PI * 2);
       targetCtx.fill();
       targetCtx.fillStyle = '#e0a030';
       targetCtx.beginPath();
-      targetCtx.arc(px + 22, py + 10, 1, 0, TAU);
+      targetCtx.arc(px + 22, py + 10, 1, 0, Math.PI * 2);
       targetCtx.fill();
     } else if (variation === 2 && variation2 === 1) {
       // Clover patch
       targetCtx.fillStyle = '#2a6040';
       for (let c = 0; c < 3; c++) {
         targetCtx.beginPath();
-        targetCtx.arc(px + 8 + c * 3, py + 20 - (c % 2) * 2, 2.5, 0, TAU);
+        targetCtx.arc(px + 8 + c * 3, py + 20 - (c % 2) * 2, 2.5, 0, Math.PI * 2);
         targetCtx.fill();
       }
     } else if (variation === 4) {
@@ -10873,17 +10779,17 @@ function update() {
       // Pebble shadow
       targetCtx.fillStyle = 'rgba(60,40,20,0.35)';
       targetCtx.beginPath();
-      targetCtx.ellipse(px + peb.x + 1, py + peb.y + 1, peb.s, peb.s * 0.7, i * 0.3, 0, TAU);
+      targetCtx.ellipse(px + peb.x + 1, py + peb.y + 1, peb.s, peb.s * 0.7, i * 0.3, 0, Math.PI * 2);
       targetCtx.fill();
       // Pebble
       targetCtx.fillStyle = style.pebble;
       targetCtx.beginPath();
-      targetCtx.ellipse(px + peb.x, py + peb.y, peb.s, peb.s * 0.7, i * 0.3, 0, TAU);
+      targetCtx.ellipse(px + peb.x, py + peb.y, peb.s, peb.s * 0.7, i * 0.3, 0, Math.PI * 2);
       targetCtx.fill();
       // Highlight
       targetCtx.fillStyle = 'rgba(255,250,240,0.3)';
       targetCtx.beginPath();
-      targetCtx.ellipse(px + peb.x - 0.5, py + peb.y - 0.5, peb.s * 0.4, peb.s * 0.3, 0, 0, TAU);
+      targetCtx.ellipse(px + peb.x - 0.5, py + peb.y - 0.5, peb.s * 0.4, peb.s * 0.3, 0, 0, Math.PI * 2);
       targetCtx.fill();
     });
 
@@ -10924,7 +10830,7 @@ function update() {
     ];
     const style = treeStyles[variation];
     
-    const centerX = px + HALF_TILE;
+    const centerX = px + TILE_SIZE / 2;
     const treePhase = (x * 7 + y * 11) % 10;
     const swayAmount = 1.2 + variation * 0.3;
     const swaySpeed = 0.6 + variation * 0.15;
@@ -10933,7 +10839,7 @@ function update() {
     // Tree shadow on ground - size varies
     targetCtx.fillStyle = 'rgba(0,30,20,0.35)';
     targetCtx.beginPath();
-    targetCtx.ellipse(centerX + 4, py + TILE_SIZE - 3, 11 * style.size, 4.5 * style.size, 0.3, 0, TAU);
+    targetCtx.ellipse(centerX + 4, py + TILE_SIZE - 3, 11 * style.size, 4.5 * style.size, 0.3, 0, Math.PI * 2);
     targetCtx.fill();
 
     // Trunk with bark texture - varies by style
@@ -10988,7 +10894,7 @@ function update() {
     backLeafGrad.addColorStop(1, style.canopyDark);
     targetCtx.fillStyle = backLeafGrad;
     targetCtx.beginPath();
-    targetCtx.arc(centerX + canopySway * 0.4, py + 11, canopySize + 1, 0, TAU);
+    targetCtx.arc(centerX + canopySway * 0.4, py + 11, canopySize + 1, 0, Math.PI * 2);
     targetCtx.fill();
 
     // Main canopy (medium sway)
@@ -11001,26 +10907,26 @@ function update() {
     mainLeafGrad.addColorStop(1, style.canopyDark);
     targetCtx.fillStyle = mainLeafGrad;
     targetCtx.beginPath();
-    targetCtx.arc(centerX + canopySway * 0.7, py + 9, canopySize - 1, 0, TAU);
+    targetCtx.arc(centerX + canopySway * 0.7, py + 9, canopySize - 1, 0, Math.PI * 2);
     targetCtx.fill();
 
     // Front highlight layer (most sway)
     targetCtx.fillStyle = 'rgba(150,255,180,0.2)';
     targetCtx.beginPath();
-    targetCtx.arc(centerX - 3 + canopySway, py + 5, 4 * style.size, 0, TAU);
+    targetCtx.arc(centerX - 3 + canopySway, py + 5, 4 * style.size, 0, Math.PI * 2);
     targetCtx.fill();
     
     // Extra leaf clusters for some variations
     if (variation === 0 || variation === 2) {
       targetCtx.fillStyle = style.canopyMid;
       targetCtx.beginPath();
-      targetCtx.arc(centerX + 8 + canopySway * 0.5, py + 12, 4, 0, TAU);
+      targetCtx.arc(centerX + 8 + canopySway * 0.5, py + 12, 4, 0, Math.PI * 2);
       targetCtx.fill();
     }
     if (variation === 4) {
       targetCtx.fillStyle = style.canopyLight;
       targetCtx.beginPath();
-      targetCtx.arc(centerX - 7 + canopySway * 0.6, py + 10, 3.5, 0, TAU);
+      targetCtx.arc(centerX - 7 + canopySway * 0.6, py + 10, 3.5, 0, Math.PI * 2);
       targetCtx.fill();
     }
 
@@ -11067,10 +10973,10 @@ function update() {
     const sparkleIntensity = (Math.sin(animationTime * 3 + x * 2 + y) + 1) * 0.3;
     targetCtx.fillStyle = `rgba(255,255,255,${sparkleIntensity})`;
     targetCtx.beginPath();
-    targetCtx.arc(px + 8 + (variation * 4), py + 7, 2, 0, TAU);
+    targetCtx.arc(px + 8 + (variation * 4), py + 7, 2, 0, Math.PI * 2);
     targetCtx.fill();
     targetCtx.beginPath();
-    targetCtx.arc(px + 22 - (variation * 3), py + 20, 1.5, 0, TAU);
+    targetCtx.arc(px + 22 - (variation * 3), py + 20, 1.5, 0, Math.PI * 2);
     targetCtx.fill();
 
   } else if (t === 4) {
@@ -11142,8 +11048,8 @@ function update() {
     // tile rows
     targetCtx.strokeStyle = 'rgba(90,50,30,0.5)';
     targetCtx.beginPath();
-    targetCtx.moveTo(px, py + HALF_TILE);
-    targetCtx.lineTo(px + TILE_SIZE, py + HALF_TILE);
+    targetCtx.moveTo(px, py + TILE_SIZE / 2);
+    targetCtx.lineTo(px + TILE_SIZE, py + TILE_SIZE / 2);
     targetCtx.stroke();
 
   } else if (t === 6) {
@@ -11169,8 +11075,8 @@ function update() {
 
     targetCtx.strokeStyle = 'rgba(20,10,10,0.6)';
     targetCtx.beginPath();
-    targetCtx.moveTo(px, py + HALF_TILE);
-    targetCtx.lineTo(px + TILE_SIZE, py + HALF_TILE);
+    targetCtx.moveTo(px, py + TILE_SIZE / 2);
+    targetCtx.lineTo(px + TILE_SIZE, py + TILE_SIZE / 2);
     targetCtx.stroke();
 
   } else if (t === 8) {
@@ -11185,8 +11091,8 @@ function update() {
     targetCtx.lineWidth = 1;
     targetCtx.beginPath();
     // plank line
-    targetCtx.moveTo(px, py + HALF_TILE);
-    targetCtx.lineTo(px + TILE_SIZE, py + HALF_TILE);
+    targetCtx.moveTo(px, py + TILE_SIZE / 2);
+    targetCtx.lineTo(px + TILE_SIZE, py + TILE_SIZE / 2);
     targetCtx.stroke();
 
   } else if (t === 9) {
@@ -11214,11 +11120,11 @@ function update() {
     // WELL
     targetCtx.fillStyle = '#696969';
     targetCtx.beginPath();
-    targetCtx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 12, 0, TAU);
+    targetCtx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 12, 0, Math.PI * 2);
     targetCtx.fill();
     targetCtx.fillStyle = '#1a4d6e';
     targetCtx.beginPath();
-    targetCtx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 8, 0, TAU);
+    targetCtx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 8, 0, Math.PI * 2);
     targetCtx.fill();
     // roof supports
     targetCtx.fillStyle = '#8b4513';
@@ -11236,7 +11142,7 @@ function update() {
       const fy = py + 4 + Math.floor(i / 4) * 12 + (variation * 3);
       targetCtx.fillStyle = flowerColors[i % flowerColors.length];
       targetCtx.beginPath();
-      targetCtx.arc(fx, fy, 3, 0, TAU);
+      targetCtx.arc(fx, fy, 3, 0, Math.PI * 2);
       targetCtx.fill();
     }
 
@@ -11246,11 +11152,11 @@ function update() {
     targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
     targetCtx.fillStyle = '#1d5a3a';
     targetCtx.beginPath();
-    targetCtx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 12, 0, TAU);
+    targetCtx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 12, 0, Math.PI * 2);
     targetCtx.fill();
     targetCtx.fillStyle = '#2a6a4a';
     targetCtx.beginPath();
-    targetCtx.arc(px + TILE_SIZE/2 - 4, py + TILE_SIZE/2 - 2, 8, 0, TAU);
+    targetCtx.arc(px + TILE_SIZE/2 - 4, py + TILE_SIZE/2 - 2, 8, 0, Math.PI * 2);
     targetCtx.fill();
 
   } else if (t === 14) {
@@ -11341,7 +11247,7 @@ function update() {
     if (Math.sin(waveTime * 2.5 + variation) > 0.75) {
       targetCtx.fillStyle = 'rgba(255, 255, 255, 0.7)';
       targetCtx.beginPath();
-      targetCtx.arc(px + 8 + (variation * 5), py + 8 + (variation * 3), 1.5, 0, TAU);
+      targetCtx.arc(px + 8 + (variation * 5), py + 8 + (variation * 3), 1.5, 0, Math.PI * 2);
       targetCtx.fill();
     }
 
@@ -11371,7 +11277,7 @@ function update() {
     g.addColorStop(1, '#4a4a4a');
     targetCtx.fillStyle = g;
     targetCtx.beginPath();
-    targetCtx.ellipse(px + 16, py + 18, 12, 10, 0, 0, TAU);
+    targetCtx.ellipse(px + 16, py + 18, 12, 10, 0, 0, Math.PI * 2);
     targetCtx.fill();
 
   } else if (t === 20) {
@@ -11400,7 +11306,7 @@ function update() {
     // Shadow
     targetCtx.fillStyle = 'rgba(80, 60, 20, 0.25)';
     targetCtx.beginPath();
-    targetCtx.ellipse(px + 18, py + TILE_SIZE - 4, 10, 4, 0, 0, TAU);
+    targetCtx.ellipse(px + 18, py + TILE_SIZE - 4, 10, 4, 0, 0, Math.PI * 2);
     targetCtx.fill();
     
     // trunk with bark texture
@@ -11462,9 +11368,9 @@ function update() {
     // rocks around edge
     targetCtx.fillStyle = '#6a6a6a';
     targetCtx.beginPath();
-    targetCtx.arc(px + 6, py + 8, 4, 0, TAU);
-    targetCtx.arc(px + 26, py + 24, 5, 0, TAU);
-    targetCtx.arc(px + 8, py + 26, 4, 0, TAU);
+    targetCtx.arc(px + 6, py + 8, 4, 0, Math.PI * 2);
+    targetCtx.arc(px + 26, py + 24, 5, 0, Math.PI * 2);
+    targetCtx.arc(px + 8, py + 26, 4, 0, Math.PI * 2);
     targetCtx.fill();
 
   } else if (t === 23) {
@@ -11507,7 +11413,7 @@ function update() {
     // snow patches
     targetCtx.fillStyle = 'rgba(255,255,255,0.3)';
     targetCtx.beginPath();
-    targetCtx.arc(px + 8 + (variation * 5), py + 12, 6, 0, TAU);
+    targetCtx.arc(px + 8 + (variation * 5), py + 12, 6, 0, Math.PI * 2);
     targetCtx.fill();
 
   } else if (t === 26) {
@@ -11533,7 +11439,7 @@ function update() {
     targetCtx.fillStyle = bgColor;
     targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
     // glowing crystal
-    const glowPhase = (frameTime / 500) % (TAU);
+    const glowPhase = (Date.now() / 500) % (Math.PI * 2);
     const glowIntensity = 0.5 + Math.sin(glowPhase) * 0.3;
     targetCtx.fillStyle = `rgba(150, 200, 255, ${glowIntensity})`;
     targetCtx.beginPath();
@@ -11667,7 +11573,7 @@ function update() {
       const mudX = px + ((i * 13 + variation * 7) % 22);
       const mudY = py + ((i * 9 + variation2 * 5) % 20);
       targetCtx.beginPath();
-      targetCtx.ellipse(mudX + 5, mudY + 5, 6, 4, i * 0.3, 0, TAU);
+      targetCtx.ellipse(mudX + 5, mudY + 5, 6, 4, i * 0.3, 0, Math.PI * 2);
       targetCtx.fill();
     }
     
@@ -11706,14 +11612,14 @@ function update() {
       targetCtx.strokeStyle = 'rgba(100, 140, 120, 0.4)';
       targetCtx.lineWidth = 1;
       targetCtx.beginPath();
-      targetCtx.ellipse(rippleX, rippleY, rippleSize, rippleSize * 0.5, 0, 0, TAU);
+      targetCtx.ellipse(rippleX, rippleY, rippleSize, rippleSize * 0.5, 0, 0, Math.PI * 2);
       targetCtx.stroke();
     }
     
     // Algae patches
     targetCtx.fillStyle = 'rgba(60, 100, 70, 0.3)';
     targetCtx.beginPath();
-    targetCtx.ellipse(px + 10 + variation * 3, py + 12, 6, 4, 0, 0, TAU);
+    targetCtx.ellipse(px + 10 + variation * 3, py + 12, 6, 4, 0, 0, Math.PI * 2);
     targetCtx.fill();
 
   } else if (t === 32) {
@@ -11742,7 +11648,7 @@ function update() {
       // Reed top (cattail shape)
       targetCtx.fillStyle = '#8a6040';
       targetCtx.beginPath();
-      targetCtx.ellipse(reedX + sway, py + TILE_SIZE - reedHeight - 2, 2, 5, 0, 0, TAU);
+      targetCtx.ellipse(reedX + sway, py + TILE_SIZE - reedHeight - 2, 2, 5, 0, 0, Math.PI * 2);
       targetCtx.fill();
     }
 
@@ -11763,13 +11669,13 @@ function update() {
     // Pad shadow
     targetCtx.fillStyle = 'rgba(0, 30, 20, 0.3)';
     targetCtx.beginPath();
-    targetCtx.ellipse(padX + 2, padY + 2, padSize, padSize * 0.7, 0, 0, TAU);
+    targetCtx.ellipse(padX + 2, padY + 2, padSize, padSize * 0.7, 0, 0, Math.PI * 2);
     targetCtx.fill();
     
     // Main pad
     targetCtx.fillStyle = '#4a8a50';
     targetCtx.beginPath();
-    targetCtx.ellipse(padX, padY, padSize, padSize * 0.7, 0, 0.2, TAU - 0.2);
+    targetCtx.ellipse(padX, padY, padSize, padSize * 0.7, 0, 0.2, Math.PI * 2 - 0.2);
     targetCtx.lineTo(padX, padY);
     targetCtx.fill();
     
@@ -11789,16 +11695,16 @@ function update() {
       const bob = Math.sin(animationTime * 1.5) * 2;
       targetCtx.fillStyle = '#ffa0d0';
       for (let p = 0; p < 5; p++) {
-        const petalAngle = p * (TAU / 5);
+        const petalAngle = p * (Math.PI * 2 / 5);
         const petalX = padX + Math.cos(petalAngle) * 4;
         const petalY = padY - 3 + bob + Math.sin(petalAngle) * 3;
         targetCtx.beginPath();
-        targetCtx.ellipse(petalX, petalY, 2, 3, petalAngle, 0, TAU);
+        targetCtx.ellipse(petalX, petalY, 2, 3, petalAngle, 0, Math.PI * 2);
         targetCtx.fill();
       }
       targetCtx.fillStyle = '#ffff80';
       targetCtx.beginPath();
-      targetCtx.arc(padX, padY - 3 + bob, 2, 0, TAU);
+      targetCtx.arc(padX, padY - 3 + bob, 2, 0, Math.PI * 2);
       targetCtx.fill();
     }
 
@@ -11827,7 +11733,7 @@ function update() {
       const fY = py + 6 + f * 4;
       targetCtx.fillStyle = flowerColors[f];
       targetCtx.beginPath();
-      targetCtx.arc(fX, fY, 3, 0, TAU);
+      targetCtx.arc(fX, fY, 3, 0, Math.PI * 2);
       targetCtx.fill();
     }
     
@@ -11836,7 +11742,7 @@ function update() {
     if (sparkle) {
       targetCtx.fillStyle = 'rgba(150, 150, 255, 0.6)';
       targetCtx.beginPath();
-      targetCtx.arc(px + 14 + sway, py + 5, 2, 0, TAU);
+      targetCtx.arc(px + 14 + sway, py + 5, 2, 0, Math.PI * 2);
       targetCtx.fill();
     }
 
@@ -11867,15 +11773,15 @@ function update() {
       // Petals
       targetCtx.fillStyle = '#9040a0';
       for (let p = 0; p < 5; p++) {
-        const pAngle = p * (TAU / 5) - Math.PI / 2;
+        const pAngle = p * (Math.PI * 2 / 5) - Math.PI / 2;
         targetCtx.beginPath();
-        targetCtx.ellipse(fX + Math.cos(pAngle) * 2.5, fY + Math.sin(pAngle) * 2.5, 2, 3, pAngle, 0, TAU);
+        targetCtx.ellipse(fX + Math.cos(pAngle) * 2.5, fY + Math.sin(pAngle) * 2.5, 2, 3, pAngle, 0, Math.PI * 2);
         targetCtx.fill();
       }
       // Center
       targetCtx.fillStyle = '#ffff60';
       targetCtx.beginPath();
-      targetCtx.arc(fX, fY, 1.5, 0, TAU);
+      targetCtx.arc(fX, fY, 1.5, 0, Math.PI * 2);
       targetCtx.fill();
     }
     
@@ -11884,7 +11790,7 @@ function update() {
     if (sparkle) {
       targetCtx.fillStyle = 'rgba(200, 150, 255, 0.6)';
       targetCtx.beginPath();
-      targetCtx.arc(px + 18 + sway, py + 6, 2, 0, TAU);
+      targetCtx.arc(px + 18 + sway, py + 6, 2, 0, Math.PI * 2);
       targetCtx.fill();
     }
 
@@ -11904,14 +11810,14 @@ function update() {
       const driftY = py + ((i * 7 + variation2 * 5) % 20) + 6;
       targetCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       targetCtx.beginPath();
-      targetCtx.ellipse(driftX + 6, driftY, 8, 3, 0, 0, TAU);
+      targetCtx.ellipse(driftX + 6, driftY, 8, 3, 0, 0, Math.PI * 2);
       targetCtx.fill();
     }
     
     // Shadows in snow
     targetCtx.fillStyle = 'rgba(180, 190, 210, 0.3)';
     targetCtx.beginPath();
-    targetCtx.ellipse(px + 8 + variation * 4, py + 18, 5, 2, 0.3, 0, TAU);
+    targetCtx.ellipse(px + 8 + variation * 4, py + 18, 5, 2, 0.3, 0, Math.PI * 2);
     targetCtx.fill();
     
     // Sparkles - animated
@@ -11919,13 +11825,13 @@ function update() {
     if (snowSparkle > 0.3) {
       targetCtx.fillStyle = `rgba(255, 255, 255, ${0.5 + snowSparkle * 0.3})`;
       targetCtx.beginPath();
-      targetCtx.arc(px + 6 + variation * 5, py + 8 + variation2 * 3, 1.5, 0, TAU);
+      targetCtx.arc(px + 6 + variation * 5, py + 8 + variation2 * 3, 1.5, 0, Math.PI * 2);
       targetCtx.fill();
     }
     if (snowSparkle < -0.3) {
       targetCtx.fillStyle = `rgba(220, 230, 255, ${0.5 - snowSparkle * 0.3})`;
       targetCtx.beginPath();
-      targetCtx.arc(px + 20 + variation * 2, py + 22, 1, 0, TAU);
+      targetCtx.arc(px + 20 + variation * 2, py + 22, 1, 0, Math.PI * 2);
       targetCtx.fill();
     }
 
@@ -11959,7 +11865,7 @@ function update() {
     
     targetCtx.fillStyle = 'rgba(90, 100, 120, 0.4)';
     targetCtx.beginPath();
-    targetCtx.ellipse(px + 22, py + 22, 6, 4, 0.5, 0, TAU);
+    targetCtx.ellipse(px + 22, py + 22, 6, 4, 0.5, 0, Math.PI * 2);
     targetCtx.fill();
 
   } else if (t === 38) {
@@ -11988,7 +11894,7 @@ function update() {
     glow.addColorStop(1, 'rgba(100, 150, 255, 0)');
     targetCtx.fillStyle = glow;
     targetCtx.beginPath();
-    targetCtx.arc(px + 16, py + 12, glowSize + 6, 0, TAU);
+    targetCtx.arc(px + 16, py + 12, glowSize + 6, 0, Math.PI * 2);
     targetCtx.fill();
     
     // Crystal shape
@@ -12020,7 +11926,7 @@ function update() {
         const sY = py + 6 + Math.cos(sparklePhase * 1.3) * 4;
         targetCtx.fillStyle = `rgba(200, 230, 255, ${sparkleAlpha})`;
         targetCtx.beginPath();
-        targetCtx.arc(sX, sY, 1.5, 0, TAU);
+        targetCtx.arc(sX, sY, 1.5, 0, Math.PI * 2);
         targetCtx.fill();
       }
     }
@@ -12052,12 +11958,12 @@ function update() {
     const shimmer = Math.sin(animationTime * 1.5 + x + y) * 0.2 + 0.4;
     targetCtx.fillStyle = `rgba(255, 255, 255, ${shimmer})`;
     targetCtx.beginPath();
-    targetCtx.ellipse(px + 10 + variation * 3, py + 10, 6, 2, 0.3, 0, TAU);
+    targetCtx.ellipse(px + 10 + variation * 3, py + 10, 6, 2, 0.3, 0, Math.PI * 2);
     targetCtx.fill();
     
     targetCtx.fillStyle = `rgba(200, 230, 255, ${shimmer * 0.7})`;
     targetCtx.beginPath();
-    targetCtx.ellipse(px + 22, py + 22, 4, 1.5, -0.2, 0, TAU);
+    targetCtx.ellipse(px + 22, py + 22, 4, 1.5, -0.2, 0, Math.PI * 2);
     targetCtx.fill();
 
   } else if (t === 40) {
@@ -12069,13 +11975,13 @@ function update() {
     targetCtx.fillStyle = snowBase;
     targetCtx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
     
-    const centerX = px + HALF_TILE;
+    const centerX = px + TILE_SIZE / 2;
     const sway = Math.sin(animationTime * 0.5 + x * 0.3 + y * 0.5) * 1;
     
     // Shadow
     targetCtx.fillStyle = 'rgba(100, 110, 130, 0.3)';
     targetCtx.beginPath();
-    targetCtx.ellipse(centerX + 3, py + TILE_SIZE - 3, 9, 4, 0.2, 0, TAU);
+    targetCtx.ellipse(centerX + 3, py + TILE_SIZE - 3, 9, 4, 0.2, 0, Math.PI * 2);
     targetCtx.fill();
     
     // Trunk
@@ -12115,7 +12021,7 @@ function update() {
     // Snow pile at base
     targetCtx.fillStyle = '#f8f8ff';
     targetCtx.beginPath();
-    targetCtx.ellipse(centerX, py + TILE_SIZE - 4, 8, 3, 0, 0, TAU);
+    targetCtx.ellipse(centerX, py + TILE_SIZE - 4, 8, 3, 0, 0, Math.PI * 2);
     targetCtx.fill();
 
   } else if (t === 41) {
@@ -12168,7 +12074,7 @@ function update() {
     // Post shadow
     targetCtx.fillStyle = 'rgba(0, 30, 20, 0.25)';
     targetCtx.beginPath();
-    targetCtx.ellipse(px + 18, py + 28, 5, 2, 0.3, 0, TAU);
+    targetCtx.ellipse(px + 18, py + 28, 5, 2, 0.3, 0, Math.PI * 2);
     targetCtx.fill();
     
     // Wooden post
@@ -12195,7 +12101,7 @@ function update() {
     glowRad.addColorStop(1, 'rgba(255, 150, 50, 0)');
     targetCtx.fillStyle = glowRad;
     targetCtx.beginPath();
-    targetCtx.arc(px + 22, py + 14, 10, 0, TAU);
+    targetCtx.arc(px + 22, py + 14, 10, 0, Math.PI * 2);
     targetCtx.fill();
     
     // Lantern body
@@ -12449,7 +12355,7 @@ function drawPlayerFromSprites() {
   // simple shadow
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath();
-  ctx.ellipse(px + 16, py + 24, 10, 4, 0, 0, TAU);
+  ctx.ellipse(px + 16, py + 24, 10, 4, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // body
@@ -12463,7 +12369,7 @@ function drawPlayerFromSprites() {
 
   // head
   ctx.beginPath();
-  ctx.arc(px + 16, py + 8, 6, 0, TAU);
+  ctx.arc(px + 16, py + 8, 6, 0, Math.PI * 2);
   ctx.fillStyle = '#ffcf9e';
   ctx.fill();
 
@@ -12517,12 +12423,12 @@ function drawCarriedAnimalOverlay() {
   // Small bundled critter held slightly above player
   ctx.fillStyle = baseColor;
   ctx.beginPath();
-  ctx.ellipse(px + 16, py + 6, 9, 6, 0, 0, TAU);
+  ctx.ellipse(px + 16, py + 6, 9, 6, 0, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = accentColor;
   ctx.beginPath();
-  ctx.arc(px + 16, py + 2, 3, 0, TAU);
+  ctx.arc(px + 16, py + 2, 3, 0, Math.PI * 2);
   ctx.fill();
 
   // Tiny eyes for charm
@@ -12547,37 +12453,27 @@ function drawGoat() {
   const px = Math.round(goat.px);
   const py = Math.round(goat.py);
 
-  // Select directional sprite based on goat facing
-  let asset = null;
-  if (goat.facing === 'left' && artAssets.goatLeft && artAssets.goatLeft.loaded) {
-    asset = artAssets.goatLeft;
-  } else if (goat.facing === 'right' && artAssets.goatRight && artAssets.goatRight.loaded) {
-    asset = artAssets.goatRight;
-  } else {
-    // Fallback to original spritesheet for up/down or if directional not loaded
-    asset = artAssets.goat;
-  }
-  
+  const asset = artAssets.goat;
   if (asset && asset.loaded && !asset.error) {
-    const cols = asset.columns || 1;
+    const cols = asset.columns || 3;
     const fw = asset.frameWidth || (asset.image.width / cols);
     const fh = asset.frameHeight || asset.image.height;
-    // Animate faster when moving (only for multi-frame sprites)
+    // Animate faster when moving
     const animSpeed = goat.isMoving ? 8 : 12;
-    const frame = cols > 1 ? Math.floor(goatAnimTick / animSpeed) % cols : 0;
+    const frame = cols ? Math.floor(goatAnimTick / animSpeed) % cols : 0;
     const sx = frame * fw;
     const sy = 0;
-    // Draw sprite - 128px sprites scale nicely to tile size
-    ctx.drawImage(asset.image, sx, sy, fw, fh, px + GOAT_DRAW_OFFSET_Y, py + GOAT_DRAW_OFFSET_Y, TILE_SIZE, TILE_SIZE);
+    // Scale full frame into the tile, with a small upward offset for padding
+    ctx.drawImage(asset.image, sx, sy, fw, fh, px, py + GOAT_DRAW_OFFSET_Y, TILE_SIZE, TILE_SIZE);
   } else {
     // fallback simple goat shape
     ctx.fillStyle = '#d9d5cc';
     ctx.beginPath();
-    ctx.ellipse(px + 16, py + 18, 12, 9, 0, 0, TAU);
+    ctx.ellipse(px + 16, py + 18, 12, 9, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#b6ae9e';
     ctx.beginPath();
-    ctx.ellipse(px + 10, py + 14, 7, 5, 0, 0, TAU);
+    ctx.ellipse(px + 10, py + 14, 7, 5, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillRect(px + 5, py + 11, 3, 3);
     ctx.fillRect(px + 12, py + 11, 3, 3);
@@ -12602,7 +12498,7 @@ function drawSingleSheep(s) {
   // shadow
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.beginPath();
-  ctx.ellipse(px + 16, py + 24, 10, 4, 0, 0, TAU);
+  ctx.ellipse(px + 16, py + 24, 10, 4, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // body
@@ -12610,13 +12506,13 @@ function drawSingleSheep(s) {
     // fluffy
     ctx.fillStyle = '#fdf9f2';
     ctx.beginPath();
-    ctx.ellipse(px + 16, py + 18, 11, 9, 0, 0, TAU);
+    ctx.ellipse(px + 16, py + 18, 11, 9, 0, 0, Math.PI * 2);
     ctx.fill();
   } else {
     // trimmed
     ctx.fillStyle = '#e6dccb';
     ctx.beginPath();
-    ctx.ellipse(px + 16, py + 18, 9, 7, 0, 0, TAU);
+    ctx.ellipse(px + 16, py + 18, 9, 7, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -12629,7 +12525,7 @@ function drawSingleSheep(s) {
   
   ctx.fillStyle = '#d3c0aa';
   ctx.beginPath();
-  ctx.ellipse(px + 16 + headOffsetX, py + 14 + headOffsetY, 6, 5, 0, 0, TAU);
+  ctx.ellipse(px + 16 + headOffsetX, py + 14 + headOffsetY, 6, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // little ears
@@ -12656,7 +12552,7 @@ function drawPeacock() {
   // Shadow
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.beginPath();
-  ctx.ellipse(px + 16, py + 26, 12, 5, 0, 0, TAU);
+  ctx.ellipse(px + 16, py + 26, 12, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // Draw tail feathers (behind body) if has feathers
@@ -12682,31 +12578,31 @@ function drawPeacock() {
       // Eye spot at end of feather
       ctx.fillStyle = '#0a3a4a';
       ctx.beginPath();
-      ctx.arc(endX, endY, 4, 0, TAU);
+      ctx.arc(endX, endY, 4, 0, Math.PI * 2);
       ctx.fill();
       
       ctx.fillStyle = eyeColor;
       ctx.beginPath();
-      ctx.arc(endX, endY, 2.5, 0, TAU);
+      ctx.arc(endX, endY, 2.5, 0, Math.PI * 2);
       ctx.fill();
       
       ctx.fillStyle = '#1a5f7a';
       ctx.beginPath();
-      ctx.arc(endX, endY, 1.2, 0, TAU);
+      ctx.arc(endX, endY, 1.2, 0, Math.PI * 2);
       ctx.fill();
     }
   } else {
     // Bare tail - just small stumps
     ctx.fillStyle = '#2a6a7a';
     ctx.beginPath();
-    ctx.ellipse(px + 16, py + 10, 4, 6, 0, 0, TAU);
+    ctx.ellipse(px + 16, py + 10, 4, 6, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
   // Body
   ctx.fillStyle = '#1a5f7a';
   ctx.beginPath();
-  ctx.ellipse(px + 16, py + 20, 8, 6, 0, 0, TAU);
+  ctx.ellipse(px + 16, py + 20, 8, 6, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // Neck position based on facing
@@ -12720,13 +12616,13 @@ function drawPeacock() {
   // Neck
   ctx.fillStyle = '#1a5f7a';
   ctx.beginPath();
-  ctx.ellipse(px + 16 + neckOffsetX, py + 16 + neckOffsetY, 4, 6, 0, 0, TAU);
+  ctx.ellipse(px + 16 + neckOffsetX, py + 16 + neckOffsetY, 4, 6, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // Head
   ctx.fillStyle = '#1a5f7a';
   ctx.beginPath();
-  ctx.arc(px + 16 + neckOffsetX, py + 10 + neckOffsetY, 5, 0, TAU);
+  ctx.arc(px + 16 + neckOffsetX, py + 10 + neckOffsetY, 5, 0, Math.PI * 2);
   ctx.fill();
 
   // Crown feathers
@@ -12751,7 +12647,7 @@ function drawPeacock() {
   // Eye
   ctx.fillStyle = '#1a1a1a';
   ctx.beginPath();
-  ctx.arc(px + 15 + neckOffsetX + (peacock.facing === 'right' ? 2 : 0), py + 9 + neckOffsetY, 1.5, 0, TAU);
+  ctx.arc(px + 15 + neckOffsetX + (peacock.facing === 'right' ? 2 : 0), py + 9 + neckOffsetY, 1.5, 0, Math.PI * 2);
   ctx.fill();
 
   // Legs
@@ -12784,12 +12680,12 @@ function drawFurniture() {
 
     ctx.fillStyle = '#f8d87c';
     ctx.beginPath();
-    ctx.ellipse(px + 16 + sway, py + 20, 7, flicker, 0, 0, TAU);
+    ctx.ellipse(px + 16 + sway, py + 20, 7, flicker, 0, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = '#ff964b';
     ctx.beginPath();
-    ctx.ellipse(px + 16 + sway * 0.6, py + 21, 4, flicker - 2, 0, 0, TAU);
+    ctx.ellipse(px + 16 + sway * 0.6, py + 21, 4, flicker - 2, 0, 0, Math.PI * 2);
     ctx.fill();
 
     const glow = ctx.createRadialGradient(px + 16, py + 24, 2, px + 16, py + 24, 28);
@@ -12849,12 +12745,12 @@ function drawFurniture() {
     // Table surface details - yarn and needles
     ctx.fillStyle = '#d68caf';  // Pink yarn ball
     ctx.beginPath();
-    ctx.arc(px + 10, py + 11, 4, 0, TAU);
+    ctx.arc(px + 10, py + 11, 4, 0, Math.PI * 2);
     ctx.fill();
     
     ctx.fillStyle = '#88c4e8';  // Blue yarn ball
     ctx.beginPath();
-    ctx.arc(px + 22, py + 10, 3, 0, TAU);
+    ctx.arc(px + 22, py + 10, 3, 0, Math.PI * 2);
     ctx.fill();
     
     // Knitting needles
@@ -12876,17 +12772,17 @@ function drawFurniture() {
     const ly = loomSpot.y * TILE_SIZE;
 
     // Base magical glow (always visible - it's a Crystal Loom!)
-    const baseGlow = 0.35 + 0.15 * Math.sin(frameTime / 500);
+    const baseGlow = 0.35 + 0.15 * Math.sin(Date.now() / 500);
     ctx.fillStyle = `rgba(180, 100, 255, ${baseGlow})`;
     ctx.beginPath();
-    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 20, 0, TAU);
+    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 20, 0, Math.PI * 2);
     ctx.fill();
     
     // Outer glow ring
-    ctx.strokeStyle = `rgba(200, 150, 255, ${0.3 + 0.2 * Math.sin(frameTime / 400)})`;
+    ctx.strokeStyle = `rgba(200, 150, 255, ${0.3 + 0.2 * Math.sin(Date.now() / 400)})`;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 22, 0, TAU);
+    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 22, 0, Math.PI * 2);
     ctx.stroke();
 
     // Wooden frame base
@@ -12896,14 +12792,14 @@ function drawFurniture() {
     // Wheel (large circle) - with crystal shimmer
     ctx.fillStyle = '#8a6747';
     ctx.beginPath();
-    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2, 10, 0, TAU);
+    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2, 10, 0, Math.PI * 2);
     ctx.fill();
     
     // Crystal center (the magical part)
-    const crystalGlow = 0.6 + 0.3 * Math.sin(frameTime / 400);
+    const crystalGlow = 0.6 + 0.3 * Math.sin(Date.now() / 400);
     ctx.fillStyle = `rgba(200, 160, 255, ${crystalGlow})`;
     ctx.beginPath();
-    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2, 5, 0, TAU);
+    ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2, 5, 0, Math.PI * 2);
     ctx.fill();
     
     // Wheel spokes (animated)
@@ -12911,7 +12807,7 @@ function drawFurniture() {
     ctx.lineWidth = 2;
     for (let i = 0; i < 4; i++) {
       ctx.beginPath();
-      const angle = (i * Math.PI / 2) + (frameTime / 1000);
+      const angle = (i * Math.PI / 2) + (Date.now() / 1000);
       ctx.moveTo(lx + TILE_SIZE/2, ly + TILE_SIZE/2 + 2);
       ctx.lineTo(lx + TILE_SIZE/2 + Math.cos(angle) * 8, ly + TILE_SIZE/2 + 2 + Math.sin(angle) * 8);
       ctx.stroke();
@@ -12920,24 +12816,24 @@ function drawFurniture() {
     // Yarn on wheel
     ctx.fillStyle = '#f2d27a';
     ctx.beginPath();
-    ctx.arc(lx + 8, ly + 10, 3, 0, TAU);
+    ctx.arc(lx + 8, ly + 10, 3, 0, Math.PI * 2);
     ctx.fill();
     
     // Enhanced magical glow when loom is attuned (has bonus crafts)
     if (loomAttuneBonusCrafts > 0) {
-      ctx.fillStyle = `rgba(220, 180, 255, ${0.4 + 0.25 * Math.sin(frameTime / 200)})`;
+      ctx.fillStyle = `rgba(220, 180, 255, ${0.4 + 0.25 * Math.sin(Date.now() / 200)})`;
       ctx.beginPath();
-      ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 16, 0, TAU);
+      ctx.arc(lx + TILE_SIZE/2, ly + TILE_SIZE/2, 16, 0, Math.PI * 2);
       ctx.fill();
       
       // Sparkle particles
       for (let i = 0; i < 3; i++) {
-        const sparkleAngle = (frameTime / 300) + (i * TAU / 3);
+        const sparkleAngle = (Date.now() / 300) + (i * Math.PI * 2 / 3);
         const sparkleX = lx + TILE_SIZE/2 + Math.cos(sparkleAngle) * 12;
         const sparkleY = ly + TILE_SIZE/2 + Math.sin(sparkleAngle) * 12;
-        ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + 0.3 * Math.sin(frameTime / 150 + i)})`;
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + 0.3 * Math.sin(Date.now() / 150 + i)})`;
         ctx.beginPath();
-        ctx.arc(sparkleX, sparkleY, 2, 0, TAU);
+        ctx.arc(sparkleX, sparkleY, 2, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -12969,8 +12865,8 @@ function drawFurniture() {
 function getMapOffsets() {
   const mapWidth = MAP_COLS * TILE_SIZE;
   const mapHeight = MAP_ROWS * TILE_SIZE;
-  const offsetX = Math.max(0, (canvasW - mapWidth) / 2);
-  const offsetY = Math.max(0, (canvasH - mapHeight) / 2);
+  const offsetX = Math.max(0, (canvas.width - mapWidth) / 2);
+  const offsetY = Math.max(0, (canvas.height - mapHeight) / 2);
   return { offsetX, offsetY };
 }
 
@@ -13054,9 +12950,13 @@ function drawDebugInfoPanel() {
 
 
 function render() {
-  // Background sky (use cached gradient)
-  ctx.fillStyle = skyGradient;
-  ctx.fillRect(0, 0, canvasW, canvasH);
+  // Background sky
+  const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  sky.addColorStop(0, '#182c4e');
+  sky.addColorStop(0.6, '#07131f');
+  sky.addColorStop(1, '#020509');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const { offsetX, offsetY } = getMapOffsets();
   const interactables = currentInteractables || [];
@@ -13095,12 +12995,12 @@ function render() {
 
   drawDebugWorldOverlays(offsetX, offsetY);
 
-        // HUD – minimal (Wool, Yarn, Gold)
+        // HUD – minimal (Wool + Gold only)
   ctx.save();
 
   const hudX = 8;
   const hudY = 8;
-  const hudW = 195;
+  const hudW = 150;
   const hudH = 40;
 
   // subtle background
@@ -13120,89 +13020,65 @@ function render() {
   // Wool icon + count
   ctx.fillStyle = '#f8f0d8';
   ctx.beginPath();
-  ctx.arc(hudX + 14, hudY + 26, 4, 0, TAU);
+  ctx.arc(hudX + 14, hudY + 26, 4, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#f5f7ff';
-  ctx.font = '11px system-ui';
-  ctx.fillText(`${inventory.wool || 0}`, hudX + 22, hudY + 30);
-
-  // Yarn icon + count (pink yarn ball)
-  ctx.fillStyle = '#f098c8';
-  ctx.beginPath();
-  ctx.arc(hudX + 62, hudY + 26, 4, 0, TAU);
-  ctx.fill();
-  // yarn strand detail
-  ctx.strokeStyle = '#d878a8';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(hudX + 62, hudY + 26, 2, 0, Math.PI);
-  ctx.stroke();
-
-  ctx.fillStyle = '#f5f7ff';
-  ctx.fillText(`${inventory.yarn || 0}`, hudX + 70, hudY + 30);
+  ctx.font = '12px system-ui';
+  ctx.fillText(`Wool: ${inventory.wool}`, hudX + 24, hudY + 29);
 
   // Gold icon + count
   ctx.fillStyle = '#f4c945';
   ctx.beginPath();
-  ctx.arc(hudX + 110, hudY + 26, 4, 0, TAU);
+  ctx.arc(hudX + 95, hudY + 26, 4, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#f5f7ff';
-  ctx.fillText(`${inventory.gold || 0}g`, hudX + 118, hudY + 30);
+  ctx.fillText(`G: ${inventory.gold}`, hudX + 105, hudY + 29);
 
   ctx.restore();
 
   // Beach fishing hint
   if (!fishingActive && canStartFishing()) {
-    const isMobile = isCoarsePointer || showOverlayMode;
-    const fishPrompt = isMobile ? '🎣 Tap Interact to Fish' : '🎣 Press F to Fish';
-    const promptW = isMobile ? 160 : 140;
     ctx.save();
     ctx.fillStyle = 'rgba(0, 60, 120, 0.8)';
     ctx.beginPath();
-    ctx.roundRect(canvasCenterX - promptW/2, canvasH - 75, promptW, 24, 6);
+    ctx.roundRect(canvas.width / 2 - 70, canvas.height - 75, 140, 24, 6);
     ctx.fill();
     ctx.fillStyle = '#88ddff';
     ctx.font = '12px system-ui';
     ctx.textAlign = 'center';
-    ctx.fillText(fishPrompt, canvasCenterX, canvasH - 58);
+    ctx.fillText('🎣 Press F to Fish', canvas.width / 2, canvas.height - 58);
     ctx.textAlign = 'left';
     ctx.restore();
   }
   
   // Loom attune hint
   if (!loomAttuneActive && isNearLoom()) {
-    const isMobile = isCoarsePointer || showOverlayMode;
-    const loomPrompt = isMobile ? '🧶 Tap Interact to Attune' : '🧶 Press E to Attune Loom';
-    const promptW = isMobile ? 170 : 170;
     ctx.save();
     ctx.fillStyle = 'rgba(80, 40, 100, 0.8)';
     ctx.beginPath();
-    ctx.roundRect(canvasCenterX - promptW/2, canvasH - 75, promptW, 24, 6);
+    ctx.roundRect(canvas.width / 2 - 85, canvas.height - 75, 170, 24, 6);
     ctx.fill();
     ctx.fillStyle = '#e8c0f8';
     ctx.font = '12px system-ui';
     ctx.textAlign = 'center';
-    ctx.fillText(loomPrompt, canvasCenterX, canvasH - 58);
+    ctx.fillText('🧶 Press E to Attune Loom', canvas.width / 2, canvas.height - 58);
     ctx.textAlign = 'left';
     ctx.restore();
   }
   
   // Crafting table hint
   if (!craftingMenuOpen && isNearCraftingTable()) {
-    const isMobile = isCoarsePointer || showOverlayMode;
-    const craftPrompt = isMobile ? '🪡 Tap Interact to Craft' : '🪡 Press E to Craft';
-    const promptW = isMobile ? 160 : 140;
     ctx.save();
     ctx.fillStyle = 'rgba(90, 60, 40, 0.8)';
     ctx.beginPath();
-    ctx.roundRect(canvasCenterX - promptW/2, canvasH - 75, promptW, 24, 6);
+    ctx.roundRect(canvas.width / 2 - 70, canvas.height - 75, 140, 24, 6);
     ctx.fill();
     ctx.fillStyle = '#f0d8c0';
     ctx.font = '12px system-ui';
     ctx.textAlign = 'center';
-    ctx.fillText(craftPrompt, canvasCenterX, canvasH - 58);
+    ctx.fillText('🪡 Press E to Craft', canvas.width / 2, canvas.height - 58);
     ctx.textAlign = 'left';
     ctx.restore();
   }
@@ -13211,10 +13087,10 @@ function render() {
   if (currentMap === 'beach') {
     ctx.save();
     ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    ctx.fillRect(canvasW - 120, 8, 110, 20);
+    ctx.fillRect(canvas.width - 120, 8, 110, 20);
     ctx.fillStyle = '#ffffff';
     ctx.font = '10px monospace';
-    ctx.fillText(`Pos: ${player.x}, ${player.y}`, canvasW - 115, 22);
+    ctx.fillText(`Pos: ${player.x}, ${player.y}`, canvas.width - 115, 22);
     ctx.restore();
   }
 
@@ -13224,10 +13100,10 @@ function render() {
   if (message) {
     ctx.font = '13px system-ui';
     const textWidth = ctx.measureText(message).width;
-    const boxW = Math.min(canvasW - 40, textWidth + 40);
+    const boxW = Math.min(canvas.width - 40, textWidth + 40);
     const boxH = 36;
-    const boxX = (canvasW - boxW) / 2;
-    const boxY = canvasH - boxH - 16;
+    const boxX = (canvas.width - boxW) / 2;
+    const boxY = canvas.height - boxH - 16;
 
     // Rounded rectangle background
     ctx.fillStyle = 'rgba(7,11,22,0.75)';
@@ -13245,7 +13121,7 @@ function render() {
     // Message text - centered
     ctx.fillStyle = '#f5f7ff';
     ctx.textAlign = 'center';
-    ctx.fillText(message, canvasCenterX, boxY + 23);
+    ctx.fillText(message, canvas.width / 2, boxY + 23);
     ctx.textAlign = 'left'; // Reset alignment
   }
 
@@ -13258,33 +13134,28 @@ function render() {
     const panelX = (canvas.width - panelW) / 2;
     const panelY = (canvas.height - panelH) / 2;
 
-    // Dim background
-    ctx.fillStyle = UI.dimBg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Panel background
-    ctx.fillStyle = UI.panelBg;
+    // background
+    ctx.fillStyle = 'rgba(6, 12, 26, 0.94)';
     ctx.fillRect(panelX, panelY, panelW, panelH);
 
-    // Border
-    ctx.strokeStyle = UI.borderColor;
-    ctx.lineWidth = UI.borderWidth;
+    // border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.lineWidth = 2;
     ctx.strokeRect(panelX + 0.5, panelY + 0.5, panelW - 1, panelH - 1);
 
-    // Header bar
-    ctx.fillStyle = UI.headerBg;
+    // header bar
+    ctx.fillStyle = 'rgba(18, 32, 64, 0.95)';
     ctx.fillRect(panelX, panelY, panelW, 40);
 
-    // Title
-    ctx.fillStyle = UI.textPrimary;
+    // title
+    ctx.fillStyle = '#f5f7ff';
     ctx.font = '18px system-ui';
     ctx.fillText('Inventory', panelX + 20, panelY + 26);
 
-    // Hint text
-    ctx.fillStyle = UI.textSecondary;
+    // small hint text
+    ctx.fillStyle = '#a9b3cd';
     ctx.font = '10px system-ui';
-    const isMobile = isCoarsePointer || showOverlayMode;
-    ctx.fillText(isMobile ? 'Tap tabs to filter' : 'I/Esc: Close | ←/→: Filter', panelX + panelW - 145, panelY + 26);
+    ctx.fillText('I/Esc: Close | ←/→: Filter', panelX + panelW - 145, panelY + 26);
 
     // --- FILTER TABS ---
     const filterY = panelY + 44;
@@ -13402,7 +13273,7 @@ function render() {
           
           ctx.fillStyle = item.color;
           ctx.beginPath();
-          ctx.arc(itemX + 8, itemY - 3, 4, 0, TAU);
+          ctx.arc(itemX + 8, itemY - 3, 4, 0, Math.PI * 2);
           ctx.fill();
           ctx.fillStyle = '#a9b3cd';
           ctx.font = '10px system-ui';
@@ -13415,7 +13286,7 @@ function render() {
         items.forEach(item => {
           ctx.fillStyle = item.color;
           ctx.beginPath();
-          ctx.arc(panelX + 28, currentY - 3, 5, 0, TAU);
+          ctx.arc(panelX + 28, currentY - 3, 5, 0, Math.PI * 2);
           ctx.fill();
           ctx.fillStyle = '#a9b3cd';
           ctx.font = '11px system-ui';
@@ -13465,7 +13336,7 @@ function render() {
 
     ctx.fillStyle = '#f4c945';
     ctx.beginPath();
-    ctx.arc(panelX + 28, currentY - 3, 5, 0, TAU);
+    ctx.arc(panelX + 28, currentY - 3, 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#a9b3cd';
     ctx.font = '12px system-ui';
@@ -13487,35 +13358,37 @@ function render() {
     const menuY = isMobile ? 5 : (canvas.height - menuH) / 2;
 
     // Dim background
-    ctx.fillStyle = UI.dimBg;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Panel background
-    ctx.fillStyle = UI.panelBg;
+    ctx.fillStyle = 'rgba(6, 12, 26, 0.95)';
     ctx.fillRect(menuX, menuY, menuW, menuH);
 
     // Border
-    ctx.strokeStyle = UI.borderColor;
-    ctx.lineWidth = UI.borderWidth;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.lineWidth = 2;
     ctx.strokeRect(menuX + 0.5, menuY + 0.5, menuW - 1, menuH - 1);
 
-    // Header bar - crafting themed
+    // Header bar
     ctx.fillStyle = 'rgba(80, 50, 40, 0.9)';
     ctx.fillRect(menuX, menuY, menuW, 40);
 
     // Title
-    ctx.fillStyle = UI.textPrimary;
+    ctx.fillStyle = '#f5f7ff';
     ctx.font = isMobile ? '14px system-ui' : '18px system-ui';
     ctx.fillText('🧶 Crafting', menuX + 12, menuY + 26);
 
-    // Controls hint
-    ctx.fillStyle = UI.textSecondary;
+    // Controls hint (desktop only)
     if (!isMobile) {
+      ctx.fillStyle = '#a9b3cd';
       ctx.font = '10px system-ui';
       ctx.fillText('↑↓ Select | E Craft | Esc Close | I Inventory', menuX + menuW - 230, menuY + 26);
     } else {
+      // Mobile hint
+      ctx.fillStyle = '#a9b3cd';
       ctx.font = '8px system-ui';
-      ctx.fillText('▲▼ Sel | Tap: Craft', menuX + menuW - 95, menuY + 26);
+      ctx.fillText('▲▼ Sel | Act: Craft', menuX + menuW - 95, menuY + 26);
     }
 
     // Calculate visible area for scrolling
@@ -13561,7 +13434,7 @@ function render() {
       // Recipe color dot
       ctx.fillStyle = canAfford ? recipe.color : '#555';
       ctx.beginPath();
-      ctx.arc(menuX + (isMobile ? 16 : 22), rowY + recipeHeight / 2 - 1, isMobile ? 4 : 5, 0, TAU);
+      ctx.arc(menuX + (isMobile ? 16 : 22), rowY + recipeHeight / 2 - 1, isMobile ? 4 : 5, 0, Math.PI * 2);
       ctx.fill();
 
       // Recipe name + price on same line for mobile
@@ -13690,12 +13563,7 @@ function render() {
 // MAIN LOOP
 // =========================
 // #region MAIN LOOP
-let frameTime = 0;  // Cached timestamp for this frame (optimization)
-
 function loop() {
-  // Cache timestamp for this frame (avoid multiple Date.now() calls)
-  frameTime = Date.now();
-  
   // Update animation time for tile effects
   animationTime += 0.05;
   
