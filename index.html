@@ -281,6 +281,17 @@
       -ms-user-select:none;
       user-select:none;
       -webkit-touch-callout:none;
+      -webkit-tap-highlight-color:transparent;
+    }
+
+    .touch-controls *,
+    .touch-floating {
+      -webkit-user-select:none;
+      -moz-user-select:none;
+      -ms-user-select:none;
+      user-select:none;
+      -webkit-touch-callout:none;
+      -webkit-tap-highlight-color:transparent;
     }
 
     .dpad {
@@ -295,8 +306,6 @@
     .dpad span {
       width:36px;
       height:36px;
-      -webkit-user-select:none;
-      user-select:none;
     }
 
     .touch-controls button {
@@ -308,14 +317,9 @@
       color:rgba(255,255,255,0.7);
       font-size:14px;
       cursor:pointer;
-      touch-action:none;
+      touch-action:manipulation;
       pointer-events:auto;
       backdrop-filter:blur(4px);
-      -webkit-user-select:none;
-      -moz-user-select:none;
-      -ms-user-select:none;
-      user-select:none;
-      -webkit-touch-callout:none;
     }
 
     .touch-actions {
@@ -1530,11 +1534,25 @@ function updateTouchControlsVisibility() {
 window.addEventListener('resize', updateTouchControlsVisibility);
 updateTouchControlsVisibility();
 
-// Prevent long-press context menu on touch controls (stops copy/search popup)
-if (touchControlsNode) {
-  touchControlsNode.addEventListener('contextmenu', (e) => e.preventDefault());
-  touchControlsNode.addEventListener('selectstart', (e) => e.preventDefault());
+// Prevent long-press context menu and text selection on touch controls
+function preventTouchSelection(element) {
+  if (!element) return;
+  element.addEventListener('contextmenu', (e) => e.preventDefault(), { passive: false });
+  element.addEventListener('selectstart', (e) => e.preventDefault(), { passive: false });
+  // Additional prevention for Android Chrome
+  element.addEventListener('touchstart', (e) => {
+    // Don't prevent default here as it breaks touch response, just stop propagation for selection
+  }, { passive: true });
 }
+
+// Apply to main touch controls container and all its children
+if (touchControlsNode) {
+  preventTouchSelection(touchControlsNode);
+  touchControlsNode.querySelectorAll('*').forEach(preventTouchSelection);
+}
+// Apply to floating buttons
+preventTouchSelection(document.getElementById('touch-inventory'));
+preventTouchSelection(document.getElementById('touch-options'));
 
 function setTouchDirection(dir, pressed) {
   if (!(dir in touchDirections)) return;
