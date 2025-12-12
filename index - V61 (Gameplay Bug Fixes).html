@@ -348,17 +348,6 @@
       display:block;
     }
 
-    /* V62: Build button for mobile - hidden until player has materials */
-    #touch-build {
-      display:none;
-    }
-
-    #touch-build.visible {
-      display:block;
-      background: rgba(139, 90, 43, 0.6) !important;
-      border-color: rgba(180, 120, 60, 0.8) !important;
-    }
-
     @media (pointer: coarse) {
       body {
         padding-top:30px;
@@ -549,7 +538,6 @@
         <button type="button" id="touch-action">Interact</button>
         <button type="button" id="touch-gift">Gift</button>
         <button type="button" id="touch-pickup">Pickup</button>
-        <button type="button" id="touch-build">Build</button>
         <button type="button" id="touch-back">Back</button>
       </div>
     </div>
@@ -637,42 +625,6 @@ const ZONE_DISPLAY_NAMES = {
 function getZoneDisplayName(mapName) {
   return ZONE_DISPLAY_NAMES[mapName] || mapName;
 }
-
-// =========================
-// V62: WAKE LOCK (prevent phone standby during gameplay)
-// =========================
-let wakeLock = null;
-
-async function requestWakeLock() {
-  if (!('wakeLock' in navigator)) return;
-  try {
-    wakeLock = await navigator.wakeLock.request('screen');
-    wakeLock.addEventListener('release', () => {
-      console.log('Wake Lock released');
-    });
-    console.log('Wake Lock acquired - screen will stay on');
-  } catch (err) {
-    // Wake lock request failed - usually means page is not visible
-    console.log('Wake Lock unavailable:', err.message);
-  }
-}
-
-// Re-acquire wake lock when page becomes visible again
-document.addEventListener('visibilitychange', async () => {
-  if (wakeLock !== null && document.visibilityState === 'visible') {
-    await requestWakeLock();
-  }
-});
-
-// Request wake lock on first user interaction
-function initWakeLock() {
-  requestWakeLock();
-  document.removeEventListener('click', initWakeLock);
-  document.removeEventListener('touchstart', initWakeLock);
-}
-document.addEventListener('click', initWakeLock, { once: true });
-document.addEventListener('touchstart', initWakeLock, { once: true });
-
 const SHEAR_VOLUME_MULTIPLIER = 0.8;
 const FIRE_VOLUME_MULTIPLIER = 0.55;
 const MUSIC_INTERIOR_SCALE = 0.55;
@@ -1442,7 +1394,6 @@ const touchDirButtons = document.querySelectorAll('[data-dir]');
 const touchActionButton = document.getElementById('touch-action');
 const touchGiftButton = document.getElementById('touch-gift');
 const touchPickupButton = document.getElementById('touch-pickup');
-const touchBuildButton = document.getElementById('touch-build');  // V62: Build button
 const touchInventoryButton = document.getElementById('touch-inventory');
 const touchBackButton = document.getElementById('touch-back');
 const touchOptionsButton = document.getElementById('touch-options');
@@ -1825,33 +1776,6 @@ bindPointerButton(touchGiftButton, () => {
 bindPointerButton(touchPickupButton, () => {
   tryPickupOrDropAnimal();
 }, null);
-
-// V62: Build button - toggle build mode on mobile
-bindPointerButton(touchBuildButton, () => {
-  const hasMaterials = (inventory.fencing || 0) > 0 || (inventory.gate || 0) > 0;
-  if (hasMaterials) {
-    toggleBuildMode();
-    if (touchBuildButton) {
-      touchBuildButton.textContent = buildModeActive ? 'Exit' : 'Build';
-    }
-  } else {
-    showMessage("No building materials! Visit Barnaby's Farm Shop.");
-  }
-}, null);
-
-// V62: Function to show/hide build button based on inventory
-function updateTouchBuildButton() {
-  if (!touchBuildButton) return;
-  const hasMaterials = (inventory.fencing || 0) > 0 || (inventory.gate || 0) > 0;
-  const shouldShow = hasMaterials && currentMap === 'overworld';
-  
-  if (shouldShow || buildModeActive) {
-    touchBuildButton.classList.add('visible');
-    touchBuildButton.textContent = buildModeActive ? 'Exit' : 'Build';
-  } else {
-    touchBuildButton.classList.remove('visible');
-  }
-}
 
 bindPointerButton(touchInventoryButton, () => {
   if (craftingMenuOpen) {
@@ -10749,9 +10673,6 @@ function update() {
   
   // Update purchased animals
   updatePurchasedAnimals();
-  
-  // V62: Update touch build button visibility
-  updateTouchBuildButton();
   
   // Update fishing mini-game
   updateFishing();

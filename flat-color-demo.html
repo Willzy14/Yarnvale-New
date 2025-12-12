@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yarnvale - Flat Color Graphics Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #2a2a2a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            color: #fff;
+        }
+        h1 {
+            margin: 10px 0;
+        }
+        canvas {
+            border: 2px solid #555;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        .info {
+            margin-top: 10px;
+            text-align: center;
+            max-width: 800px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Flat Color Graphics Demo</h1>
+    <canvas id="demoCanvas" width="800" height="600"></canvas>
+    <div class="info">
+        <p>This demo shows code-drawn flat-color tiles: grass with texture, dirt paths, trees, bushes, fences, water, flowers, and a simple building.</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('demoCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const TILE = 32;
+
+        // Draw grass tile with texture
+        function drawGrass(x, y) {
+            ctx.fillStyle = '#5a8f3a';
+            ctx.fillRect(x, y, TILE, TILE);
+            
+            // Add texture speckles
+            ctx.fillStyle = '#4a7f2a';
+            for (let i = 0; i < 8; i++) {
+                const sx = x + Math.floor(Math.random() * TILE);
+                const sy = y + Math.floor(Math.random() * TILE);
+                ctx.fillRect(sx, sy, 2, 2);
+            }
+        }
+
+        // Draw dirt path
+        function drawPath(x, y) {
+            ctx.fillStyle = '#8b6f47';
+            ctx.fillRect(x, y, TILE, TILE);
+            
+            // Add texture
+            ctx.fillStyle = '#7a5f37';
+            for (let i = 0; i < 6; i++) {
+                const sx = x + Math.floor(Math.random() * TILE);
+                const sy = y + Math.floor(Math.random() * TILE);
+                ctx.fillRect(sx, sy, 3, 3);
+            }
+        }
+
+        // Draw water
+        function drawWater(x, y) {
+            ctx.fillStyle = '#4a90e2';
+            ctx.fillRect(x, y, TILE, TILE);
+            
+            // Add wave highlights
+            ctx.fillStyle = '#6aa8f2';
+            ctx.fillRect(x + 4, y + 8, 8, 2);
+            ctx.fillRect(x + 16, y + 20, 10, 2);
+        }
+
+        // Draw tilled soil
+        function drawSoil(x, y) {
+            ctx.fillStyle = '#5d4a37';
+            ctx.fillRect(x, y, TILE, TILE);
+            
+            // Draw furrows
+            ctx.fillStyle = '#4a3a27';
+            for (let i = 0; i < 4; i++) {
+                ctx.fillRect(x + 2, y + i * 8, TILE - 4, 3);
+            }
+        }
+
+        // Draw tree
+        function drawTree(x, y) {
+            // Trunk
+            ctx.fillStyle = '#6b4423';
+            ctx.fillRect(x + 12, y + 16, 8, 16);
+            
+            // Canopy (3 circles for foliage)
+            ctx.fillStyle = '#2d5a1e';
+            ctx.beginPath();
+            ctx.arc(x + 16, y + 12, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#3a6b2a';
+            ctx.beginPath();
+            ctx.arc(x + 10, y + 16, 10, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(x + 22, y + 16, 10, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Draw bush
+        function drawBush(x, y) {
+            ctx.fillStyle = '#3a6b2a';
+            ctx.beginPath();
+            ctx.arc(x + 10, y + 20, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(x + 22, y + 20, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#4a7f3a';
+            ctx.beginPath();
+            ctx.arc(x + 16, y + 16, 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Draw fence
+        function drawFence(x, y, horizontal = true) {
+            ctx.fillStyle = '#8b6f47';
+            if (horizontal) {
+                // Posts
+                ctx.fillRect(x + 4, y + 12, 4, 12);
+                ctx.fillRect(x + 24, y + 12, 4, 12);
+                // Rails
+                ctx.fillRect(x, y + 14, TILE, 3);
+                ctx.fillRect(x, y + 20, TILE, 3);
+            } else {
+                // Vertical fence
+                ctx.fillRect(x + 12, y + 4, 4, 12);
+                ctx.fillRect(x + 12, y + 20, 4, 12);
+                ctx.fillRect(x + 14, y, 3, TILE);
+                ctx.fillRect(x + 20, y, 3, TILE);
+            }
+        }
+
+        // Draw flower
+        function drawFlower(x, y, color) {
+            // Stem
+            ctx.fillStyle = '#4a7f2a';
+            ctx.fillRect(x + 15, y + 18, 2, 10);
+            
+            // Petals
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x + 16, y + 16, 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Center
+            ctx.fillStyle = '#f4d03f';
+            ctx.beginPath();
+            ctx.arc(x + 16, y + 16, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Draw simple building
+        function drawBuilding(x, y, w, h) {
+            // Walls
+            ctx.fillStyle = '#c9a967';
+            ctx.fillRect(x, y + 20, w, h - 20);
+            
+            // Roof
+            ctx.fillStyle = '#8b4513';
+            ctx.beginPath();
+            ctx.moveTo(x - 10, y + 20);
+            ctx.lineTo(x + w / 2, y);
+            ctx.lineTo(x + w + 10, y + 20);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Door
+            ctx.fillStyle = '#6b4423';
+            ctx.fillRect(x + w / 2 - 10, y + h - 20, 20, 20);
+            
+            // Windows
+            ctx.fillStyle = '#87ceeb';
+            ctx.fillRect(x + 15, y + 40, 15, 15);
+            ctx.fillRect(x + w - 30, y + 40, 15, 15);
+        }
+
+        // Clear canvas
+        ctx.fillStyle = '#87ceeb';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw grass field
+        for (let ty = 0; ty < 18; ty++) {
+            for (let tx = 0; tx < 25; tx++) {
+                drawGrass(tx * TILE, ty * TILE);
+            }
+        }
+
+        // Draw dirt path
+        for (let i = 0; i < 20; i++) {
+            drawPath(i * TILE, 9 * TILE);
+        }
+        for (let i = 0; i < 5; i++) {
+            drawPath(10 * TILE, (5 + i) * TILE);
+        }
+
+        // Draw water stream
+        for (let i = 0; i < 18; i++) {
+            drawWater(22 * TILE, i * TILE);
+            drawWater(23 * TILE, i * TILE);
+        }
+
+        // Draw farm plots
+        for (let ty = 0; ty < 3; ty++) {
+            for (let tx = 0; tx < 4; tx++) {
+                drawSoil(tx * TILE, (ty + 2) * TILE);
+            }
+        }
+
+        // Draw trees
+        drawTree(5 * TILE, 1 * TILE);
+        drawTree(8 * TILE, 2 * TILE);
+        drawTree(15 * TILE, 1 * TILE);
+        drawTree(18 * TILE, 3 * TILE);
+        drawTree(3 * TILE, 12 * TILE);
+        drawTree(6 * TILE, 14 * TILE);
+
+        // Draw bushes
+        drawBush(12 * TILE, 5 * TILE);
+        drawBush(14 * TILE, 6 * TILE);
+        drawBush(16 * TILE, 5 * TILE);
+
+        // Draw fences
+        for (let i = 0; i < 5; i++) {
+            drawFence(i * TILE, 5 * TILE, true);
+        }
+
+        // Draw flowers
+        drawFlower(7 * TILE, 11 * TILE, '#ff69b4');
+        drawFlower(8 * TILE, 11 * TILE, '#ff0000');
+        drawFlower(9 * TILE, 12 * TILE, '#ffff00');
+        drawFlower(7 * TILE, 13 * TILE, '#ff69b4');
+        drawFlower(9 * TILE, 13 * TILE, '#9370db');
+
+        // Draw building
+        drawBuilding(12 * TILE, 11 * TILE, 96, 96);
+
+        console.log('Flat-color demo rendered!');
+    </script>
+</body>
+</html>
