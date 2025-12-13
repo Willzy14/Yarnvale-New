@@ -893,7 +893,14 @@ const artAssets = {
   peacockFeatherMaterial: createImageAsset('Yarnvale Assets/Art/Items/Materials/Peacock Feather.png'),
   crystalShard: createImageAsset('Yarnvale Assets/Art/Items/Materials/Crystal Shard.png'),
   goldCoin: createImageAsset('Yarnvale Assets/Art/Items/Materials/Coin.png'),
-  luxuryYarnMaterial: createImageAsset('Yarnvale Assets/Art/Items/Materials/Luxury Yarn.png')
+  luxuryYarnMaterial: createImageAsset('Yarnvale Assets/Art/Items/Materials/Luxury Yarn.png'),
+  // Buildings
+  cottageBuilding: createImageAsset('Yarnvale Assets/Art/Buildings/Cottage.png'),
+  dyeShopBuilding: createImageAsset('Yarnvale Assets/Art/Buildings/Dye Shop.png'),
+  farmShopBuilding: createImageAsset('Yarnvale Assets/Art/Buildings/Farm Shop.png'),
+  marketStallBuilding: createImageAsset('Yarnvale Assets/Art/Buildings/Market Stall.png'),
+  tailorShopBuilding: createImageAsset('Yarnvale Assets/Art/Buildings/Tailor Shop.png'),
+  wellBuilding: createImageAsset('Yarnvale Assets/Art/Buildings/Well.png')
 };
 
 // NPC Portraits (for dialog only)
@@ -13190,6 +13197,35 @@ function drawPeacock() {
   ctx.stroke();
 }
 
+// Draw building sprites on top of tiles
+function drawBuildings() {
+  // Building sprite definitions: map, tile position, asset key, size (in tiles)
+  const buildingSprites = [
+    // Overworld - Cottage at door position, offset up and left to cover the building area
+    { map: 'overworld', x: 7, y: 2, asset: 'cottageBuilding', width: 5, height: 4 },
+    // Village - Market stall, Well, Dye Shop, Tailor Shop
+    { map: 'village', x: 8, y: 2, asset: 'marketStallBuilding', width: 3, height: 3 },
+    { map: 'village', x: 4, y: 4, asset: 'wellBuilding', width: 2, height: 2 },
+    { map: 'village', x: 12, y: 4, asset: 'wellBuilding', width: 2, height: 2 },
+    // Farm shop on overworld
+    { map: 'overworld', x: 1, y: 7, asset: 'farmShopBuilding', width: 3, height: 3 }
+  ];
+
+  buildingSprites.forEach(building => {
+    if (currentMap !== building.map) return;
+    
+    const asset = artAssets[building.asset];
+    if (!asset || !asset.loaded || asset.error || !asset.image) return;
+    
+    const px = building.x * TILE_SIZE;
+    const py = building.y * TILE_SIZE;
+    const drawWidth = building.width * TILE_SIZE;
+    const drawHeight = building.height * TILE_SIZE;
+    
+    ctx.drawImage(asset.image, px, py, drawWidth, drawHeight);
+  });
+}
+
 function drawFurniture() {
   if (currentMap === fireplaceSpot.map) {
     const px = fireplaceSpot.x * TILE_SIZE;
@@ -13496,6 +13532,7 @@ function render() {
     }
   }
 
+  drawBuildings();
   drawFurniture();
 
   drawInteractableGlows(interactables);

@@ -15,7 +15,7 @@ A comprehensive checklist of assets for the game. Tick off items as they're adde
 | Props/Furniture | 14/14 | 14 | ✅ 100% |
 | Crafted Items | 15/15 | 15 | ✅ 100% |
 | Materials | 14/14 | 14 | ✅ 100% |
-| Buildings | 0/5 | 5 | ⬜ 0% |
+| Buildings | 6/6 | 6 | ✅ 100% |
 | Weather/Effects | 0/3 | 3 | ⬜ 0% |
 | UI Elements | 0/4 | 4 | ⬜ 0% |
 | Additional Audio | 0/6 | 6 | ⬜ 0% |
@@ -24,39 +24,30 @@ A comprehensive checklist of assets for the game. Tick off items as they're adde
 
 ## 🎯 PRIORITY ORDER FOR REMAINING ASSETS
 
-### Priority 1: Buildings (High Visual Impact)
-These are the most visible missing elements - players see them constantly.
-
-1. **Cottage.png** - Player's home exterior (you see this every time you exit)
-2. **Market_Stall.png** - Central village feature 
-3. **Well.png** - Village landmark
-4. **Dye_Shop.png** - Iris's shop (functional location)
-5. **Tailor_Shop.png** - Theo's shop (functional location)
-
-### Priority 2: UI Polish (Quality of Life)
+### Priority 1: UI Polish (Quality of Life)
 Makes menus feel more polished.
 
-6. **Heart_Full.png** - Friendship hearts (seen often in dialogue)
-7. **Heart_Empty.png** - Empty friendship hearts
-8. **Button_Frame.png** - Menu button styling
-9. **Panel_Background.png** - Menu panel texture
+1. **Heart_Full.png** - Friendship hearts (seen often in dialogue)
+2. **Heart_Empty.png** - Empty friendship hearts
+3. **Button_Frame.png** - Menu button styling
+4. **Panel_Background.png** - Menu panel texture
 
-### Priority 3: Weather Effects (Atmosphere)
+### Priority 2: Weather Effects (Atmosphere)
 Adds life to the world.
 
-10. **Rain_Particle.png** - For rainy days
-11. **Snow_Particle.png** - For snowy mountain
-12. **Sparkle.png** - Magic/Crystal Loom effects
+5. **Rain_Particle.png** - For rainy days
+6. **Snow_Particle.png** - For snowy mountain
+7. **Sparkle.png** - Magic/Crystal Loom effects
 
-### Priority 4: Additional Audio (Immersion)
+### Priority 3: Additional Audio (Immersion)
 Sound design polish.
 
-13. **Ocean_Waves.wav** - Beach ambience
-14. **Forest_Birds.wav** - Forest/overworld ambience
-15. **Cave_Drip.wav** - Cave atmosphere
-16. **Door_Open.wav** - Building transitions
-17. **Collect_Item.wav** - Foraging feedback
-18. **Quest_Complete.wav** - Achievement moment
+8. **Ocean_Waves.wav** - Beach ambience
+9. **Forest_Birds.wav** - Forest/overworld ambience
+10. **Cave_Drip.wav** - Cave atmosphere
+11. **Door_Open.wav** - Building transitions
+12. **Collect_Item.wav** - Foraging feedback
+13. **Quest_Complete.wav** - Achievement moment
 
 ---
 
@@ -146,18 +137,19 @@ All material icons are in the game!
 - [x] `Crystal Shard.png` - Glowing crystal
 - [x] `Coin.png` - Gold currency
 
+### Buildings (6/6 Complete!)
+All building sprites are in the game!
+
+- [x] `Cottage.png` - Player's home exterior
+- [x] `Dye Shop.png` - Iris's colorful shop
+- [x] `Farm Shop.png` - Farm animal shop
+- [x] `Market Stall.png` - Village market stall
+- [x] `Tailor Shop.png` - Theo's elegant shop
+- [x] `Well.png` - Stone village well
+
 ---
 
 ## ⬜ REMAINING ASSETS TO CREATE
-
-### Buildings (0/5) - 🔴 HIGH PRIORITY
-These will have the biggest visual impact!
-
-- [ ] `Cottage.png` - Player's home exterior (64x64 or 96x96)
-- [ ] `Market_Stall.png` - Village market stall
-- [ ] `Well.png` - Stone village well
-- [ ] `Dye_Shop.png` - Iris's colorful shop
-- [ ] `Tailor_Shop.png` - Theo's elegant shop
 
 ### Weather/Effects (0/3) - 🟡 MEDIUM PRIORITY
 Small particle sprites for atmosphere.
@@ -197,7 +189,7 @@ Yarnvale Assets/
 │   ├── Items/
 │   │   ├── Crafted/       ✅ COMPLETE (15 items)
 │   │   └── Materials/     ✅ COMPLETE (14 materials)
-│   ├── Buildings/         ⬜ TODO (create folder, 5 needed)
+│   ├── Buildings/         ✅ COMPLETE (6 buildings)
 │   ├── UI/                ⬜ TODO (create folder, 4 needed)
 │   ├── Effects/           ⬜ TODO (create folder, 3 needed)
 │   ├── Grass/             ✅ EXISTS
