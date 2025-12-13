@@ -816,17 +816,162 @@ const artAssets = {
     columns: 3,
     frameHeight: 332
   }),
-  goatLeft: createImageAsset('Yarnvale Assets/Animals/Goat Left.png', {
+  goatLeft: createImageAsset('Yarnvale Assets/Art/Animals/Goat Left.png', {
     frameWidth: 128,
     frameHeight: 128,
     columns: 1
   }),
-  goatRight: createImageAsset('Yarnvale Assets/Animals/Goat Right.png', {
+  goatRight: createImageAsset('Yarnvale Assets/Art/Animals/Goat Right.png', {
     frameWidth: 128,
     frameHeight: 128,
     columns: 1
-  })
+  }),
+  shavedLlamaLeft: createImageAsset('Yarnvale Assets/Art/Animals/Shaved Llama Left.png', {
+    frameWidth: 128, frameHeight: 128, columns: 1
+  }),
+  shavedLlamaRight: createImageAsset('Yarnvale Assets/Art/Animals/Shaved Llama Right.png', {
+    frameWidth: 128, frameHeight: 128, columns: 1
+  }),
+  sheepForward: createImageAsset('Yarnvale Assets/Art/Animals/Sheep Forward.png', {
+    frameWidth: 128, frameHeight: 128, columns: 1
+  }),
+  sheepLeft: createImageAsset('Yarnvale Assets/Art/Animals/Sheep Left.png', {
+    frameWidth: 128, frameHeight: 128, columns: 1
+  }),
+  sheepRight: createImageAsset('Yarnvale Assets/Art/Animals/Sheep Right.png', {
+    frameWidth: 128, frameHeight: 128, columns: 1
+  }),
+  peacockFeather: createImageAsset('Yarnvale Assets/Art/Animals/Peacock Feather.png', {
+    frameWidth: 64, frameHeight: 64, columns: 1
+  }),
+  // Props
+  bench: createImageAsset('Yarnvale Assets/Art/Props/Bench.png'),
+  bridge: createImageAsset('Yarnvale Assets/Art/Props/Bridge.png'),
+  chair: createImageAsset('Yarnvale Assets/Art/Props/Chair.png'),
+  fire: createImageAsset('Yarnvale Assets/Art/Props/Fire.png'),
+  lantern: createImageAsset('Yarnvale Assets/Art/Props/Lantern.png'),
+  signPost: createImageAsset('Yarnvale Assets/Art/Props/Sign Post.png'),
+  table: createImageAsset('Yarnvale Assets/Art/Props/Table.png'),
+  barrel: createImageAsset('Yarnvale Assets/Art/Props/Barrel.png'),
+  bookCase: createImageAsset('Yarnvale Assets/Art/Props/Book Case.png'),
+  bed: createImageAsset('Yarnvale Assets/Art/Props/Bed.png'),
+  blanket: createImageAsset('Yarnvale Assets/Art/Props/Blanket.png'),
+  crate: createImageAsset('Yarnvale Assets/Art/Props/Crate.png'),
+  chest: createImageAsset('Yarnvale Assets/Art/Props/Chest.png'),
+  // Crafted Items
+  luxeryGloves: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Luxery Gloves.png'),
+  luxeryHat: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Luxery Hat.png'),
+  luxeryScarf: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Luxery Scarf.png'),
+  luxerySocks: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Luxery Socks.png'),
+  luxeryYarn: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Luxery Yarn.png'),
+  luxeryMittens: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Luxery Mittens.png'),
+  mittens: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Mittens.png'),
+  socks: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Socks.png'),
+  spinningWheel: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Spinning Wheel.png'),
+  hat: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Hat.png'),
+  scarf: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Scarf.png'),
+  blanketItem: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Blanket.png'),
+  // Crafted props (if used as items)
+  benchItem: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Bench.png'),
+  bridgeItem: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Bridge.png'),
+  chairItem: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Chair.png'),
+  fireItem: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Fire.png'),
+  lanternItem: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Lantern.png'),
+  signPostItem: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Sign Post.png'),
+  tableItem: createImageAsset('Yarnvale Assets/Art/Items/Crafted/Table.png'),
+  // Materials
+  amberDye: createImageAsset('Yarnvale Assets/Art/Items/Materials/Amber Dye.png'),
+  blueFlower: createImageAsset('Yarnvale Assets/Art/Items/Materials/Blue Flower.png'),
+  frostBlossom: createImageAsset('Yarnvale Assets/Art/Items/Materials/Frost Blossom.png'),
+  mushroom: createImageAsset('Yarnvale Assets/Art/Items/Materials/Mushroom.png'),
+  redBerries: createImageAsset('Yarnvale Assets/Art/Items/Materials/Red Berries.png'),
+  shell: createImageAsset('Yarnvale Assets/Art/Items/Materials/Shell.png'),
+  tealDye: createImageAsset('Yarnvale Assets/Art/Items/Materials/Teal Dye.png'),
+  treeResin: createImageAsset('Yarnvale Assets/Art/Items/Materials/Tree Resin.png'),
+  goatFur: createImageAsset('Yarnvale Assets/Art/Items/Materials/Goat Fur.png'),
+  wool: createImageAsset('Yarnvale Assets/Art/Items/Materials/Wool.png'),
+  peacockFeatherMaterial: createImageAsset('Yarnvale Assets/Art/Items/Materials/Peacock Feather.png'),
+  crystalShard: createImageAsset('Yarnvale Assets/Art/Items/Materials/Crystal Shard.png'),
+  goldCoin: createImageAsset('Yarnvale Assets/Art/Items/Materials/Coin.png'),
+  luxuryYarnMaterial: createImageAsset('Yarnvale Assets/Art/Items/Materials/Luxury Yarn.png')
 };
+
+// NPC Portraits (for dialog only)
+const npcPortraits = {
+  felixTrader: createImageAsset("Yarnvale Assets/Art/NPC's/Felix Trader.png"),
+  grannyWillow: createImageAsset("Yarnvale Assets/Art/NPC's/Granny Willow.png"),
+  irisDyer: createImageAsset("Yarnvale Assets/Art/NPC's/Iris Dyer.png"),
+  masterTheo: createImageAsset("Yarnvale Assets/Art/NPC's/Master Theo.png"),
+  miraGardener: createImageAsset("Yarnvale Assets/Art/NPC's/Mira Gardener.png"),
+  oldMosswart: createImageAsset("Yarnvale Assets/Art/NPC's/Old Mosswart.png"),
+  thomShepherd: createImageAsset("Yarnvale Assets/Art/NPC's/Thom Shepherd.png"),
+  wonderingWilla: createImageAsset("Yarnvale Assets/Art/NPC's/Wondering Willa.png")
+};
+
+// Helper function to find art asset for an item key
+function getItemArtAsset(itemKey) {
+  // Direct match
+  if (artAssets[itemKey] && artAssets[itemKey].loaded && !artAssets[itemKey].error) {
+    return artAssets[itemKey];
+  }
+  // Try with 'Item' suffix
+  if (artAssets[itemKey + 'Item'] && artAssets[itemKey + 'Item'].loaded && !artAssets[itemKey + 'Item'].error) {
+    return artAssets[itemKey + 'Item'];
+  }
+  // Try with 'Material' suffix
+  if (artAssets[itemKey + 'Material'] && artAssets[itemKey + 'Material'].loaded && !artAssets[itemKey + 'Material'].error) {
+    return artAssets[itemKey + 'Material'];
+  }
+  // Item key mappings for variations
+  const keyMappings = {
+    // Luxury items (typo mapping - asset files use 'Luxery')
+    'luxuryMittens': 'luxeryMittens',
+    'luxuryScarf': 'luxeryScarf', 
+    'luxurySocks': 'luxerySocks',
+    'luxuryYarn': 'luxeryYarn',
+    'luxuryHat': 'luxeryHat',
+    // Materials
+    'berries': 'redBerries',
+    'wildFlower': 'blueFlower',
+    'resin': 'treeResin',
+    'frostbloom': 'frostBlossom',
+    'feather': 'peacockFeatherMaterial',
+    'yarn': 'luxuryYarnMaterial', 
+    'softFur': 'goatFur',
+    'gold': 'goldCoin',
+    // Crafted items
+    'scarf': 'scarf',
+    'blanket': 'blanketItem',
+    // Props as items
+    'bench': 'benchItem',
+    'bridge': 'bridgeItem', 
+    'chair': 'chairItem',
+    'fire': 'fireItem',
+    'lantern': 'lanternItem',
+    'signPost': 'signPostItem',
+    'table': 'tableItem',
+    // Dyes - direct mapping
+    'tealDye': 'tealDye',
+    'amberDye': 'amberDye',
+    // Animal products
+    'peacockFeather': 'peacockFeatherMaterial'
+  };
+  if (keyMappings[itemKey] && artAssets[keyMappings[itemKey]]) {
+    const mapped = artAssets[keyMappings[itemKey]];
+    if (mapped.loaded && !mapped.error) return mapped;
+  }
+  return null;
+}
+
+// Helper to draw item art at position, returns true if drawn
+function drawItemArt(itemKey, x, y, size = 20) {
+  const asset = getItemArtAsset(itemKey);
+  if (asset && asset.image && asset.loaded && !asset.error) {
+    ctx.drawImage(asset.image, x, y, size, size);
+    return true;
+  }
+  return false;
+}
 
 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 let audioContext = null;
@@ -4561,10 +4706,17 @@ function drawDyeShopUI() {
       ctx.fillRect(panelX + 8, y - 10, panelW - 16, 28);
     }
     
+    // Draw item art for input and output items
+    const inputHasArt = drawItemArt(trade.give, panelX + 12, y - 8, 18);
+    const outputHasArt = drawItemArt(trade.receive, panelX + 140, y - 8, 18);
+    
     // Trade info - bright white/yellow for readability
     ctx.fillStyle = canTrade ? '#ffffff' : '#aaaaaa';
     ctx.font = isSelected ? 'bold 11px system-ui' : '11px system-ui';
-    ctx.fillText(`${trade.giveAmount}x ${trade.give} → ${trade.receiveName}`, panelX + 16, y + 4);
+    const inputX = inputHasArt ? panelX + 34 : panelX + 16;
+    ctx.fillText(`${trade.giveAmount}x ${trade.give} →`, inputX, y + 4);
+    const outputX = outputHasArt ? panelX + 162 : panelX + 144;
+    ctx.fillText(`${trade.receiveName}`, outputX, y + 4);
     
     // Show current stock - bright green/red
     ctx.fillStyle = canTrade ? '#80ff80' : '#ff9090';
@@ -4672,10 +4824,14 @@ function drawTailorShopUI() {
       ctx.fillRect(panelX + 8, y - 8, panelW - 16, 20);
     }
     
+    // Draw item art
+    const hasArt = drawItemArt(item.id, panelX + 12, y - 6, 16);
+    
     // Item info
     ctx.fillStyle = canSell ? '#ffffff' : '#888888';
     ctx.font = '11px system-ui';
-    ctx.fillText(`${item.name}`, panelX + 16, y + 4);
+    const nameX = hasArt ? panelX + 32 : panelX + 16;
+    ctx.fillText(`${item.name}`, nameX, y + 4);
     
     // Price
     ctx.fillStyle = '#ffd700';
@@ -6083,16 +6239,24 @@ function drawOrderCard(order, x, y, width, selected) {
   ctx.arc(x + width - 12, y + 8, 5, 0, TAU);
   ctx.fill();
   
-  // Item icon and name
+  // Draw item art if available
+  const hasArt = drawItemArt(order.itemKey, x + 6, y + 4, 20);
+  
+  // Item icon and name (offset if has art)
   ctx.fillStyle = '#5c4033';
   ctx.font = '12px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText(`${order.icon} ${order.itemName} x${order.quantity}`, x + 8, y + 18);
+  const textX = hasArt ? x + 30 : x + 8;
+  if (hasArt) {
+    ctx.fillText(`${order.itemName} x${order.quantity}`, textX, y + 18);
+  } else {
+    ctx.fillText(`${order.icon} ${order.itemName} x${order.quantity}`, textX, y + 18);
+  }
   
   // From who
   ctx.font = '9px monospace';
   ctx.fillStyle = '#8b7355';
-  ctx.fillText(`From: ${getOrderGiverName(order.giver)}`, x + 8, y + 32);
+  ctx.fillText(`From: ${getOrderGiverName(order.giver)}`, textX, y + 32);
   
   // Rewards
   ctx.fillStyle = '#228b22';
@@ -7076,10 +7240,14 @@ function drawMerchantShopUI() {
       ctx.fillRect(panelX + 8, y - 12, panelW - 16, 22);
     }
     
+    // Draw item art
+    const hasArt = drawItemArt(item.id, panelX + 12, y - 10, 18);
+    
     // Item name and price
     ctx.fillStyle = isSelected ? '#ffdd44' : '#ffffff';
     ctx.font = isSelected ? 'bold 12px system-ui' : '12px system-ui';
-    ctx.fillText(`${item.name}`, panelX + 16, y);
+    const nameX = hasArt ? panelX + 34 : panelX + 16;
+    ctx.fillText(`${item.name}`, nameX, y);
     
     ctx.fillStyle = '#ffd700';
     ctx.textAlign = 'right';
@@ -8749,13 +8917,24 @@ function drawDialogueUI() {
   ctx.lineWidth = UI.borderWidth;
   ctx.strokeRect(panelX + 0.5, panelY + 0.5, panelW - 1, panelH - 1);
 
-  // Header with NPC name and color
+
+  // Header with NPC name, color, and portrait
   ctx.fillStyle = currentNPC.color;
   ctx.fillRect(panelX, panelY, panelW, 28);
 
+  // Draw portrait if available
+  let portraitKey = null;
+  if (currentNPC.id) {
+    // Try to match by id (lowercase, no spaces, remove special chars)
+    portraitKey = Object.keys(npcPortraits).find(key => key.toLowerCase().replace(/[^a-z]/g,"") === currentNPC.id.toLowerCase().replace(/[^a-z]/g,"") );
+  }
+  if (portraitKey && npcPortraits[portraitKey] && npcPortraits[portraitKey].image && npcPortraits[portraitKey].loaded && !npcPortraits[portraitKey].error) {
+    ctx.drawImage(npcPortraits[portraitKey].image, panelX + 8, panelY + 36, 64, 64);
+  }
+
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 14px system-ui';
-  ctx.fillText(currentNPC.name, panelX + 12, panelY + 19);
+  ctx.fillText(currentNPC.name, panelX + 82, panelY + 58);
 
   // Friendship hearts
   const hearts = Math.floor((friendship[currentNPC.id] || 0) / 20);
@@ -8767,10 +8946,10 @@ function drawDialogueUI() {
   }
   ctx.fillText(heartStr, panelX + panelW - 75, panelY + 19);
 
+
   // Dialogue text - show heart quest, request, or normal dialogue
   let text;
   let isHeartQuest = false;
-  
   // Priority 1: Active heart quest
   if (hasActiveHeartQuest(currentNPC.id)) {
     const step = getCurrentHeartQuestStep(currentNPC.id);
@@ -8797,28 +8976,26 @@ function drawDialogueUI() {
   }
   ctx.fillStyle = '#f5f7ff';
   ctx.font = '13px system-ui';
-  
   // Highlight request text in yellow
   if (currentNPC.request && currentNPC.requestItem) {
     ctx.fillStyle = '#ffdd88';
   }
-  
   // Word wrap
-  const maxWidth = panelW - 24;
+  const maxWidth = panelW - 100;
   const words = text.split(' ');
   let line = '';
   let lineY = panelY + 50;
   words.forEach(word => {
     const testLine = line + word + ' ';
     if (ctx.measureText(testLine).width > maxWidth) {
-      ctx.fillText(line, panelX + 12, lineY);
+      ctx.fillText(line, panelX + 82, lineY);
       line = word + ' ';
       lineY += 18;
     } else {
       line = testLine;
     }
   });
-  ctx.fillText(line, panelX + 12, lineY);
+  ctx.fillText(line, panelX + 82, lineY);
 
   // Options
   ctx.fillStyle = '#a9b3cd';
@@ -8866,23 +9043,29 @@ function drawGiftMenuUI() {
       scrollOffset = giftMenuSelection - maxVisible + 1;
     }
     
-    // Draw visible items
+    // Draw visible items with images if available
     for (let i = 0; i < items.length; i++) {
       if (i < scrollOffset || i >= scrollOffset + maxVisible) continue;
-      
       const visualIndex = i - scrollOffset;
       const drawY = panelY + 44 + visualIndex * itemHeight;
       const itemKey = items[i];
       const isSelected = i === giftMenuSelection;
-      
       if (isSelected) {
         ctx.fillStyle = 'rgba(100, 180, 255, 0.2)';
         ctx.fillRect(panelX + 4, drawY - 12, panelW - 8, 22);
       }
-      
-      ctx.fillStyle = isSelected ? '#ffffff' : '#a9b3cd';
-      ctx.font = '11px system-ui';
-      ctx.fillText(`${itemKey} (${inventory[itemKey]})`, panelX + 12, drawY);
+      // Try to find an art asset for this item
+      let asset = artAssets[itemKey] || artAssets[itemKey + 'Item'] || artAssets[itemKey + 'Material'];
+      if (asset && asset.image && asset.loaded && !asset.error) {
+        ctx.drawImage(asset.image, panelX + 12, drawY - 10, 20, 20);
+        ctx.fillStyle = isSelected ? '#ffffff' : '#a9b3cd';
+        ctx.font = '11px system-ui';
+        ctx.fillText(`${itemKey} (${inventory[itemKey]})`, panelX + 38, drawY + 5);
+      } else {
+        ctx.fillStyle = isSelected ? '#ffffff' : '#a9b3cd';
+        ctx.font = '11px system-ui';
+        ctx.fillText(`${itemKey} (${inventory[itemKey]})`, panelX + 12, drawY);
+      }
     }
     
     // V60: Scroll indicators
@@ -13618,26 +13801,34 @@ function render() {
           const itemX = panelX + 16 + col * colWidth;
           const itemY = currentY + row * rowHeight;
           
-          ctx.fillStyle = item.color;
-          ctx.beginPath();
-          ctx.arc(itemX + 8, itemY - 3, 4, 0, TAU);
-          ctx.fill();
+          // Try to draw item art
+          const hasArt = drawItemArt(item.key, itemX, itemY - 10, 16);
+          if (!hasArt) {
+            ctx.fillStyle = item.color;
+            ctx.beginPath();
+            ctx.arc(itemX + 8, itemY - 3, 4, 0, TAU);
+            ctx.fill();
+          }
           ctx.fillStyle = '#a9b3cd';
           ctx.font = '10px system-ui';
-          ctx.fillText(item.name, itemX + 16, itemY);
+          ctx.fillText(item.name, itemX + (hasArt ? 20 : 16), itemY);
           ctx.fillStyle = '#f5f7ff';
           ctx.fillText(`${inventory[item.key]}`, itemX + colWidth - 20, itemY);
         }
         currentY += Math.ceil(items.length / 2) * rowHeight + 8;
       } else {
         items.forEach(item => {
-          ctx.fillStyle = item.color;
-          ctx.beginPath();
-          ctx.arc(panelX + 28, currentY - 3, 5, 0, TAU);
-          ctx.fill();
+          // Try to draw item art
+          const hasArt = drawItemArt(item.key, panelX + 20, currentY - 12, 18);
+          if (!hasArt) {
+            ctx.fillStyle = item.color;
+            ctx.beginPath();
+            ctx.arc(panelX + 28, currentY - 3, 5, 0, TAU);
+            ctx.fill();
+          }
           ctx.fillStyle = '#a9b3cd';
           ctx.font = '11px system-ui';
-          ctx.fillText(item.name, panelX + 44, currentY);
+          ctx.fillText(item.name, panelX + (hasArt ? 44 : 44), currentY);
           ctx.fillStyle = '#f5f7ff';
           ctx.fillText(`${inventory[item.key]}`, panelX + panelW - 40, currentY);
           currentY += rowHeight;
@@ -13776,17 +13967,27 @@ function render() {
         ctx.fillRect(menuX + 4, rowY, 3, recipeHeight - 2);
       }
 
-      // Recipe color dot
-      ctx.fillStyle = canAfford ? recipe.color : '#555';
-      ctx.beginPath();
-      ctx.arc(menuX + (isMobile ? 16 : 22), rowY + recipeHeight / 2 - 1, isMobile ? 4 : 5, 0, TAU);
-      ctx.fill();
+      // Try to draw item art for the output item
+      const outputKey = Object.keys(recipe.outputs)[0];
+      const artSize = isMobile ? 18 : 24;
+      const artX = menuX + (isMobile ? 10 : 14);
+      const artY = rowY + (recipeHeight - artSize) / 2;
+      const hasArt = drawItemArt(outputKey, artX, artY, artSize);
+      
+      // Fallback to recipe color dot if no art
+      if (!hasArt) {
+        ctx.fillStyle = canAfford ? recipe.color : '#555';
+        ctx.beginPath();
+        ctx.arc(menuX + (isMobile ? 16 : 22), rowY + recipeHeight / 2 - 1, isMobile ? 4 : 5, 0, TAU);
+        ctx.fill();
+      }
 
-      // Recipe name + price on same line for mobile
+      // Recipe name + price on same line for mobile (offset if art is shown)
+      const textOffsetX = hasArt ? (isMobile ? 32 : 42) : (isMobile ? 26 : 36);
       ctx.fillStyle = canAfford ? '#f5f7ff' : '#666';
       ctx.font = isMobile ? 'bold 10px system-ui' : 'bold 12px system-ui';
       ctx.textAlign = 'left';
-      ctx.fillText(recipe.name, menuX + (isMobile ? 26 : 36), rowY + (isMobile ? 12 : 13));
+      ctx.fillText(recipe.name, menuX + textOffsetX, rowY + (isMobile ? 12 : 13));
 
       // Price on right (mobile: same line as name)
       if (recipe.sellPrice) {
@@ -13804,12 +14005,11 @@ function render() {
       
       ctx.fillStyle = canAfford ? '#7a8ba8' : '#555';
       ctx.font = isMobile ? '8px system-ui' : '10px system-ui';
-      ctx.fillText(inputsStr, menuX + (isMobile ? 26 : 36), rowY + (isMobile ? 24 : 26));
+      ctx.fillText(inputsStr, menuX + textOffsetX, rowY + (isMobile ? 24 : 26));
 
       // Output (mobile: second line right side)
       if (!isMobile) {
         ctx.textAlign = 'right';
-        const outputKey = Object.keys(recipe.outputs)[0];
         const outputAmt = recipe.outputs[outputKey];
         ctx.fillStyle = canAfford ? '#7cd87c' : '#555';
         ctx.fillText(`→ ${outputAmt} ${outputKey.replace('luxuryYarn', 'lux').replace('luxuryScarf', 'luxScarf').replace('luxuryMittens', 'luxMitt')}`, menuX + menuW - 14, rowY + 13);
