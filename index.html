@@ -8922,19 +8922,33 @@ function drawDialogueUI() {
   ctx.fillStyle = currentNPC.color;
   ctx.fillRect(panelX, panelY, panelW, 28);
 
+  // NPC ID to portrait key mapping
+  const npcPortraitMap = {
+    'granny': 'grannyWillow',
+    'merchant': 'felixTrader',
+    'shepherd': 'thomShepherd',
+    'gardener': 'miraGardener',
+    'dyer': 'irisDyer',
+    'tailor': 'masterTheo',
+    'hermit': 'oldMosswart',
+    'willa': 'wonderingWilla'
+  };
+
   // Draw portrait if available
-  let portraitKey = null;
-  if (currentNPC.id) {
-    // Try to match by id (lowercase, no spaces, remove special chars)
-    portraitKey = Object.keys(npcPortraits).find(key => key.toLowerCase().replace(/[^a-z]/g,"") === currentNPC.id.toLowerCase().replace(/[^a-z]/g,"") );
-  }
-  if (portraitKey && npcPortraits[portraitKey] && npcPortraits[portraitKey].image && npcPortraits[portraitKey].loaded && !npcPortraits[portraitKey].error) {
+  let portraitKey = currentNPC.id ? npcPortraitMap[currentNPC.id] : null;
+  // Also check if travelingMerchant (Wandering Willa)
+  if (currentNPC.name === 'Wandering Willa') portraitKey = 'wonderingWilla';
+  
+  const hasPortrait = portraitKey && npcPortraits[portraitKey] && npcPortraits[portraitKey].image && npcPortraits[portraitKey].loaded && !npcPortraits[portraitKey].error;
+  const textOffsetX = hasPortrait ? 82 : 12; // Adjust text position based on portrait
+  
+  if (hasPortrait) {
     ctx.drawImage(npcPortraits[portraitKey].image, panelX + 8, panelY + 36, 64, 64);
   }
 
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 14px system-ui';
-  ctx.fillText(currentNPC.name, panelX + 82, panelY + 58);
+  ctx.fillText(currentNPC.name, panelX + textOffsetX, panelY + 20);
 
   // Friendship hearts
   const hearts = Math.floor((friendship[currentNPC.id] || 0) / 20);
@@ -8980,22 +8994,22 @@ function drawDialogueUI() {
   if (currentNPC.request && currentNPC.requestItem) {
     ctx.fillStyle = '#ffdd88';
   }
-  // Word wrap
-  const maxWidth = panelW - 100;
+  // Word wrap - adjust width based on portrait
+  const maxWidth = hasPortrait ? (panelW - 100) : (panelW - 24);
   const words = text.split(' ');
   let line = '';
   let lineY = panelY + 50;
   words.forEach(word => {
     const testLine = line + word + ' ';
     if (ctx.measureText(testLine).width > maxWidth) {
-      ctx.fillText(line, panelX + 82, lineY);
+      ctx.fillText(line, panelX + textOffsetX, lineY);
       line = word + ' ';
       lineY += 18;
     } else {
       line = testLine;
     }
   });
-  ctx.fillText(line, panelX + 82, lineY);
+  ctx.fillText(line, panelX + textOffsetX, lineY);
 
   // Options
   ctx.fillStyle = '#a9b3cd';
