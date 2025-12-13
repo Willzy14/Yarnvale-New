@@ -8163,7 +8163,19 @@ function generateNPCRequest(npc) {
   // Bonus reward for requests (1.5x normal)
   const reward = Math.floor(baseReward * 1.5);
   
-  npc.request = `Could you bring me a ${item}? I'll pay ${reward} gold!`;
+  // Use proper grammar - "some" for plural items, "a/an" for singular
+  const pluralItems = ['socks', 'mittens', 'berries', 'gloves'];
+  const vowelStart = ['a', 'e', 'i', 'o', 'u'];
+  let article;
+  if (pluralItems.includes(item)) {
+    article = 'some';
+  } else if (vowelStart.includes(item.charAt(0).toLowerCase())) {
+    article = 'an';
+  } else {
+    article = 'a';
+  }
+  
+  npc.request = `Could you bring me ${article} ${item}? I'll pay ${reward} gold!`;
   npc.requestItem = item;
   npc.requestReward = reward;
   npc.questState = 'available'; // available | active | completed
