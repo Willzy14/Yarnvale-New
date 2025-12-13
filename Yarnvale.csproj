@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
+    <IsPackable>false</IsPackable>
+    <RollForward>LatestMajor</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Exclude temporary files from project -->
+    <Content Remove="temp_*.py" />
+  </ItemGroup>
+
+  <!-- Note: .NET SDK automatically includes all files in the project directory as Content.
+       No need to explicitly list files unless you want to exclude or configure them. -->
+
+</Project>
