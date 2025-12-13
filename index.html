@@ -13201,14 +13201,12 @@ function drawPeacock() {
 function drawBuildings() {
   // Building sprite definitions: map, tile position, asset key, size (in tiles)
   const buildingSprites = [
-    // Overworld - Cottage at door position, offset up and left to cover the building area
-    { map: 'overworld', x: 7, y: 2, asset: 'cottageBuilding', width: 5, height: 4 },
-    // Village - Market stall, Well, Dye Shop, Tailor Shop
-    { map: 'village', x: 8, y: 2, asset: 'marketStallBuilding', width: 3, height: 3 },
-    { map: 'village', x: 4, y: 4, asset: 'wellBuilding', width: 2, height: 2 },
-    { map: 'village', x: 12, y: 4, asset: 'wellBuilding', width: 2, height: 2 },
-    // Farm shop on overworld
-    { map: 'overworld', x: 1, y: 7, asset: 'farmShopBuilding', width: 3, height: 3 }
+    // Overworld - Cottage (moved down 1 space)
+    { map: 'overworld', x: 7, y: 3, asset: 'cottageBuilding', width: 5, height: 4 },
+    // Village - Market stall (moved down 1 space)
+    { map: 'village', x: 8, y: 3, asset: 'marketStallBuilding', width: 3, height: 3 },
+    // Farm shop on overworld - positioned at Barnaby's location (16, 5), offset up/left
+    { map: 'overworld', x: 15, y: 3, asset: 'farmShopBuilding', width: 3, height: 3 }
   ];
 
   buildingSprites.forEach(building => {
