@@ -980,35 +980,6 @@ function drawItemArt(itemKey, x, y, size = 20) {
   return false;
 }
 
-// Simple collision bounds for buildings to prevent walking through them
-// Define as rectangles in tile coordinates per map
-const buildingCollisionByMap = {
-  overworld: [
-    // Cottage footprint (5x3 above door row)
-    { x: 7, y: 3, w: 5, h: 3 }
-  ],
-  village: [
-    // Market stall footprint
-    { x: 8, y: 3, w: 3, h: 2 },
-    // Dye shop footprint
-    { x: 2, y: 7, w: 3, h: 2 },
-    // Tailor shop footprint
-    { x: 14, y: 7, w: 3, h: 2 }
-  ]
-};
-
-function isBuildingCollision(tx, ty, mapName) {
-  const rects = buildingCollisionByMap[mapName] || [];
-  for (const r of rects) {
-    if (tx >= r.x && tx < r.x + r.w && ty >= r.y && ty < r.y + r.h) {
-      // Leave door tiles passable
-      const isDoor = (doorTilesByMap[mapName] || []).some(d => d.x === tx && d.y === ty);
-      if (!isDoor) return true;
-    }
-  }
-  return false;
-}
-
 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 let audioContext = null;
 let musicGainNode = null;
@@ -1078,46 +1049,14 @@ function getInteractablesForMap(mapName) {
     .map((item) => ({ ...item }));
 
   const doorTiles = doorTilesByMap[mapName] || [];
-  // Provide friendly, per-location labels for door tiles
-  const doorLabelsByMap = {
-    overworld: {
-      // Cottage at (7,3) → door at y+1
-      '7,4': 'Enter Cottage',
-      // Farm shop at (15,3) → door at y+1
-      '15,4': 'Enter Farm Shop',
-    },
-    village: {
-      // Market stall at (8,3) → counter/front at y+1
-      '8,4': 'Browse Market',
-      // Dyeworks on Iris tile (2,7) → door at y+1
-      '2,8': 'Enter Dyeworks',
-      // Tailor on Theo tile (14,7) → door at y+1
-      '14,8': 'Enter Tailor',
-    },
-    cottage: {
-      // Cottage interior door usually at (7,4)
-      '7,4': 'Exit Cottage',
-    },
-    cave: {
-      '5,5': 'Exit Cave',
-    },
-    mountain: {
-      '5,6': 'Enter Cave',
-    }
-  };
-
   doorTiles.forEach(({ x, y }) => {
-    const key = `${x},${y}`;
-    const mapped = (doorLabelsByMap[mapName] || {})[key];
-    // Fallbacks by map if coordinate not mapped
-    let doorLabel = mapped || (
-      mapName === 'overworld' ? 'Enter' :
-      mapName === 'village' ? 'Enter' :
-      mapName === 'cottage' ? 'Exit Cottage' :
-      mapName === 'cave' ? 'Exit Cave' :
-      mapName === 'mountain' ? 'Enter Cave' : 'Enter'
-    );
-
+    // Determine label based on map
+    let doorLabel = 'Enter';
+    if (mapName === 'overworld') doorLabel = 'Enter Cottage';
+    else if (mapName === 'cottage') doorLabel = 'Exit Cottage';
+    else if (mapName === 'cave') doorLabel = 'Exit Cave';
+    else if (mapName === 'mountain') doorLabel = 'Enter Cave';
+    
     nodes.push({
       map: mapName,
       x,
@@ -10479,8 +10418,6 @@ function isReservedTile(x, y, mapName) {
 
     function isSolidTile(tx, ty) {
       if (tx < 0 || ty < 0 || tx >= MAP_COLS || ty >= MAP_ROWS) return true;
-      // Treat building footprints as solid
-      if (isBuildingCollision(tx, ty, currentMap)) return true;
       const t = mapData[ty][tx];
       // Solid tiles: trees(2), water(3), fences(4), interior walls(7), 
       // market stall(10), well(11), ocean(17), rock(19), palm tree(21), 
@@ -13276,23 +13213,17 @@ function drawBuildings() {
     { map: 'overworld', x: 15, y: 3, asset: 'farmShopBuilding', width: 3, height: 3 }
   ];
 
-  // Optional fine-tune pixel offsets per building for better alignment
-  const pixelOffsets = {
-    cottageBuilding: { dx: 0, dy: -2 },
-    marketStallBuilding: { dx: 0, dy: -1 },
-    dyeShopBuilding: { dx: 0, dy: -1 },
-    tailorShopBuilding: { dx: 0, dy: -1 },
-    farmShopBuilding: { dx: 0, dy: -1 }
-  };
-
   buildingSprites.forEach(building => {
     if (currentMap !== building.map) return;
+    
     const asset = artAssets[building.asset];
     if (!asset || !asset.loaded || asset.error || !asset.image) return;
-    const px = building.x * TILE_SIZE + (pixelOffsets[building.asset]?.dx || 0);
-    const py = building.y * TILE_SIZE + (pixelOffsets[building.asset]?.dy || 0);
+    
+    const px = building.x * TILE_SIZE;
+    const py = building.y * TILE_SIZE;
     const drawWidth = building.width * TILE_SIZE;
     const drawHeight = building.height * TILE_SIZE;
+    
     ctx.drawImage(asset.image, px, py, drawWidth, drawHeight);
   });
 }
