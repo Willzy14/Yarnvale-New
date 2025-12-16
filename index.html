@@ -12983,41 +12983,18 @@ function drawGoat() {
   const px = Math.round(goat.px);
   const py = Math.round(goat.py);
 
-  // Select directional sprite based on goat facing
-  let asset = null;
-  if (goat.facing === 'left' && artAssets.goatLeft && artAssets.goatLeft.loaded) {
-    asset = artAssets.goatLeft;
-  } else if (goat.facing === 'right' && artAssets.goatRight && artAssets.goatRight.loaded) {
-    asset = artAssets.goatRight;
-  } else {
-    // Fallback to original spritesheet for up/down or if directional not loaded
-    asset = artAssets.goat;
-  }
-  
-  if (asset && asset.loaded && !asset.error) {
-    const cols = asset.columns || 1;
-    const fw = asset.frameWidth || (asset.image.width / cols);
-    const fh = asset.frameHeight || asset.image.height;
-    // Animate faster when moving (only for multi-frame sprites)
-    const animSpeed = goat.isMoving ? 8 : 12;
-    const frame = cols > 1 ? Math.floor(goatAnimTick / animSpeed) % cols : 0;
-    const sx = frame * fw;
-    const sy = 0;
-    // Draw sprite - 128px sprites scale nicely to tile size
-    ctx.drawImage(asset.image, sx, sy, fw, fh, px + GOAT_DRAW_OFFSET_Y, py + GOAT_DRAW_OFFSET_Y, TILE_SIZE, TILE_SIZE);
-  } else {
-    // fallback simple goat shape
-    ctx.fillStyle = '#d9d5cc';
-    ctx.beginPath();
-    ctx.ellipse(px + 16, py + 18, 12, 9, 0, 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = '#b6ae9e';
-    ctx.beginPath();
-    ctx.ellipse(px + 10, py + 14, 7, 5, 0, 0, TAU);
-    ctx.fill();
-    ctx.fillRect(px + 5, py + 11, 3, 3);
-    ctx.fillRect(px + 12, py + 11, 3, 3);
-  }
+  // Always use procedural fallback - goat sprites disabled
+  // Simple goat shape
+  ctx.fillStyle = '#d9d5cc';
+  ctx.beginPath();
+  ctx.ellipse(px + 16, py + 18, 12, 9, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#b6ae9e';
+  ctx.beginPath();
+  ctx.ellipse(px + 10, py + 14, 7, 5, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillRect(px + 5, py + 11, 3, 3);
+  ctx.fillRect(px + 12, py + 11, 3, 3);
 }
 
 function drawSheep() {
