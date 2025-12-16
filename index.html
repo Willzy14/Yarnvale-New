@@ -12983,18 +12983,72 @@ function drawGoat() {
   const px = Math.round(goat.px);
   const py = Math.round(goat.py);
 
-  // Always use procedural fallback - goat sprites disabled
-  // Simple goat shape
-  ctx.fillStyle = '#d9d5cc';
+  // Procedural goat - gray/white coloring, distinct from sheep
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
   ctx.beginPath();
-  ctx.ellipse(px + 16, py + 18, 12, 9, 0, 0, TAU);
+  ctx.ellipse(px + 16, py + 28, 9, 3, 0, 0, TAU);
   ctx.fill();
-  ctx.fillStyle = '#b6ae9e';
+  
+  // Legs - thin gray legs
+  ctx.fillStyle = '#707070';
+  ctx.fillRect(px + 8, py + 22, 3, 7);
+  ctx.fillRect(px + 14, py + 22, 3, 7);
+  ctx.fillRect(px + 20, py + 22, 3, 7);
+  
+  // Body - gray, slightly angular
+  ctx.fillStyle = goat.hasFur ? '#c8c8c8' : '#a0a0a0';
   ctx.beginPath();
-  ctx.ellipse(px + 10, py + 14, 7, 5, 0, 0, TAU);
+  ctx.ellipse(px + 16, py + 18, 11, 8, 0, 0, TAU);
   ctx.fill();
-  ctx.fillRect(px + 5, py + 11, 3, 3);
-  ctx.fillRect(px + 12, py + 11, 3, 3);
+  
+  // Head - elongated snout like a goat
+  ctx.fillStyle = '#b0b0b0';
+  ctx.beginPath();
+  ctx.ellipse(px + 8, py + 12, 6, 5, -0.3, 0, TAU);
+  ctx.fill();
+  
+  // Horns - curved back
+  ctx.strokeStyle = '#8b7355';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px + 6, py + 8);
+  ctx.quadraticCurveTo(px + 2, py + 4, px + 4, py + 0);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(px + 10, py + 8);
+  ctx.quadraticCurveTo(px + 8, py + 4, px + 10, py + 0);
+  ctx.stroke();
+  
+  // Ears - floppy horizontal
+  ctx.fillStyle = '#a8a0a0';
+  ctx.beginPath();
+  ctx.ellipse(px + 2, py + 10, 3, 2, -0.5, 0, TAU);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(px + 14, py + 10, 3, 2, 0.5, 0, TAU);
+  ctx.fill();
+  
+  // Eyes - yellow with horizontal pupils (goat eyes!)
+  ctx.fillStyle = '#e8d050';
+  ctx.beginPath();
+  ctx.ellipse(px + 5, py + 11, 2, 1.5, 0, 0, TAU);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(px + 11, py + 11, 2, 1.5, 0, 0, TAU);
+  ctx.fill();
+  // Horizontal pupils
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(px + 4, py + 10, 3, 1);
+  ctx.fillRect(px + 10, py + 10, 3, 1);
+  
+  // Beard - distinctive goat feature
+  ctx.fillStyle = '#909090';
+  ctx.beginPath();
+  ctx.moveTo(px + 6, py + 16);
+  ctx.lineTo(px + 8, py + 21);
+  ctx.lineTo(px + 10, py + 16);
+  ctx.fill();
 }
 
 function drawSheep() {
