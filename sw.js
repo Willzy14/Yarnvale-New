@@ -1,5 +1,5 @@
 // Yarnvale Service Worker - enables offline play and PWA installation
-const CACHE_NAME = 'yarnvale-v20';
+const CACHE_NAME = 'yarnvale-v21';
 const urlsToCache = [
   './',
   './index.html',
@@ -36,29 +36,43 @@ self.addEventListener('activate', event => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', event => {
+  const request = event.request;
+  const url = new URL(request.url);
+  const isNavigation = request.mode === 'navigate' || request.destination === 'document';
+  const isIndexRequest = url.pathname.endsWith('/') || url.pathname.endsWith('/index.html');
+
+  if (isNavigation || isIndexRequest) {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          if (response && response.status === 200 && request.method === 'GET') {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put('./index.html', responseToCache));
+          }
+          return response;
+        })
+        .catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request)
+    caches.match(request)
       .then(response => {
-        // Return cached version or fetch from network
         if (response) {
           return response;
         }
-        return fetch(event.request).then(response => {
-          // Don't cache non-successful responses or non-GET requests
-          if (!response || response.status !== 200 || event.request.method !== 'GET') {
+        return fetch(request).then(response => {
+          if (!response || response.status !== 200 || request.method !== 'GET') {
             return response;
           }
-          // Clone and cache the response
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseToCache);
+            cache.put(request, responseToCache);
           });
           return response;
         });
       })
-      .catch(() => {
-        // Offline fallback - return the main page
-        return caches.match('./index.html');
-      })
+      .catch(() => caches.match('./index.html'))
   );
 });

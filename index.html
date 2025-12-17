@@ -2348,12 +2348,14 @@ const storyProgress = {
 // =========================
 const festivalProgress = {
   started: false,
-  currentStep: 0, // 0=not started, 1=gathering, 2=craft/placing, 3=ceremony, 4=complete
+  currentStep: 0, // 0=not started, 1=crafting, 2=placing, 3=ceremony, 4=complete
   materialsGathered: {
     dyes: 0,      // Need 3 dyes (any type)
     feathers: 0,  // Need 2 peacock feathers
     cloth: 0      // Need 1 luxury item (luxuryYarn or any luxury craft)
   },
+  craftingIndex: 0,
+  readyNotifiedIndex: -1,
   decorationsCrafted: false,
   decorationsPlaced: 0, // Need to place 6 decorations
   placedDecorations: {},
@@ -2380,21 +2382,57 @@ const FESTIVAL_LUXURY_ITEMS = [
 ];
 
 const FESTIVAL_DECORATION_ITEMS = [
-  { key: 'festivalBanner', name: 'Festival Banner', type: 'banner', color: '#ffd166' },
-  { key: 'festivalLantern', name: 'Festival Lantern', type: 'lantern', color: '#ffb86b' },
-  { key: 'festivalGarland', name: 'Ribbon Garland', type: 'garland', color: '#e066ff' },
-  { key: 'festivalStreamer', name: 'Market Streamer', type: 'streamer', color: '#4ecdc4' },
-  { key: 'festivalWreath', name: 'Flower Wreath', type: 'wreath', color: '#ff6b6b' },
-  { key: 'festivalSign', name: 'Festival Sign', type: 'sign', color: '#f5deb3' }
+  {
+    key: 'festivalBanner',
+    name: 'Festival Banner',
+    type: 'banner',
+    color: '#ffd166',
+    requirements: { amberDye: 1, yarn: 2 }
+  },
+  {
+    key: 'festivalLantern',
+    name: 'Festival Lantern',
+    type: 'lantern',
+    color: '#ffb86b',
+    requirements: { tealDye: 1, resin: 1, feather: 1 }
+  },
+  {
+    key: 'festivalGarland',
+    name: 'Ribbon Garland',
+    type: 'garland',
+    color: '#e066ff',
+    requirements: { brownDye: 1, yarn: 2, wildFlower: 1 }
+  },
+  {
+    key: 'festivalStreamer',
+    name: 'Market Streamer',
+    type: 'streamer',
+    color: '#4ecdc4',
+    requirements: { tealDye: 1, yarn: 2 }
+  },
+  {
+    key: 'festivalWreath',
+    name: 'Flower Wreath',
+    type: 'wreath',
+    color: '#ff6b6b',
+    requirements: { wildFlower: 3, amberDye: 1 }
+  },
+  {
+    key: 'festivalSign',
+    name: 'Festival Sign',
+    type: 'sign',
+    color: '#f5deb3',
+    requirements: { luxuryYarn: 1, feather: 1, amberDye: 1 }
+  }
 ];
 
 const FESTIVAL_DECORATION_SPOTS = [
-  { id: 'banner', x: 8, y: 5, itemKey: 'festivalBanner' },
-  { id: 'lantern', x: 10, y: 5, itemKey: 'festivalLantern' },
-  { id: 'garland', x: 8, y: 7, itemKey: 'festivalGarland' },
-  { id: 'streamer', x: 10, y: 7, itemKey: 'festivalStreamer' },
-  { id: 'wreath', x: 7, y: 6, itemKey: 'festivalWreath' },
-  { id: 'sign', x: 11, y: 6, itemKey: 'festivalSign' }
+  { id: 'banner', x: 8, y: 5, itemKey: 'festivalBanner', label: 'north-left box' },
+  { id: 'lantern', x: 10, y: 5, itemKey: 'festivalLantern', label: 'north-right box' },
+  { id: 'garland', x: 8, y: 7, itemKey: 'festivalGarland', label: 'south-left box' },
+  { id: 'streamer', x: 10, y: 7, itemKey: 'festivalStreamer', label: 'south-right box' },
+  { id: 'wreath', x: 7, y: 6, itemKey: 'festivalWreath', label: 'west box' },
+  { id: 'sign', x: 11, y: 6, itemKey: 'festivalSign', label: 'east box' }
 ];
 
 function isFestivalDye(itemId) {
@@ -2441,6 +2479,54 @@ function getFestivalSpotAt(x, y) {
   return FESTIVAL_DECORATION_SPOTS.find(spot => spot.x === x && spot.y === y);
 }
 
+function getFestivalSpotForItem(itemKey) {
+  return FESTIVAL_DECORATION_SPOTS.find(spot => spot.itemKey === itemKey);
+}
+
+function getFestivalDecorationRecipe(index = festivalProgress.craftingIndex) {
+  return FESTIVAL_DECORATION_ITEMS[index] || null;
+}
+
+function getFestivalItemLabel(itemKey) {
+  const labels = {
+    amberDye: 'Amber Dye',
+    tealDye: 'Teal Dye',
+    brownDye: 'Brown Dye',
+    yarn: 'Yarn',
+    resin: 'Resin',
+    feather: 'Feather',
+    wildFlower: 'Wild Flower',
+    luxuryYarn: 'Luxury Yarn'
+  };
+  return labels[itemKey] || itemKey;
+}
+
+function getFestivalRequirementsStatus(recipe) {
+  if (!recipe || !recipe.requirements) return [];
+  return Object.entries(recipe.requirements).map(([key, needed]) => ({
+    key,
+    label: getFestivalItemLabel(key),
+    needed,
+    owned: inventory[key] || 0
+  }));
+}
+
+function hasFestivalRequirements(recipe) {
+  return getFestivalRequirementsStatus(recipe).every(req => req.owned >= req.needed);
+}
+
+function getFestivalMissingRequirements(recipe) {
+  return getFestivalRequirementsStatus(recipe)
+    .filter(req => req.owned < req.needed)
+    .map(req => `${req.label} (${req.owned}/${req.needed})`);
+}
+
+function formatFestivalRequirementsList(recipe) {
+  return getFestivalRequirementsStatus(recipe)
+    .map(req => `${req.label} (${req.needed})`)
+    .join(', ');
+}
+
 function getAvailableFestivalDecorations() {
   return FESTIVAL_DECORATION_ITEMS.filter(item => (inventory[item.key] || 0) > 0);
 }
@@ -2449,8 +2535,20 @@ function normalizeFestivalDecorations() {
   if (!festivalProgress.placedDecorations || typeof festivalProgress.placedDecorations !== 'object') {
     festivalProgress.placedDecorations = {};
   }
-  if (festivalProgress.currentStep >= 2 && festivalProgress.decorationsCrafted === undefined) {
-    festivalProgress.decorationsCrafted = true;
+  if (festivalProgress.craftingIndex === undefined) {
+    festivalProgress.craftingIndex = festivalProgress.decorationsCrafted ? FESTIVAL_DECORATION_ITEMS.length : 0;
+  }
+  if (festivalProgress.decorationsCrafted === undefined) {
+    festivalProgress.decorationsCrafted = festivalProgress.craftingIndex >= FESTIVAL_DECORATION_ITEMS.length;
+  }
+  if (festivalProgress.readyNotifiedIndex === undefined) {
+    festivalProgress.readyNotifiedIndex = -1;
+  }
+  if (festivalProgress.currentStep === 2 && !festivalProgress.decorationsCrafted && festivalProgress.craftingIndex === 0) {
+    festivalProgress.currentStep = 1;
+  }
+  if (festivalProgress.currentStep === 1 && festivalProgress.decorationsCrafted) {
+    festivalProgress.currentStep = 2;
   }
   if (Object.keys(festivalProgress.placedDecorations).length === 0 && festivalProgress.decorationsPlaced > 0) {
     const count = Math.min(festivalProgress.decorationsPlaced, FESTIVAL_DECORATION_SPOTS.length);
@@ -2486,8 +2584,10 @@ function startFestival() {
   festivalProgress.decorationsCrafted = false;
   festivalProgress.decorationsPlaced = 0;
   festivalProgress.placedDecorations = {};
+  festivalProgress.craftingIndex = 0;
+  festivalProgress.readyNotifiedIndex = -1;
   syncFestivalMaterialsFromInventory();
-  showMessage("🎪 The Festival of Threads has begun! Gather materials to help decorate the village!");
+  showMessage("🎪 The Festival of Threads has begun! Bring Elder Mara the first supplies to craft the decorations.");
 }
 
 // Check materials in inventory for festival
@@ -2679,26 +2779,29 @@ function trackFestivalMaterial(itemId, amount) {
     );
   }
   
-  // Check if gathering is complete
-  if (checkGatheringComplete()) {
-    showMessage("🎪 You've gathered all materials! Visit Elder Mara to craft decorations.");
+  const recipe = getFestivalDecorationRecipe();
+  if (!recipe || !recipe.requirements) return;
+  if (!recipe.requirements[itemId]) return;
+  if (hasFestivalRequirements(recipe) && festivalProgress.readyNotifiedIndex !== festivalProgress.craftingIndex) {
+    showMessage(`✅ You have everything for the ${recipe.name}! Talk to Elder Mara to craft it.`);
+    festivalProgress.readyNotifiedIndex = festivalProgress.craftingIndex;
   }
 }
 
 // Check if gathering phase is complete
 function checkGatheringComplete() {
-  syncFestivalMaterialsFromInventory();
-  const g = festivalProgress.materialsGathered;
-  const r = FESTIVAL_REQUIREMENTS;
-  return g.dyes >= r.dyes && g.feathers >= r.feathers && g.cloth >= r.cloth;
+  const recipe = getFestivalDecorationRecipe();
+  if (!recipe) return true;
+  return hasFestivalRequirements(recipe);
 }
 
 function advanceFestivalPhase() {
-  if (festivalProgress.currentStep === 1 && checkGatheringComplete()) {
+  if (festivalProgress.currentStep === 1 && festivalProgress.craftingIndex >= FESTIVAL_DECORATION_ITEMS.length) {
     festivalProgress.currentStep = 2;
+    festivalProgress.decorationsCrafted = true;
     return true;
   }
-  if (festivalProgress.currentStep === 2 && festivalProgress.decorationsCrafted && festivalProgress.decorationsPlaced >= FESTIVAL_REQUIREMENTS.decorations) {
+  if (festivalProgress.currentStep === 2 && festivalProgress.decorationsPlaced >= FESTIVAL_REQUIREMENTS.decorations) {
     festivalProgress.currentStep = 3;
     return true;
   }
@@ -2710,13 +2813,11 @@ function getFestivalStatusText() {
   switch (festivalProgress.currentStep) {
     case 0: return "Not started";
     case 1: 
-      const g = festivalProgress.materialsGathered;
-      const r = FESTIVAL_REQUIREMENTS;
-      return `Gathering: Dyes ${g.dyes}/${r.dyes}, Feathers ${g.feathers}/${r.feathers}, Cloth ${g.cloth}/${r.cloth}`;
+      const recipe = getFestivalDecorationRecipe();
+      if (!recipe) return 'All decorations crafted';
+      const status = hasFestivalRequirements(recipe) ? 'Ready' : 'Gathering';
+      return `${status}: ${recipe.name} (${festivalProgress.craftingIndex + 1}/${FESTIVAL_DECORATION_ITEMS.length})`;
     case 2:
-      if (!festivalProgress.decorationsCrafted) {
-        return 'Crafting decorations with Elder Mara';
-      }
       return `Placing: ${festivalProgress.decorationsPlaced}/${FESTIVAL_REQUIREMENTS.decorations} placed`;
     case 3: return "Ceremony in progress!";
     case 4: return "Complete! 🎉";
@@ -3276,15 +3377,19 @@ const gameTasks = [
   
   // Festival of Threads tasks
   { id: 'festivalStart', name: '🎪 Festival of Threads', description: 'Talk to Elder Mara in the village to begin', category: 'festival', check: () => festivalProgress.started },
-  { id: 'festivalGather', name: 'Gather festival materials', description: 'Collect dyes, feathers, and luxury cloth', category: 'festival', check: () => festivalProgress.currentStep >= 2, dynamicDesc: () => {
+  { id: 'festivalGather', name: 'Craft festival decorations', description: 'Bring Elder Mara supplies for each decoration', category: 'festival', check: () => festivalProgress.currentStep >= 2, dynamicDesc: () => {
     if (!festivalProgress.started) return 'Start the festival first';
-    const g = festivalProgress.materialsGathered;
-    const r = FESTIVAL_REQUIREMENTS;
-    return `Dyes ${g.dyes}/${r.dyes}, Feathers ${g.feathers}/${r.feathers}, Cloth ${g.cloth}/${r.cloth}`;
+    if (festivalProgress.currentStep >= 2) return 'All decorations crafted';
+    const recipe = getFestivalDecorationRecipe();
+    if (!recipe) return 'All decorations crafted';
+    const missing = getFestivalMissingRequirements(recipe);
+    if (missing.length === 0) {
+      return `Next: ${recipe.name} (ready to craft)`;
+    }
+    return `Next: ${recipe.name}. Need ${missing.join(', ')}`;
   }},
-  { id: 'festivalDecorate', name: 'Decorate the village', description: 'Craft and place festival decorations', category: 'festival', check: () => festivalProgress.currentStep >= 3, dynamicDesc: () => {
-    if (festivalProgress.currentStep < 2) return 'Gather materials first';
-    if (!festivalProgress.decorationsCrafted) return 'Craft decorations with Elder Mara';
+  { id: 'festivalDecorate', name: 'Decorate the village', description: 'Place crafted decorations on the marked spots', category: 'festival', check: () => festivalProgress.currentStep >= 3, dynamicDesc: () => {
+    if (festivalProgress.currentStep < 2) return 'Craft decorations with Elder Mara';
     return `Placed: ${festivalProgress.decorationsPlaced}/${FESTIVAL_REQUIREMENTS.decorations}`;
   }},
   { id: 'festivalComplete', name: 'Attend the ceremony', description: 'Watch the evening celebration', category: 'festival', check: () => festivalProgress.currentStep >= 4 },
@@ -5335,49 +5440,46 @@ function handleFestivalMenuInput(key) {
       if (festivalMenuSelection === 0) {
         // Start the festival
         startFestival();
-        showMessage("🎪 The Festival of Threads begins! Gather materials first.");
+        showMessage("🎪 The Festival of Threads begins! Bring me the first supplies so we can craft the decorations.");
         closeFestivalMenu();
       } else {
         closeFestivalMenu();
       }
     }
   } else if (step === 1) {
-    // Gathering phase - check progress
-    if (key === 'e' || key === 'Enter') {
-      if (checkGatheringComplete()) {
-        advanceFestivalPhase();
-        showMessage("✅ Materials gathered! Time to craft decorations together.");
-      } else {
-        showMessage("You still need more materials for the festival.");
-      }
-      closeFestivalMenu();
-    }
-  } else if (step === 2) {
-    // Crafting/Decorating phase
+    const hasPlaced = Object.keys(festivalProgress.placedDecorations || {}).length > 0;
+    const canPlace = getAvailableFestivalDecorations().length > 0 || hasPlaced;
     if (key === 'w') festivalMenuSelection = Math.max(0, festivalMenuSelection - 1);
     if (key === 's') festivalMenuSelection = Math.min(1, festivalMenuSelection + 1);
     if (key === 'e' || key === 'Enter') {
-      if (!festivalProgress.decorationsCrafted) {
-        if (festivalMenuSelection === 0) {
-          if (craftFestivalDecorations()) {
-            closeFestivalMenu();
-          }
-        } else {
-          closeFestivalMenu();
+      if (festivalMenuSelection === 0) {
+        craftFestivalDecorations();
+        if (festivalProgress.currentStep >= 2) {
+          festivalMenuSelection = 0;
         }
       } else {
-        if (festivalMenuSelection === 0) {
+        if (canPlace) {
           enterDecorationMode();
-          closeFestivalMenu();
-        } else {
-          if (festivalProgress.decorationsPlaced >= FESTIVAL_REQUIREMENTS.decorations) {
-            advanceFestivalPhase();
-            showMessage('🎊 Village is beautifully decorated! The ceremony can begin!');
-          } else {
-            showMessage(`Need ${FESTIVAL_REQUIREMENTS.decorations - festivalProgress.decorationsPlaced} more decorations.`);
-          }
-          closeFestivalMenu();
         }
+        closeFestivalMenu();
+      }
+    }
+  } else if (step === 2) {
+    // Decorating phase
+    if (key === 'w') festivalMenuSelection = Math.max(0, festivalMenuSelection - 1);
+    if (key === 's') festivalMenuSelection = Math.min(1, festivalMenuSelection + 1);
+    if (key === 'e' || key === 'Enter') {
+      if (festivalMenuSelection === 0) {
+        enterDecorationMode();
+        closeFestivalMenu();
+      } else {
+        if (festivalProgress.decorationsPlaced >= FESTIVAL_REQUIREMENTS.decorations) {
+          advanceFestivalPhase();
+          showMessage('🎊 Village is beautifully decorated! The ceremony can begin!');
+        } else {
+          showMessage(`Need ${FESTIVAL_REQUIREMENTS.decorations - festivalProgress.decorationsPlaced} more decorations.`);
+        }
+        closeFestivalMenu();
       }
     }
   } else if (step === 3) {
@@ -5433,9 +5535,16 @@ function drawFestivalMenuUI() {
   ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
+  const step = festivalProgress.currentStep;
+  const recipe = step === 1 ? getFestivalDecorationRecipe() : null;
+  const requirements = recipe ? getFestivalRequirementsStatus(recipe) : [];
+  
   // Panel dimensions
-  const panelW = 260;
-  const panelH = 200;
+  const panelW = 270;
+  let panelH = 200;
+  if (step === 1) {
+    panelH = 180 + requirements.length * 16;
+  }
   const panelX = (canvas.width - panelW) / 2;
   const panelY = (canvas.height - panelH) / 2;
   
@@ -5458,7 +5567,6 @@ function drawFestivalMenuUI() {
   ctx.textAlign = 'center';
   ctx.fillText('🎪 Festival of Threads 🎪', panelX + panelW/2, panelY + 24);
   
-  const step = festivalProgress.currentStep;
   ctx.textAlign = 'left';
   ctx.font = '11px monospace';
   
@@ -5466,8 +5574,8 @@ function drawFestivalMenuUI() {
     // Not started
     ctx.fillStyle = '#e0e0ff';
     ctx.fillText('Elder Mara greets you warmly.', panelX + 15, panelY + 50);
-    ctx.fillText('"Would you help us prepare', panelX + 15, panelY + 68);
-    ctx.fillText('the Festival of Threads?"', panelX + 15, panelY + 86);
+    ctx.fillText('"Will you help us craft', panelX + 15, panelY + 68);
+    ctx.fillText('the Festival decorations?"', panelX + 15, panelY + 86);
     
     // Options
     const opts = ['Begin Festival', 'Maybe Later'];
@@ -5482,61 +5590,62 @@ function drawFestivalMenuUI() {
       }
     });
   } else if (step === 1) {
-    // Gathering phase
     ctx.fillStyle = '#e0e0ff';
-    ctx.fillText('Phase 1: Gather Materials', panelX + 15, panelY + 50);
+    ctx.fillText('Phase 1: Craft Decorations', panelX + 15, panelY + 50);
     
-    const g = festivalProgress.materialsGathered;
-    const r = FESTIVAL_REQUIREMENTS;
+    let lineY = panelY + 70;
+    if (recipe) {
+      ctx.fillStyle = '#d0d0ff';
+      ctx.fillText(`Next: ${recipe.name}`, panelX + 15, lineY);
+      lineY += 16;
+      requirements.forEach(req => {
+        ctx.fillStyle = req.owned >= req.needed ? '#90ee90' : '#ffcccc';
+        ctx.fillText(`${req.label}: ${req.owned}/${req.needed}`, panelX + 25, lineY);
+        lineY += 16;
+      });
+      ctx.fillStyle = '#d0d0ff';
+      ctx.fillText(`Crafted: ${festivalProgress.craftingIndex}/${FESTIVAL_DECORATION_ITEMS.length}`, panelX + 25, lineY);
+      lineY += 22;
+    } else {
+      ctx.fillStyle = '#90ee90';
+      ctx.fillText('All decorations are crafted!', panelX + 15, lineY);
+      lineY += 26;
+    }
     
-    ctx.fillStyle = g.dyes >= r.dyes ? '#90ee90' : '#ffcccc';
-    ctx.fillText(`Dyes: ${g.dyes}/${r.dyes}`, panelX + 25, panelY + 75);
-    
-    ctx.fillStyle = g.feathers >= r.feathers ? '#90ee90' : '#ffcccc';
-    ctx.fillText(`Feathers: ${g.feathers}/${r.feathers}`, panelX + 25, panelY + 95);
-    
-    ctx.fillStyle = g.cloth >= r.cloth ? '#90ee90' : '#ffcccc';
-    ctx.fillText(`Luxury Cloth: ${g.cloth}/${r.cloth}`, panelX + 25, panelY + 115);
-    
-    ctx.fillStyle = '#ffd700';
-    ctx.fillText('→ Check Progress', panelX + 30, panelY + 145);
+    const hasDecorations = getAvailableFestivalDecorations().length > 0 ||
+      Object.keys(festivalProgress.placedDecorations || {}).length > 0;
+    const opts = [
+      recipe ? `Craft ${recipe.name}` : 'Crafting Complete',
+      hasDecorations ? 'Place Decorations' : 'Maybe Later'
+    ];
+    opts.forEach((opt, i) => {
+      const y = lineY + i * 24;
+      const isDisabled = !recipe && i === 0;
+      if (i === festivalMenuSelection) {
+        ctx.fillStyle = isDisabled ? '#a0a0c0' : '#ffd700';
+        ctx.fillText('→ ' + opt, panelX + 30, y);
+      } else {
+        ctx.fillStyle = isDisabled ? '#707070' : '#a0a0c0';
+        ctx.fillText('  ' + opt, panelX + 30, y);
+      }
+    });
   } else if (step === 2) {
     ctx.fillStyle = '#e0e0ff';
-    if (!festivalProgress.decorationsCrafted) {
-      ctx.fillText('Phase 2: Craft Decorations', panelX + 15, panelY + 50);
-      ctx.fillStyle = '#d0d0ff';
-      ctx.fillText('Work with Elder Mara to', panelX + 15, panelY + 72);
-      ctx.fillText('craft six festival pieces.', panelX + 15, panelY + 90);
+    ctx.fillText('Phase 2: Place Decorations', panelX + 15, panelY + 50);
+    ctx.fillStyle = '#d0d0ff';
+    ctx.fillText(`Placed: ${festivalProgress.decorationsPlaced}/${FESTIVAL_REQUIREMENTS.decorations}`, panelX + 25, panelY + 75);
 
-      const opts = ['Craft Together', 'Maybe Later'];
-      opts.forEach((opt, i) => {
-        const y = panelY + 120 + i * 25;
-        if (i === festivalMenuSelection) {
-          ctx.fillStyle = '#ffd700';
-          ctx.fillText('→ ' + opt, panelX + 30, y);
-        } else {
-          ctx.fillStyle = '#a0a0c0';
-          ctx.fillText('  ' + opt, panelX + 30, y);
-        }
-      });
-    } else {
-      // Decorating phase
-      ctx.fillText('Phase 2: Place Decorations', panelX + 15, panelY + 50);
-      ctx.fillStyle = '#d0d0ff';
-      ctx.fillText(`Placed: ${festivalProgress.decorationsPlaced}/${FESTIVAL_REQUIREMENTS.decorations}`, panelX + 25, panelY + 75);
-
-      const opts = ['Enter Decoration Mode', 'Check if Ready'];
-      opts.forEach((opt, i) => {
-        const y = panelY + 105 + i * 25;
-        if (i === festivalMenuSelection) {
-          ctx.fillStyle = '#ffd700';
-          ctx.fillText('→ ' + opt, panelX + 30, y);
-        } else {
-          ctx.fillStyle = '#a0a0c0';
-          ctx.fillText('  ' + opt, panelX + 30, y);
-        }
-      });
-    }
+    const opts = ['Enter Decoration Mode', 'Check if Ready'];
+    opts.forEach((opt, i) => {
+      const y = panelY + 105 + i * 25;
+      if (i === festivalMenuSelection) {
+        ctx.fillStyle = '#ffd700';
+        ctx.fillText('→ ' + opt, panelX + 30, y);
+      } else {
+        ctx.fillStyle = '#a0a0c0';
+        ctx.fillText('  ' + opt, panelX + 30, y);
+      }
+    });
   } else if (step === 3) {
     // Ceremony ready
     ctx.fillStyle = '#90ee90';
@@ -6923,14 +7032,23 @@ function enterDecorationMode() {
     return;
   }
   normalizeFestivalDecorations();
-  if (festivalProgress.currentStep !== 2 || !festivalProgress.decorationsCrafted) {
-    showMessage('You need to craft the decorations with Elder Mara first.');
+  if (festivalProgress.currentStep < 1) {
+    showMessage('The Festival of Threads has not started yet.');
+    return;
+  }
+  if (festivalProgress.currentStep >= 3) {
+    showMessage('The festival decorations are already complete.');
+    return;
+  }
+  const available = getAvailableFestivalDecorations();
+  const hasPlaced = Object.keys(festivalProgress.placedDecorations || {}).length > 0;
+  if (!available.length && !hasPlaced) {
+    showMessage('No crafted decorations to place yet. Visit Elder Mara to craft one.');
     return;
   }
   decorationModeActive = true;
   decorationCursorX = player.x;
   decorationCursorY = player.y;
-  const available = getAvailableFestivalDecorations();
   selectedDecorationKey = available.length ? available[0].key : null;
   updateTouchBuildModeButtons();
   if (touchBackButton) touchBackButton.classList.add('visible');
@@ -6979,51 +7097,43 @@ function switchFestivalDecoration() {
 }
 
 function craftFestivalDecorations() {
-  if (festivalProgress.currentStep !== 2) return false;
-  if (festivalProgress.decorationsCrafted) {
-    showMessage('The decorations are already crafted.');
-    return false;
-  }
-  if (!checkGatheringComplete()) {
-    showMessage('You still need more materials for the festival.');
+  if (festivalProgress.currentStep !== 1) return false;
+  const recipe = getFestivalDecorationRecipe();
+  if (!recipe) {
+    showMessage('All festival decorations are already crafted.');
     return false;
   }
 
-  // Consume required materials
-  let dyesNeeded = FESTIVAL_REQUIREMENTS.dyes;
-  const dyeTypes = Object.keys(inventory).filter(isFestivalDye);
-  for (const dye of dyeTypes) {
-    while ((inventory[dye] || 0) > 0 && dyesNeeded > 0) {
-      inventory[dye]--;
-      dyesNeeded--;
-    }
-  }
-
-  let feathersNeeded = FESTIVAL_REQUIREMENTS.feathers;
-  while ((inventory.feather || 0) > 0 && feathersNeeded > 0) {
-    inventory.feather--;
-    feathersNeeded--;
-  }
-
-  let clothNeeded = FESTIVAL_REQUIREMENTS.cloth;
-  for (const item of FESTIVAL_LUXURY_ITEMS) {
-    while ((inventory[item] || 0) > 0 && clothNeeded > 0) {
-      inventory[item]--;
-      clothNeeded--;
-    }
-  }
-
-  if (dyesNeeded > 0 || feathersNeeded > 0 || clothNeeded > 0) {
-    showMessage('You are missing some materials to craft the decorations.');
+  const missing = getFestivalMissingRequirements(recipe);
+  if (missing.length > 0) {
+    showMessage(`Elder Mara: "Go and find ${missing.join(', ')} so we can make the ${recipe.name} together."`);
     return false;
   }
 
-  FESTIVAL_DECORATION_ITEMS.forEach(item => {
-    inventory[item.key] = (inventory[item.key] || 0) + 1;
+  Object.entries(recipe.requirements).forEach(([key, amount]) => {
+    inventory[key] = Math.max(0, (inventory[key] || 0) - amount);
   });
-  festivalProgress.decorationsCrafted = true;
-  festivalProgress.currentStep = 2;
-  showMessage('🧵 You and Elder Mara craft the decorations together. Place them around the square!');
+  inventory[recipe.key] = (inventory[recipe.key] || 0) + 1;
+  festivalProgress.craftingIndex++;
+
+  const spot = getFestivalSpotForItem(recipe.key);
+  const spotHint = spot ? ` Place it at the ${spot.label}.` : '';
+  showMessage(`🧵 You and Elder Mara craft the ${recipe.name}.${spotHint}`);
+
+  if (festivalProgress.craftingIndex >= FESTIVAL_DECORATION_ITEMS.length) {
+    festivalProgress.decorationsCrafted = true;
+    festivalProgress.currentStep = 2;
+    showMessage('🎊 All decorations are crafted! Place them around the square.');
+  } else {
+    const nextRecipe = getFestivalDecorationRecipe();
+    const requirementsList = formatFestivalRequirementsList(nextRecipe);
+    if (nextRecipe && requirementsList) {
+      setTimeout(() => {
+        showMessage(`Elder Mara: "Go and find ${requirementsList} so we can make the ${nextRecipe.name} together."`);
+      }, 1800);
+    }
+  }
+
   return true;
 }
 
@@ -7031,11 +7141,11 @@ function placeFestivalDecorationAtCursor() {
   if (!decorationModeActive) return;
   if (decorationMiniGameActive) return;
   normalizeFestivalDecorations();
-  if (!festivalProgress.decorationsCrafted) {
-    showMessage('You need to craft the decorations with Elder Mara first.');
+  if (festivalProgress.currentStep < 1) {
+    showMessage('The Festival of Threads has not started yet.');
     return;
   }
-  if (festivalProgress.currentStep !== 2) {
+  if (festivalProgress.currentStep >= 3) {
     showMessage('The festival decorations are already complete.');
     return;
   }
