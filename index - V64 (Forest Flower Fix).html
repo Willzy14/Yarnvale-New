@@ -1880,6 +1880,11 @@ bindPointerButton(touchBackButton, () => {
     handleKnittingSprintInput('cancel');
     return;
   }
+  // V65: Handle festival menu back button (prevent Elder Mara freeze)
+  if (festivalMenuOpen) {
+    closeFestivalMenu();
+    return;
+  }
   if (optionsMenuOpen) {
     closeOptionsMenu();
     return;
@@ -4930,11 +4935,15 @@ function openFestivalMenu() {
   if (festivalMenuOpen) return;
   festivalMenuOpen = true;
   festivalMenuSelection = 0;
+  // V65: Show back button when festival menu opens
+  if (touchBackButton) touchBackButton.classList.add('visible');
 }
 
 function closeFestivalMenu() {
   festivalMenuOpen = false;
   festivalMenuSelection = 0;
+  // V65: Hide back button once festival menu closes
+  if (touchBackButton) touchBackButton.classList.remove('visible');
 }
 
 // Handle festival menu input
@@ -4998,6 +5007,11 @@ function handleFestivalMenuInput(key) {
     // Ceremony ready - start ceremony
     if (key === 'e' || key === 'Enter') {
       completeFestival();
+      closeFestivalMenu();
+    }
+  } else if (step === 4) {
+    // Festival complete - allow closing the menu
+    if (key === 'e' || key === 'Enter') {
       closeFestivalMenu();
     }
   }
@@ -5132,6 +5146,15 @@ function drawFestivalMenuUI() {
     
     ctx.fillStyle = '#ffd700';
     ctx.fillText('→ Begin Ceremony', panelX + 30, panelY + 130);
+  } else if (step === 4) {
+    // Festival completed
+    ctx.fillStyle = '#90ee90';
+    ctx.fillText('🎊 Festival Complete!', panelX + 15, panelY + 50);
+    ctx.fillStyle = '#e0e0ff';
+    ctx.fillText('Thank you for making this', panelX + 15, panelY + 75);
+    ctx.fillText('year\'s festival wonderful!', panelX + 15, panelY + 95);
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText('→ Close', panelX + 30, panelY + 130);
   }
   
   // Instructions
@@ -7868,7 +7891,7 @@ function openDialogue(npc) {
     if (canStartFestival()) {
       openFestivalMenu();
       return;
-    } else if (festivalProgress.started && !festivalProgress.completed) {
+    } else if (festivalProgress.started && festivalProgress.currentStep < 4) {
       // Festival in progress - open menu to check status
       openFestivalMenu();
       return;
