@@ -723,6 +723,22 @@ const SPRITE_CONFIG = {
   }
 };
 
+const SHEEP_SPRITE_CONFIG = {
+  frameWidth: 64,
+  frameHeight: 64,
+  columns: 3,
+  rows: 4,
+  idleFrame: 1,
+  animSpeed: 2
+};
+
+const SHEEP_SPRITE_ROWS = {
+  down: 0,
+  left: 1,
+  right: 2,
+  up: 3
+};
+
 function createImageAsset(path, options = {}) {
   const asset = {
     image: new Image(),
@@ -840,6 +856,11 @@ const artAssets = {
   }),
   sheepRight: createImageAsset('Yarnvale Assets/Art/Animals/Sheep Right.png', {
     frameWidth: 128, frameHeight: 128, columns: 1
+  }),
+  sheepSprite: createImageAsset('Yarnvale Assets/craftpix-net-291971-free-top-down-animals-farm-pixel-art-sprites/PNG/Without_shadow/Sheep_animation_without_shadow.png', {
+    frameWidth: 64,
+    frameHeight: 64,
+    columns: 3
   }),
   peacockFeather: createImageAsset('Yarnvale Assets/Art/Animals/Peacock Feather.png', {
     frameWidth: 64, frameHeight: 64, columns: 1
@@ -7621,20 +7642,22 @@ function drawPurchasedAnimals() {
     
     // Draw based on animal type
     if (animal.type === 'sheep') {
-      // Body (fluffy)
-      ctx.fillStyle = animal.hasResource ? '#f8f8f0' : '#d0d0c8';
-      ctx.beginPath();
-      ctx.ellipse(px + 16, py + 18, 10, 8, 0, 0, TAU);
-      ctx.fill();
-      // Head
-      ctx.fillStyle = '#e0e0d8';
-      ctx.beginPath();
-      ctx.arc(px + 16, py + 10, 5, 0, TAU);
-      ctx.fill();
-      // Legs
-      ctx.fillStyle = '#8a7a6a';
-      ctx.fillRect(px + 10, py + 24, 3, 6);
-      ctx.fillRect(px + 19, py + 24, 3, 6);
+      if (!drawSheepSprite(animal, Math.round(px), Math.round(py))) {
+        // Body (fluffy)
+        ctx.fillStyle = animal.hasResource ? '#f8f8f0' : '#d0d0c8';
+        ctx.beginPath();
+        ctx.ellipse(px + 16, py + 18, 10, 8, 0, 0, TAU);
+        ctx.fill();
+        // Head
+        ctx.fillStyle = '#e0e0d8';
+        ctx.beginPath();
+        ctx.arc(px + 16, py + 10, 5, 0, TAU);
+        ctx.fill();
+        // Legs
+        ctx.fillStyle = '#8a7a6a';
+        ctx.fillRect(px + 10, py + 24, 3, 6);
+        ctx.fillRect(px + 19, py + 24, 3, 6);
+      }
     } else if (animal.type === 'llama') {
       // Body
       ctx.fillStyle = animal.hasResource ? '#e8d8c0' : '#c8b8a0';
@@ -13909,27 +13932,41 @@ function drawGoat() {
   ctx.fill();
 }
 
-function drawSheep() {
-  // Draw main sheep
-  drawSingleSheep(sheep);
-  // Draw second sheep
-  drawSingleSheep(sheep2);
+function drawSheepSprite(s, px, py) {
+  const asset = artAssets.sheepSprite;
+  if (!asset || !asset.loaded || asset.error) return false;
+
+  const facing = s.facing || 'down';
+  const rowIndex = SHEEP_SPRITE_ROWS[facing] ?? 0;
+  const hasWool = (typeof s.hasWool === 'boolean')
+    ? s.hasWool
+    : (typeof s.hasResource === 'boolean' ? s.hasResource : true);
+  const frameIndex = s.isMoving
+    ? Math.floor(animationTime * SHEEP_SPRITE_CONFIG.animSpeed) % SHEEP_SPRITE_CONFIG.columns
+    : SHEEP_SPRITE_CONFIG.idleFrame;
+
+  const sx = frameIndex * SHEEP_SPRITE_CONFIG.frameWidth;
+  const sy = rowIndex * SHEEP_SPRITE_CONFIG.frameHeight;
+
+  ctx.save();
+  if (!hasWool) ctx.globalAlpha = 0.75;
+  ctx.drawImage(
+    asset.image,
+    sx,
+    sy,
+    SHEEP_SPRITE_CONFIG.frameWidth,
+    SHEEP_SPRITE_CONFIG.frameHeight,
+    px,
+    py,
+    TILE_SIZE,
+    TILE_SIZE
+  );
+  ctx.restore();
+
+  return true;
 }
 
-function drawSingleSheep(s) {
-  if (currentMap !== s.map) return;
-  if (s.isCarried) return;
-
-  // Use pixel position for smooth movement
-  const px = Math.round(s.px);
-  const py = Math.round(s.py);
-
-  // shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
-  ctx.beginPath();
-  ctx.ellipse(px + 16, py + 24, 10, 4, 0, 0, TAU);
-  ctx.fill();
-
+function drawSheepFallback(s, px, py) {
   // body
   if (s.hasWool) {
     // fluffy
@@ -13965,6 +14002,32 @@ function drawSingleSheep(s) {
   ctx.fillStyle = '#3a2a24';
   ctx.fillRect(px + 14 + headOffsetX, py + 14 + headOffsetY, 1, 2);
   ctx.fillRect(px + 17 + headOffsetX, py + 14 + headOffsetY, 1, 2);
+}
+
+function drawSheep() {
+  // Draw main sheep
+  drawSingleSheep(sheep);
+  // Draw second sheep
+  drawSingleSheep(sheep2);
+}
+
+function drawSingleSheep(s) {
+  if (currentMap !== s.map) return;
+  if (s.isCarried) return;
+
+  // Use pixel position for smooth movement
+  const px = Math.round(s.px);
+  const py = Math.round(s.py);
+
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(px + 16, py + 24, 10, 4, 0, 0, TAU);
+  ctx.fill();
+
+  if (!drawSheepSprite(s, px, py)) {
+    drawSheepFallback(s, px, py);
+  }
 }
 
 function drawPeacock() {
