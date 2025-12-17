@@ -5176,6 +5176,11 @@ function handleFestivalMenuInput(key) {
       completeFestival();
       closeFestivalMenu();
     }
+  } else if (step === 4) {
+    // Festival already complete - allow menu to close gracefully
+    if (key === 'e' || key === 'Enter') {
+      closeFestivalMenu();
+    }
   }
 }
 
@@ -5210,13 +5215,13 @@ function drawFestivalMenuUI() {
   
   // Semi-transparent background
   ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   
   // Panel dimensions
   const panelW = 260;
   const panelH = 200;
-  const panelX = (CANVAS_WIDTH - panelW) / 2;
-  const panelY = (CANVAS_HEIGHT - panelH) / 2;
+  const panelX = (canvas.width - panelW) / 2;
+  const panelY = (canvas.height - panelH) / 2;
   
   // Festive panel background
   ctx.fillStyle = '#4a3060';
@@ -5308,6 +5313,15 @@ function drawFestivalMenuUI() {
     
     ctx.fillStyle = '#ffd700';
     ctx.fillText('→ Begin Ceremony', panelX + 30, panelY + 130);
+  } else if (step === 4) {
+    // Festival completed - show wrap-up message
+    ctx.fillStyle = '#90ee90';
+    ctx.fillText('🎊 Festival Complete!', panelX + 15, panelY + 50);
+    ctx.fillStyle = '#e0e0ff';
+    ctx.fillText('Thank you for making this', panelX + 15, panelY + 75);
+    ctx.fillText('year\'s festival wonderful!', panelX + 15, panelY + 95);
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText('→ Close', panelX + 30, panelY + 130);
   }
   
   // Instructions
