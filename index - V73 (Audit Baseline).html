@@ -2332,52 +2332,6 @@ const FESTIVAL_REQUIREMENTS = {
   decorations: 3
 };
 
-const FESTIVAL_LUXURY_ITEMS = [
-  'luxuryYarn',
-  'luxurySocks',
-  'luxurySocksPlus',
-  'luxuryScarf',
-  'luxuryMittens',
-  'fancyScarf',
-  'royalCloak'
-];
-
-function isFestivalDye(itemId) {
-  return itemId.endsWith('Dye');
-}
-
-function getFestivalDyeCountFromInventory() {
-  return Object.entries(inventory).reduce((sum, [item, count]) => {
-    if (!isFestivalDye(item)) return sum;
-    return sum + (count || 0);
-  }, 0);
-}
-
-function getFestivalLuxuryCountFromInventory() {
-  return FESTIVAL_LUXURY_ITEMS.reduce((sum, item) => sum + (inventory[item] || 0), 0);
-}
-
-function syncFestivalMaterialsFromInventory() {
-  if (!festivalProgress.started) return;
-  const dyes = getFestivalDyeCountFromInventory();
-  const feathers = inventory.feather || 0;
-  const cloth = getFestivalLuxuryCountFromInventory();
-  const r = FESTIVAL_REQUIREMENTS;
-
-  festivalProgress.materialsGathered.dyes = Math.min(
-    r.dyes,
-    Math.max(festivalProgress.materialsGathered.dyes, dyes)
-  );
-  festivalProgress.materialsGathered.feathers = Math.min(
-    r.feathers,
-    Math.max(festivalProgress.materialsGathered.feathers, feathers)
-  );
-  festivalProgress.materialsGathered.cloth = Math.min(
-    r.cloth,
-    Math.max(festivalProgress.materialsGathered.cloth, cloth)
-  );
-}
-
 // Festival reward: 50% discount on fast travel for 10 trips
 let festivalFastTravelDiscount = 0;
 
@@ -2391,20 +2345,21 @@ function startFestival() {
   if (!canStartFestival()) return;
   festivalProgress.started = true;
   festivalProgress.currentStep = 1;
-  syncFestivalMaterialsFromInventory();
   showMessage("🎪 The Festival of Threads has begun! Gather materials to help decorate the village!");
 }
 
 // Check materials in inventory for festival
 function checkFestivalMaterials() {
   // Count dyes
-  const dyeCount = getFestivalDyeCountFromInventory();
+  const dyeCount = (inventory.amberDye || 0) + (inventory.tealDye || 0) + 
+                   (inventory.indigoDye || 0) + (inventory.violetDye || 0);
   
   // Count feathers
   const featherCount = inventory.feather || 0;
   
   // Count luxury items
-  const luxuryCount = getFestivalLuxuryCountFromInventory();
+  const luxuryCount = (inventory.luxuryYarn || 0) + (inventory.luxurySocks || 0) + 
+                      (inventory.fancyScarf || 0) + (inventory.royalCloak || 0);
   
   return {
     dyes: dyeCount,
@@ -2422,7 +2377,7 @@ function donateFestivalMaterials() {
   
   // Donate dyes
   if (festivalProgress.materialsGathered.dyes < FESTIVAL_REQUIREMENTS.dyes) {
-    const dyeTypes = Object.keys(inventory).filter(isFestivalDye);
+    const dyeTypes = ['amberDye', 'tealDye', 'indigoDye', 'violetDye'];
     for (const dye of dyeTypes) {
       while ((inventory[dye] || 0) > 0 && festivalProgress.materialsGathered.dyes < FESTIVAL_REQUIREMENTS.dyes) {
         inventory[dye]--;
@@ -2443,7 +2398,8 @@ function donateFestivalMaterials() {
   
   // Donate luxury cloth
   if (festivalProgress.materialsGathered.cloth < FESTIVAL_REQUIREMENTS.cloth) {
-    for (const item of FESTIVAL_LUXURY_ITEMS) {
+    const luxuryTypes = ['luxuryYarn', 'luxurySocks', 'fancyScarf', 'royalCloak'];
+    for (const item of luxuryTypes) {
       while ((inventory[item] || 0) > 0 && festivalProgress.materialsGathered.cloth < FESTIVAL_REQUIREMENTS.cloth) {
         inventory[item]--;
         festivalProgress.materialsGathered.cloth++;
@@ -2561,7 +2517,8 @@ function trackFestivalMaterial(itemId, amount) {
   if (!festivalProgress.started || festivalProgress.currentStep !== 1) return;
   
   // Track dyes
-  if (isFestivalDye(itemId)) {
+  const dyeItems = ['amberDye', 'tealDye', 'indigoDye', 'crimsonDye', 'goldDye'];
+  if (dyeItems.includes(itemId)) {
     festivalProgress.materialsGathered.dyes = Math.min(
       festivalProgress.materialsGathered.dyes + amount,
       FESTIVAL_REQUIREMENTS.dyes
@@ -2577,7 +2534,7 @@ function trackFestivalMaterial(itemId, amount) {
   }
   
   // Track luxury cloth
-  if (FESTIVAL_LUXURY_ITEMS.includes(itemId)) {
+  if (itemId === 'luxuryCloth') {
     festivalProgress.materialsGathered.cloth = Math.min(
       festivalProgress.materialsGathered.cloth + amount,
       FESTIVAL_REQUIREMENTS.cloth
@@ -2592,22 +2549,9 @@ function trackFestivalMaterial(itemId, amount) {
 
 // Check if gathering phase is complete
 function checkGatheringComplete() {
-  syncFestivalMaterialsFromInventory();
   const g = festivalProgress.materialsGathered;
   const r = FESTIVAL_REQUIREMENTS;
   return g.dyes >= r.dyes && g.feathers >= r.feathers && g.cloth >= r.cloth;
-}
-
-function advanceFestivalPhase() {
-  if (festivalProgress.currentStep === 1 && checkGatheringComplete()) {
-    festivalProgress.currentStep = 2;
-    return true;
-  }
-  if (festivalProgress.currentStep === 2 && festivalProgress.decorationsPlaced >= FESTIVAL_REQUIREMENTS.decorations) {
-    festivalProgress.currentStep = 3;
-    return true;
-  }
-  return false;
 }
 
 // Get festival status text
@@ -5253,7 +5197,7 @@ function handleFestivalMenuInput(key) {
   } else if (step === 3) {
     // Ceremony ready - start ceremony
     if (key === 'e' || key === 'Enter') {
-      startFestivalCeremony();
+      completeFestival();
       closeFestivalMenu();
     }
   } else if (step === 4) {
@@ -5285,12 +5229,7 @@ function placeNextDecoration() {
   const spotIndex = festivalProgress.decorationsPlaced;
   if (spotIndex < decorationSpots.length) {
     festivalProgress.decorationsPlaced++;
-    if (festivalProgress.decorationsPlaced >= FESTIVAL_REQUIREMENTS.decorations) {
-      festivalProgress.currentStep = 3;
-      showMessage("🏮 Decorations complete! Talk to Elder Mara to begin the ceremony.");
-    } else {
-      showMessage(`🎀 Decoration placed! (${festivalProgress.decorationsPlaced}/${FESTIVAL_REQUIREMENTS.decorations})`);
-    }
+    showMessage(`🎀 Decoration placed! (${festivalProgress.decorationsPlaced}/${FESTIVAL_REQUIREMENTS.decorations})`);
   }
 }
 
