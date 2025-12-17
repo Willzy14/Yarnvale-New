@@ -13934,7 +13934,14 @@ function drawGoat() {
 
 function drawSheepSprite(s, px, py) {
   const asset = artAssets.sheepSprite;
-  if (!asset || !asset.loaded || asset.error) return false;
+  if (!asset || asset.error) return false;
+  if (!asset.loaded) {
+    if (asset.image && asset.image.complete && asset.image.naturalWidth > 0) {
+      asset.loaded = true;
+    } else {
+      return false;
+    }
+  }
 
   const facing = s.facing || 'down';
   const rowIndex = SHEEP_SPRITE_ROWS[facing] ?? 0;
