@@ -724,19 +724,20 @@ const SPRITE_CONFIG = {
 };
 
 const SHEEP_SPRITE_CONFIG = {
-  frameWidth: 64,
-  frameHeight: 64,
-  columns: 3,
-  rows: 4,
+  frameWidth: 32,
+  frameHeight: 32,
+  columns: 6,
+  rows: 8,
   idleFrame: 1,
-  animSpeed: 2
+  animSpeed: 2,
+  idleRowOffset: 4
 };
 
 const SHEEP_SPRITE_ROWS = {
   down: 0,
-  left: 1,
-  right: 2,
-  up: 3
+  up: 1,
+  left: 2,
+  right: 3
 };
 
 function createImageAsset(path, options = {}) {
@@ -857,10 +858,10 @@ const artAssets = {
   sheepRight: createImageAsset('Yarnvale Assets/Art/Animals/Sheep Right.png', {
     frameWidth: 128, frameHeight: 128, columns: 1
   }),
-  sheepSprite: createImageAsset('Yarnvale Assets/craftpix-net-291971-free-top-down-animals-farm-pixel-art-sprites/PNG/Without_shadow/Sheep_animation_without_shadow.png', {
-    frameWidth: 64,
-    frameHeight: 64,
-    columns: 3
+  sheepSprite: createImageAsset('Yarnvale Assets/craftpix-net-291971-free-top-down-animals-farm-pixel-art-sprites/PNG/Without_shadow/Sheep_animation_without_shadow.png?v=2', {
+    frameWidth: 32,
+    frameHeight: 32,
+    columns: 6
   }),
   peacockFeather: createImageAsset('Yarnvale Assets/Art/Animals/Peacock Feather.png', {
     frameWidth: 64, frameHeight: 64, columns: 1
@@ -13944,11 +13945,15 @@ function drawSheepSprite(s, px, py) {
   }
 
   const facing = s.facing || 'down';
-  const rowIndex = SHEEP_SPRITE_ROWS[facing] ?? 0;
+  const baseRowIndex = SHEEP_SPRITE_ROWS[facing] ?? 0;
+  const isMoving = !!s.isMoving;
+  const rowIndex = isMoving
+    ? baseRowIndex
+    : baseRowIndex + SHEEP_SPRITE_CONFIG.idleRowOffset;
   const hasWool = (typeof s.hasWool === 'boolean')
     ? s.hasWool
     : (typeof s.hasResource === 'boolean' ? s.hasResource : true);
-  const frameIndex = s.isMoving
+  const frameIndex = isMoving
     ? Math.floor(animationTime * SHEEP_SPRITE_CONFIG.animSpeed) % SHEEP_SPRITE_CONFIG.columns
     : SHEEP_SPRITE_CONFIG.idleFrame;
 
